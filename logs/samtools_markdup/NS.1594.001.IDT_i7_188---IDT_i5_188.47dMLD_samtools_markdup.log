@@ -1,0 +1,4 @@
+[E::hts_open_format] Failed to open file "/ohta2/Rumex/eQTL/DNA/NS.1594.001.IDT_i7_188---IDT_i5_188.47dMLD_R2.fastq.gz" : Permission denied
+samtools fixmate: cannot open output file: Permission denied
+samtools sort: failed to read header from "-"
+[markdup] error reading header

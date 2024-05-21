@@ -4,4 +4,8 @@ duplication_stats/
 index/
 merged_TX_noMatPAR.fa
 logs/
-
+RNAbams/
+STARindex/
+AnalysisReadyBams/
+envs/
+merged_TX_noMatPAR.fa.fai

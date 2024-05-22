@@ -71,6 +71,7 @@ ld_bins <- read.table(paste0(data,"A2.ld_decay_bins"), header =T)
 p2 <- ggplot(ld_bins, aes(distance, avg_R2)) + geom_line() +
   xlab("Distance (bp)") + ylab(expression(italic(r)^2)) + ggtitle("A2")
 ```
+
 ## A3
 ```{r}
 # read in data

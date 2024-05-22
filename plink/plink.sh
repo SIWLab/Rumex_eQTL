@@ -56,7 +56,7 @@ plink --vcf $VCF --double-id --allow-extra-chr \
 python ld_decay_calc.py -i A2.ld.gz -o A2
 
 
-# A4
+# A3
 VCF=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_A3.SNP.filt.vcf.gz
 plink --vcf $VCF --double-id --allow-extra-chr \
 --set-missing-var-ids @:# \
@@ -67,6 +67,20 @@ plink --vcf $VCF --double-id --allow-extra-chr \
 
 python ld_decay_calc.py -i A3.ld.gz -o A3
 
+# A4
+VCF=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_A4.SNP.filt.vcf.gz
+
+plink --vcf $VCF --recode rlist
+
+
+plink --vcf $VCF --ped PEDfile_DNA_eqtl.ped --allow-extra-chr \
+--set-missing-var-ids @:# \
+--maf 0.01 --geno 0.1 --mind 0.5  \
+--thin 0.1 -r2 gz --ld-window 100 --ld-window-kb 1000 \
+--ld-window-r2 0 \
+--make-bed --out A4
+
+python ld_decay_calc.py -i A4.ld.gz -o A4
 
 
 

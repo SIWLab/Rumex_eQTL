@@ -1,0 +1,99 @@
+---
+title: "plink"
+author: "Meng"
+date: "2024-05-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(patchwork)
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/"
+```
+/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/
+
+
+# PCA
+```{r}
+pca <- read.table(paste0(data,"A4.eigenvec"))
+eigenval <- scan(paste0(data,"A4.eigenval"))
+# sort out the pca data
+# remove nuisance column
+pca <- pca[,-1]
+# set names
+names(pca)[1] <- "ind"
+names(pca)[2:ncol(pca)] <- paste0("PC", 1:(ncol(pca)-1))
+
+# sort out the individual species and pops
+# spp
+sex <- rep(NA, length(pca$ind))
+sex[grep("FLD", pca$ind)] <- "female"
+sex[grep("MLD", pca$ind)] <- "male"
+
+pca <- data.frame(pca, sex)
+```
+
+```{r}
+pve <- data.frame(PC = 1:20, pve = eigenval/sum(eigenval)*100)
+cumsum(pve$pve)
+# make plot
+a <- ggplot(pve, aes(PC, pve)) + geom_bar(stat = "identity")
+a + ylab("Percentage variance explained") + theme_light()
+```
+```{r}
+# plot pca
+b <- ggplot(pca, aes(PC1, PC2, col = sex)) + geom_point(size = 3)
+b <- b + scale_colour_manual(values = c("red", "blue"))
+b <- b + coord_equal() + theme_light()
+b + xlab(paste0("PC1 (", signif(pve$pve[1], 3), "%)")) + ylab(paste0("PC2 (", signif(pve$pve[2], 3), "%)"))
+```
+
+# LD decay
+
+## A1
+```{r}
+# read in data
+ld_bins <- read.table(paste0(data,"A1.ld_decay_bins"), header =T)
+
+# plot LD decay
+p1 <- ggplot(ld_bins, aes(distance, avg_R2)) + geom_line() +
+  xlab("Distance (bp)") + ylab(expression(italic(r)^2)) + ggtitle("A1")
+```
+
+## A2
+```{r}
+# read in data
+ld_bins <- read.table(paste0(data,"A2.ld_decay_bins"), header =T)
+
+# plot LD decay
+p2 <- ggplot(ld_bins, aes(distance, avg_R2)) + geom_line() +
+  xlab("Distance (bp)") + ylab(expression(italic(r)^2)) + ggtitle("A2")
+```
+## A3
+```{r}
+# read in data
+ld_bins <- read.table(paste0(data,"A3.ld_decay_bins"), header =T)
+
+# plot LD decay
+p3 <- ggplot(ld_bins, aes(distance, avg_R2)) + geom_line() +
+  xlab("Distance (bp)") + ylab(expression(italic(r)^2)) + ggtitle("A3")
+```
+
+
+## A4
+```{r}
+# read in data
+ld_bins <- read.table(paste0(data,"A4.ld_decay_bins"), header =T)
+
+# plot LD decay
+p4 <- ggplot(ld_bins, aes(distance, avg_R2)) + geom_line() +
+  xlab("Distance (bp)") + ylab(expression(italic(r)^2)) + ggtitle("A4")
+```
+
+```{r}
+p1 + p2 + p3 + p4 + plot_layout(nrow=2)
+```
+
+

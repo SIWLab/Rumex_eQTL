@@ -171,12 +171,48 @@ write.table(normalized_counts_MLn, file = paste0(data,"normalized_counts_MLn.bed
 
 ## separate chroms at last
 ```{r}
+colnames(normalized_counts_MPn)[1] <- "chrom"
+colnames(normalized_counts_MLn)[1] <- "chrom"
 normalized_counts_MPn_A4 <- normalized_counts_MPn %>% filter(chrom == "A4") 
 normalized_counts_MLn_A4 <- normalized_counts_MLn %>% filter(chrom == "A4")
 
-write.table(normalized_counts_MPn_A4, file = paste0(data,"normalized_counts_MPn_A4.txt"), row.names = FALSE, quote = F)
-write.table(normalized_counts_MLn_A4, file = paste0(data,"normalized_counts_MLn_A4.txt"), row.names = FALSE, quote = F)
+colnames(normalized_counts_MLn_A4)[1] <- "#chr"
+colnames(normalized_counts_MPn_A4)[1] <- "#chr"
+write.table(normalized_counts_MPn_A4, file = paste0(data,"normalized_counts_MPn_A4.bed"), row.names = FALSE, quote = F, sep = "\t")
+write.table(normalized_counts_MLn_A4, file = paste0(data,"normalized_counts_MLn_A4.bed"), row.names = FALSE, quote = F, sep = "\t")
 
+```
+
+# combine pollen and leaf expression, add covariate
+next steps
+double the phenotype ids?
+```{r}
+qn <- function(x){qqnorm(x, plot.it=FALSE)$x}
+# quantile normalize, now columns genes, rows are inds
+normalized_counts_n = apply(normalized_counts_MP[,-1], 1, qn)
+normalized_counts_n <- as.data.frame(t(normalized_counts_n))
+normalized_counts_n <- cbind(normalized_counts_MP[,1], normalized_counts_n)
+colnames(normalized_counts_n) <- colnames(normalized_counts_MP)
+
+normalized_counts_n <- inner_join(gff_full, normalized_counts_n, by = "gene")
+
+# sort sample id
+normalized_counts_n <- normalized_counts_n %>%
+  select(1:4, sort(names(normalized_counts_n)[5:77]), everything())
+
+#sort start pos for each chrom
+normalized_counts_n <- normalized_counts_n %>%
+  arrange(chrom, start) 
+
+# remove extra letter in sample id (L or P)
+# need to think about this
+col <- colnames(normalized_counts_n)
+col <- str_replace(col, "ML$", "M")
+colnames(normalized_counts_n) <- col
+
+colnames(normalized_counts_n)[1] <- "#chr"
+colnames(normalized_counts_n)[4] <- "gene_id"
+write.table(normalized_counts_n, file = paste0(data,"normalized_counts_n.bed"), row.names = FALSE, quote = F, sep = "\t")
 ```
 
 

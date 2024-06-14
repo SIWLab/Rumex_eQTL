@@ -38,6 +38,10 @@ bcftools reheader ${VCF} --threads 20 -s samples.txt \
 bcftools reheader ${VCF} --threads 20 -s samples.txt \
 | bcftools view -S FLD.txt | bgzip -c > ${VCF_OUT2} 
 
+# need to generate a VCF with both sexes and with sample ids sorted
+bcftools reheader ${VCF} --threads 20 -s samples.txt \
+| bcftools view -S MLD_FLD.txt | bgzip -c > ${VCF_OUT} 
+
 
 # use A4 as an example
 CHROM="A4"

@@ -34,8 +34,8 @@ readcnt_leaf <- readcnt_leaf %>%
 readcnt_leaf_m <- readcnt_leaf %>% select(ends_with("M"))
 readcnt_leaf_f <- readcnt_leaf %>% select(ends_with("F"))
 
-#write.table(colnames(readcnt_leaf_m), file = paste0(data, "colname_m.txt"), quote = F, row.names = F)
-#write.table(colnames(readcnt_leaf_f), file = paste0(data, "colname_f.txt"), quote = F, row.names = F)
+write.table(colnames(readcnt_leaf_m), file = paste0(data, "colname_m.txt"), quote = F, row.names = F)
+write.table(colnames(readcnt_leaf_f), file = paste0(data, "colname_f.txt"), quote = F, row.names = F)
 
 # remove 35aMLR (might be female), 40aF (might be male)
 # remove 24fM (low genomic coverage)
@@ -205,5 +205,8 @@ normalized_counts_ln <- normalized_counts_ln %>%
 colnames(normalized_counts_ln)[1] <- "#chr"
 colnames(normalized_counts_ln)[4] <- "gene_id"
 write.table(normalized_counts_ln, file = paste0(data,"normalized_counts_ln.bed"), row.names = FALSE, quote = F, sep = "\t")
+
+write.table(colnames(normalized_counts_ln), file = paste0(data, "colname_mf.txt"), quote = F, row.names = F)
+
 ```
 

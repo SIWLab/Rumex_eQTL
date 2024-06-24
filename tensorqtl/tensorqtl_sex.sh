@@ -7,7 +7,16 @@ plink --vcf $VCF --double-id --allow-extra-chr  \
 --hwe 1e-6 --biallelic-only strict \
 --make-bed --out sex
 
+# 65912121 variants loaded from .bim file.
+# Total genotyping rate is 0.936615.
+# 0 variants removed due to missing genotype data (--geno).
+# --hwe: 187950 variants removed due to Hardy-Weinberg exact test.
+# 62072649 variants removed due to minor allele threshold(s)
+# 3651522 variants and 149 people pass filters and QC.
 
+
+#
+covariate_sex.txt
 
 # phenotype file
 bgzip normalized_counts_ln.bed && tabix -p bed normalized_counts_ln.bed.gz
@@ -28,3 +37,4 @@ python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
 python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
     --covariates ${covariates_file} \
     --mode cis_nominal --window 20000
+

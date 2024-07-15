@@ -42,6 +42,7 @@ python ld_decay_calc_new.py -i A4.ld.gz -o A4
 
 
 # pop structure, PCA
+# test one example
 # perform linkage pruning - i.e. identify prune sites
 VCF=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_A4.SNP.filt.vcf.gz
 plink --vcf $VCF --double-id --allow-extra-chr \
@@ -53,19 +54,39 @@ plink --vcf $VCF --double-id --allow-extra-chr --set-missing-var-ids @:# \
 --extract A4.prune.in \
 --make-bed --pca --out A4
 
+# LD prunning and pca
+for i in "ML" "FL" "MP" "sex"
+do 
+plink --bfile ${i} --indep-pairwise 200 50 0.1 --allow-extra-chr --out ${i}
+
+plink --bfile ${i} --double-id --allow-extra-chr --set-missing-var-ids @:# \
+--extract ${i}.prune.in --pca --out ${i}
+done
+
+
+i="ML"
+plink --bfile ${i} --double-id --allow-extra-chr --set-missing-var-ids @:# \
+--extract ${i}.prune.in --pca --neighbour 1 5 --out ${i}
+
+
 # related matrix
+# test one example
 VCF=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_A4.SNP.filt.vcf.gz
 
 plink --vcf $VCF --double-id --allow-extra-chr \
 --set-missing-var-ids @:# \
 --maf 0.01 --geno 0.1 --mind 0.5  \
 --genome \
---make-bed --out A4
+--make-bed --out A4_freq
+
+# .rel
+plink --bfile A4_freq --make-rel triangle --allow-extra-chr
+# grm
+plink --bfile A4_freq -make-grm-gz no-gz --allow-extra-chr
 
 
-
-
-
-
-
-
+for i in "ML" "FL" "MP" "sex"
+do 
+plink --bfile ${i} --make-rel triangle --allow-extra-chr --out ${i}
+plink --bfile ${i} -make-grm-gz no-gz --allow-extra-chr --out ${i}
+done

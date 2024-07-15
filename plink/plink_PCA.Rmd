@@ -11,14 +11,14 @@ library(dplyr)
 library(tidyr)
 library(stringr)
 library(patchwork)
-data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/"
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/plink/"
 ```
 
 
 # PCA
 ```{r}
-pca <- read.table(paste0(data,"A4.eigenvec"))
-eigenval <- scan(paste0(data,"A4.eigenval"))
+pca <- read.table(paste0(data,"sex.eigenvec"))
+eigenval <- scan(paste0(data,"sex.eigenval"))
 # sort out the pca data
 # remove nuisance column
 pca <- pca[,-1]
@@ -29,8 +29,8 @@ names(pca)[2:ncol(pca)] <- paste0("PC", 1:(ncol(pca)-1))
 # sort out the individual species and pops
 # spp
 sex <- rep(NA, length(pca$ind))
-sex[grep("FLD", pca$ind)] <- "female"
-sex[grep("MLD", pca$ind)] <- "male"
+sex[grep("F", pca$ind)] <- "female"
+sex[grep("M", pca$ind)] <- "male"
 
 pca <- data.frame(pca, sex)
 ```
@@ -42,6 +42,10 @@ cumsum(pve$pve)
 a <- ggplot(pve, aes(PC, pve)) + geom_bar(stat = "identity")
 a + ylab("Percentage variance explained") + theme_light()
 ```
+ [1]   6.360536  12.228722  17.830549  23.204612  28.529886  33.639426
+ [7]  38.733896  43.690294  48.617882  53.506370  58.366490  63.156672
+[13]  67.930390  72.651109  77.310217  81.927154  86.538075  91.048189
+[19]  95.545798 100.000000
 
 ```{r}
 # plot pca
@@ -49,6 +53,55 @@ b <- ggplot(pca, aes(PC1, PC2, col = sex)) + geom_point(size = 3)
 b <- b + scale_colour_manual(values = c("red", "blue"))
 b <- b + coord_equal() + theme_light()
 b + xlab(paste0("PC1 (", signif(pve$pve[1], 3), "%)")) + ylab(paste0("PC2 (", signif(pve$pve[2], 3), "%)"))
+```
+## separate
+```{r}
+pca <- read.table(paste0(data,"MP.eigenvec"))
+eigenval <- scan(paste0(data,"MP.eigenval"))
+# sort out the pca data
+# remove nuisance column
+pca <- pca[,-1]
+# set names
+names(pca)[1] <- "ind"
+names(pca)[2:ncol(pca)] <- paste0("PC", 1:(ncol(pca)-1))
+
+pve <- data.frame(PC = 1:20, pve = eigenval/sum(eigenval)*100)
+cumsum(pve$pve)
+# make plot
+a <- ggplot(pve, aes(PC, pve)) + geom_bar(stat = "identity")
+a + ylab("Percentage variance explained") + theme_light()
+
+# plot pca
+ggplot(pca, aes(PC1, PC2, label=ind)) + geom_point(size = 3) + coord_equal() + theme_light() + xlab(paste0("PC1 (", signif(pve$pve[1], 3), "%)")) + ylab(paste0("PC2 (", signif(pve$pve[2], 3), "%)")) + geom_text(hjust=0, vjust=0)
+```
+
+add the first 5 PCs as covariates
+```{r}
+# same for MP ML FL
+pca <- read.table(paste0(data,"FL.eigenvec"))
+pca <- pca[,-1]
+names(pca)[1] <- "id"
+names(pca)[2:ncol(pca)] <- paste0("PC", 1:(ncol(pca)-1))
+pca <- pca[,1:6]
+pca <- t(pca)
+write.table(pca, file = paste0(data, "covariate_FL_pc.txt"), quote = F, row.names = T, col.names = F, sep = "\t")
+
+# sex
+pca <- read.table(paste0(data,"sex.eigenvec"))
+pca <- pca[,-1]
+names(pca)[1] <- "id"
+names(pca)[2:ncol(pca)] <- paste0("PC", 1:(ncol(pca)-1))
+pca <- pca[,1:6]
+pca <- t(pca)
+write.table(pca, file = paste0(data, "covariate_sex_pc.txt"), quote = F, row.names = T, col.names = F, sep = "\t")
+
+sex_cov <- read.table(paste0(data, "covariate_sex_pc.txt"))
+sex_cov2 <- read.table(paste0(data, "covariate_sex.txt"))
+
+sex_cov <- rbind(sex_cov, sex_cov2)
+sex_cov <- sex_cov[-7,]
+
+write.table(sex_cov, file = paste0(data, "covariate_sex_pc.txt"), quote = F, row.names = F, col.names = F, sep = "\t")
 ```
 
 

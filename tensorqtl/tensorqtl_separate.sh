@@ -1,4 +1,7 @@
 # genotype data for males
+
+vcftools --vcf my_file.vcf --freq --out my_freq_out_file 
+
 # HWE MAF 5%, missing lower 20%
 #
 for i in "ML" "FL" "MP"
@@ -32,7 +35,7 @@ bgzip normalized_counts_mpn.bed && tabix -p bed normalized_counts_mpn.bed.gz
 plink_prefix_path=/ohta2/meng.yuan/rumex/eqtl/plink/ML
 expression_bed=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/normalized_counts_mln.bed.gz
 prefix=ML
-covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_ML.txt
+covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_ML_pc.txt
 
 # cis-QTL mapping: permutations
 python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
@@ -72,22 +75,22 @@ python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
 plink_prefix_path=/ohta2/meng.yuan/rumex/eqtl/plink/FL
 expression_bed=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/normalized_counts_fln.bed.gz
 prefix=FL
-covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_FL.txt
+covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_FL_pc.txt
 
 # cis-QTL mapping: permutations
 python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
     --covariates ${covariates_file} \
     --mode cis --window 20000
 
-  * 74 samples
-  * 14804 phenotypes
-  * 0 covariates
-  * 4509904 variants
-  * cis-window: ±20,000
-  * checking phenotypes: 14804/14804
-    ** dropping 71 phenotypes without variants in cis-window
-  * computing permutations
-    processing phenotype 14733/14733
+  # * 74 samples
+  # * 14804 phenotypes
+  # * 0 covariates
+  # * 4509904 variants
+  # * cis-window: ±20,000
+  # * checking phenotypes: 14804/14804
+  #   ** dropping 71 phenotypes without variants in cis-window
+  # * computing permutations
+  #   processing phenotype 14733/14733
 
 # cis-QTL mapping: summary statistics for all variant-phenotype pairs
 python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
@@ -123,7 +126,7 @@ python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
 plink_prefix_path=/ohta2/meng.yuan/rumex/eqtl/plink/MP
 expression_bed=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/normalized_counts_mpn.bed.gz
 prefix=MP
-covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_MP.txt
+covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_MP_pc.txt
 
 # cis-QTL mapping: permutations
 python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
@@ -156,13 +159,6 @@ python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
   #   * writing output
   #   Mapping chromosome A4
   #   processing phenotype 13794/13794
-
-# cis-QTL mapping: conditionally independent QTLs
-# python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
-#     --covariates ${covariates_file} \
-#     --cis_output ${prefix}.cis_qtl.txt.gz \
-#     --mode cis_independent
-
 
 
 

@@ -1,0 +1,356 @@
+---
+title: "permutation"
+author: "Meng"
+date: "2024-06-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(arrow)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
+```
+
+
+# permutations, empirical p-values for phenotypes
+phenotype-level summary statistics with empirical p-values, enabling calculation of genome-wide FDR
+
+## histogram of empirical p values for phenotypes
+use beta-approximated p-values pval_beta
+```{r}
+ML <- read.table(paste0(data, "ML.cis_qtl.txt"), header = T) # 14658
+FL <- read.table(paste0(data, "FL.cis_qtl.txt"), header = T) # 14733
+MP <- read.table(paste0(data, "MP.cis_qtl.txt"), header = T) # 13794
+
+hist(ML$pval_beta, nclass = 20)
+hist(FL$pval_beta, nclass = 20)
+hist(MP$pval_beta, nclass = 20)
+
+qval_ML <- qvalue(ML$pval_beta)
+qval_FL <- qvalue(FL$pval_beta)
+qval_MP <- qvalue(MP$pval_beta)
+
+summary(qval_ML)
+p1 <- hist(qval_ML)
+
+summary(qval_FL)
+p2 <- hist(qval_FL)
+
+summary(qval_MP)
+p3 <- hist(qval_MP)
+
+p1 + p2 + p3 + plo
+```
+Call:
+qvalue(p = ML$pval_beta)
+
+pi0:	0.4482977	
+
+Cumulative number of significant calls:
+
+          <1e-04 <0.001 <0.01 <0.025 <0.05 <0.1    <1
+p-value      605   1084  2131   2872  3748 4967 14658
+q-value      328    591  1334   1912  2662 4075 14658
+local FDR    225    387   803   1129  1526 2203 14649
+
+
+Call:
+qvalue(p = FL$pval_beta)
+
+pi0:	0.4428507	
+
+Cumulative number of significant calls:
+
+          <1e-04 <0.001 <0.01 <0.025 <0.05 <0.1    <1
+p-value      720   1208  2234   2972  3835 5083 14733
+q-value      417    741  1501   2120  2853 4260 14733
+local FDR    264    494   923   1286  1674 2263 14733
+
+
+Call:
+qvalue(p = MP$pval_beta)
+
+pi0:	0.601221	
+
+Cumulative number of significant calls:
+
+          <1e-04 <0.001 <0.01 <0.025 <0.05 <0.1    <1
+p-value      468    796  1562   2144  2836 3896 13794
+q-value      218    415   785   1103  1511 2192 13794
+local FDR    144    268   490    659   877 1213 13794
+
+## extract q values and pval_nominal_threshold
+```{r}
+calculate_qvalues <- function(res_df, fdr = 0.1, qvalue_lambda = NULL) {
+  # Number of phenotypes tested
+  num_phenotypes <- nrow(res_df)
+  cat(sprintf("Number of phenotypes tested: %d\n", num_phenotypes))
+  
+  # Determine which p-value column to use
+  if ("pval_beta" %in% colnames(res_df) && !all(is.na(res_df$pval_beta))) {
+    pval_col <- "pval_beta"
+    correlation <- cor(res_df$pval_perm, res_df$pval_beta, use = "complete.obs")
+    cat(sprintf("Correlation between Beta-approximated and empirical p-values: %.4f\n", correlation))
+  } else {
+    pval_col <- "pval_perm"
+    cat("WARNING: no beta-approximated p-values found, using permutation p-values instead.\n")
+  }
+  
+  # Calculate q-values
+  if (!is.null(qvalue_lambda)) {
+    cat(sprintf("Calculating q-values with lambda = %.3f\n", qvalue_lambda))
+    qobj <- qvalue(res_df[[pval_col]], lambda = qvalue_lambda)
+  } else {
+    qobj <- qvalue(res_df[[pval_col]])
+  }
+  
+  res_df$qval <- qobj$qvalues
+  pi0 <- qobj$pi0
+  cat(sprintf("Proportion of significant phenotypes (1-pi0): %.2f\n", 1 - pi0))
+  cat(sprintf("QTL phenotypes @ FDR %.2f: %d\n", fdr, sum(res_df$qval <= fdr)))
+  
+  # Determine global min(p) significance threshold and calculate nominal p-value threshold for each gene
+  if (pval_col == "pval_beta") {
+    lb <- sort(res_df[res_df$qval <= fdr, "pval_beta"])
+    ub <- sort(res_df[res_df$qval > fdr, "pval_beta"])
+    
+    if (length(lb) > 0) {
+      lb <- tail(lb, 1)
+      if (length(ub) > 0) {
+        ub <- head(ub, 1)
+        pthreshold <- (lb + ub) / 2
+      } else {
+        pthreshold <- lb
+      }
+      cat(sprintf("min p-value threshold @ FDR %.2f: %.6g\n", fdr, pthreshold))
+      res_df$pval_nominal_threshold <- qbeta(pthreshold, res_df$beta_shape1, res_df$beta_shape2)
+    }
+  }
+  
+  return(res_df)
+}
+
+ML <- calculate_qvalues(ML)
+FL <- calculate_qvalues(FL)
+MP <- calculate_qvalues(MP)
+
+```
+ML
+Number of phenotypes tested: 14658
+Correlation between Beta-approximated and empirical p-values: 1.0000
+Proportion of significant phenotypes (1-pi0): 0.55
+QTL phenotypes @ FDR 0.05: 2662
+min p-value threshold @ FDR 0.05: 0.0202564
+
+FL
+Number of phenotypes tested: 14733
+Correlation between Beta-approximated and empirical p-values: 1.0000
+Proportion of significant phenotypes (1-pi0): 0.56
+QTL phenotypes @ FDR 0.05: 2853
+min p-value threshold @ FDR 0.05: 0.0218665
+
+MP
+Number of phenotypes tested: 13794
+Correlation between Beta-approximated and empirical p-values: 1.0000
+Proportion of significant phenotypes (1-pi0): 0.40
+QTL phenotypes @ FDR 0.05: 1511
+min p-value threshold @ FDR 0.05: 0.00910948
+
+ML 14658 tested, 4075 (q < 0.1), 2662 (q < 0.05)
+FL 14733 tested, 4260 (q < 0.1), 2853 (q < 0.05)
+MP 13794 tested, 2192 (q < 0.1), 1511 (q < 0.05)
+
+## extract eGenes
+To obtain eGene as FDR 10%, we can collect all genes with qval smaller than 0.1
+```{r}
+ML_egene <- ML %>% filter(qval < 0.1) # 4075
+
+sum(ML_egene$num_var) # 457888
+
+FL_egene <- FL %>% filter(qval < 0.1) # 4260
+
+MP_egene <- MP %>% filter(qval < 0.1) # 2192
+
+# Venn of egenes
+write.csv(MP_egene, file = paste0(data, "MP_egene.csv"), row.names = F, quote = F)
+write.csv(ML_egene, file = paste0(data, "ML_egene.csv"), row.names = F, quote = F)
+write.csv(FL_egene, file = paste0(data, "FL_egene.csv"), row.names = F, quote = F)
+
+write.table(MP_egene$phenotype_id, file = paste0(data, "MP_egene.txt"), row.names = F, quote = F, col.names = F)
+write.table(ML_egene$phenotype_id, file = paste0(data, "ML_egene.txt"), row.names = F, quote = F, col.names = F)
+write.table(FL_egene$phenotype_id, file = paste0(data, "FL_egene.txt"), row.names = F, quote = F, col.names = F)
+```
+
+
+## check out the most significant phenotype & its most significant eQTL
+```{r}
+ML_A1 <- read_parquet(paste0(data,"ML.cis_qtl_pairs.A1.parquet"))
+ML_A2 <- read_parquet(paste0(data,"ML.cis_qtl_pairs.A2.parquet"))
+ML_A3 <- read_parquet(paste0(data,"ML.cis_qtl_pairs.A3.parquet"))
+ML_A4 <- read_parquet(paste0(data,"ML.cis_qtl_pairs.A4.parquet"))
+
+ML_eqtl <- rbind(ML_A1, ML_A2, ML_A3, ML_A4) # 1413340
+sum(ML$num_var) # 1413340
+
+TX_paternal_00006106_eqtl <- ML_A1 %>% filter(phenotype_id == "TX_paternal_00006106")
+
+TX_paternal_00006106_eqtl <- TX_paternal_00006106_eqtl %>% arrange(pval_nominal) 
+
+TX_paternal_00006106_eqtl[1,]
+
+TX_paternal_00006106_egene <- ML %>% filter(phenotype_id == "TX_paternal_00006106")
+
+egene <- TX_paternal_00006106_egene %>% select(c("phenotype_id","variant_id","start_distance","af","ma_samples","ma_count","pval_nominal", "slope","slope_se" )) 
+
+egene <- rbind(egene, TX_paternal_00006106_eqtl[1,])
+
+# colnames(TX_paternal_00006106_egene)
+# colnames(ML)
+```
+
+```{r}
+FL_A1 <- read_parquet(paste0(data,"FL.cis_qtl_pairs.A1.parquet"))
+FL_A2 <- read_parquet(paste0(data,"FL.cis_qtl_pairs.A2.parquet"))
+FL_A3 <- read_parquet(paste0(data,"FL.cis_qtl_pairs.A3.parquet"))
+FL_A4 <- read_parquet(paste0(data,"FL.cis_qtl_pairs.A4.parquet"))
+
+FL_eqtl <- rbind(FL_A1, FL_A2, FL_A3, FL_A4) # 1706960
+sum(FL$num_var) # 1706960
+
+MP_A1 <- read_parquet(paste0(data,"MP.cis_qtl_pairs.A1.parquet"))
+MP_A2 <- read_parquet(paste0(data,"MP.cis_qtl_pairs.A2.parquet"))
+MP_A3 <- read_parquet(paste0(data,"MP.cis_qtl_pairs.A3.parquet"))
+MP_A4 <- read_parquet(paste0(data,"MP.cis_qtl_pairs.A4.parquet"))
+
+MP_eqtl <- rbind(MP_A1, MP_A2, MP_A3, MP_A4) # 1249621
+sum(MP$num_var) # 1249621
+
+```
+
+
+## extract expression from phenotype file and snp info from VCF for TX_paternal_00006106 A1:274220346
+```{r}
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/"
+normalized_counts_mln <- read.table(paste0(data,"normalized_counts_mln.txt"), header = T)
+
+expr <- normalized_counts_mln %>% filter(gene_id == "TX_paternal_00006106")
+
+geno <- read.table(paste0(data,"A1_274220346.txt"), header = T)
+
+pheno <- expr[,c(5:79)]
+geno1 <- geno[,c(5:79)]
+
+eqtl <- rbind(geno1,pheno)
+
+eqtl <- t(eqtl)
+eqtl <- as.data.frame(eqtl)
+
+eqtl <- eqtl %>% mutate(id = row.names(eqtl))
+colnames(eqtl) <- c("genotype", "phenotype", "id")
+
+eqtl$genotype <- factor(eqtl$genotype)
+eqtl$phenotype <- as.numeric(eqtl$phenotype)
+
+ggplot(eqtl, aes(x=genotype, y=phenotype)) + 
+  geom_boxplot() + theme_classic()+ geom_jitter(shape=16, position=position_jitter(0.2), colour = "red")
+```
+
+```{r}
+table(eqtl$genotype)
+
+write.csv(TX_paternal_00006106_eqtl_sig, file = paste0(data,"TX_paternal_00006106_eqtl_sig.csv"), quote = F)
+
+```
+
+
+
+## check distance to TSS and number of cis-eQTLs
+−log(p)on y-axis and distance to TSS on x-axis. And put a harizontal line indicating the corresponing pval_nominal_threshold of the gene.
+```{r}
+TX_paternal_00006106_eqtl_full <- inner_join(TX_paternal_00006106_eqtl, ML[,c(1,16:19)], by = "phenotype_id") 
+
+#TX_paternal_00006106_eqtl_sig <- TX_paternal_00006106_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold)
+
+head(TX_paternal_00006106_eqtl_full)
+
+
+p1 <- ggplot(TX_paternal_00006106_eqtl_full, aes(x=start_distance, y=-log(pval_nominal))) + geom_point() + theme_classic() + geom_hline(yintercept=-log(0.0004534847)) + ggtitle("TX_paternal_00006106")
+
+p2 <- ggplot(TX_paternal_00006106_eqtl_full, aes(x=abs(start_distance), y=-log(pval_nominal))) + geom_point() + theme_classic() + geom_hline(yintercept=-log(0.0004534847)) + ggtitle("TX_paternal_00006106")
+
+
+gene1 <- ML_eqtl_full %>% filter(phenotype_id == "TX_paternal_00001808")
+
+p3 <- ggplot(gene1, aes(x=abs(start_distance), y=-log(pval_nominal))) + geom_point() + theme_classic() + geom_hline(yintercept=-log(0.0003248906)) + ggtitle("TX_paternal_00001808")
+
+p4 <- ggplot(gene1, aes(x=start_distance, y=-log(pval_nominal))) + geom_point() + theme_classic() + geom_hline(yintercept=-log(0.0003248906)) + ggtitle("TX_paternal_00001808")
+
+p1 + p2 + p3 + p4 + plot_layout(nrow = 2)
+```
+
+
+
+
+
+
+
+
+## extract FDR-corrected significant eQTLs
+To obtain cis-eQTL for these eGenes, we can collect all variant/gene pairs with pval_nominal (reported in cis_nominal run) smaller than pval_nominal_threshold.
+```{r}
+ML_eqtl_full <- inner_join(ML_eqtl, ML[,c(1,16:19)], by = "phenotype_id") # 1413340
+#ML_eqtl_full <- inner_join(ML_eqtl, ML_egene[,c(1,16:19)], by = "phenotype_id") # same result
+ML_eqtl_sig <- ML_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold) # 23769
+
+
+FL_eqtl_full <- inner_join(FL_eqtl, FL[,c(1,16:19)], by = "phenotype_id") # 1706960
+FL_eqtl_sig <- FL_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold) # 32397
+
+
+MP_eqtl_full <- inner_join(MP_eqtl, MP[,c(1,16:19)], by = "phenotype_id") # 1249621 
+MP_eqtl_sig <- MP_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold) # 12224
+
+```
+```{r}
+ML_eqtl_sig <- ML_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
+FL_eqtl_sig <- FL_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
+MP_eqtl_sig <- MP_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
+
+
+write.table(ML_eqtl_sig, file = paste0(data, "ML_eqtl_sig.txt"), row.names = F, quote = F, sep = "\t")
+write.table(FL_eqtl_sig, file = paste0(data, "FL_eqtl_sig.txt"), row.names = F, quote = F, sep = "\t")
+write.table(MP_eqtl_sig, file = paste0(data, "MP_eqtl_sig.txt"), row.names = F, quote = F, sep = "\t")
+
+write.csv(ML_eqtl_sig, file = paste0(data, "ML_eqtl_sig.csv"), row.names = F, quote = F)
+write.csv(FL_eqtl_sig, file = paste0(data, "FL_eqtl_sig.csv"), row.names = F, quote = F)
+write.csv(MP_eqtl_sig, file = paste0(data, "MP_eqtl_sig.csv"), row.names = F, quote = F)
+
+write.csv(ML_eqtl_full, file = paste0(data, "ML_eqtl_full.csv"), row.names = F, quote = F)
+write.csv(FL_eqtl_full, file = paste0(data, "FL_eqtl_full.csv"), row.names = F, quote = F)
+write.csv(MP_eqtl_full, file = paste0(data, "MP_eqtl_full.csv"), row.names = F, quote = F)
+```
+
+
+## number of SNPs per gene
+
+tested
+```{r}
+p1 <- ggplot(ML, aes(x=num_var)) + geom_histogram(binwidth=1) + theme_classic() + ggtitle("Male leaf")
+p2 <- ggplot(FL, aes(x=num_var)) + geom_histogram(binwidth=1) + theme_classic() + ggtitle("Female leaf")
+p3 <- ggplot(MP, aes(x=num_var)) + geom_histogram(binwidth=1) + theme_classic() + ggtitle("Pollen")
+
+p1 + p2 + p3
+```
+
+
+significant
+```{r}
+p4 <- ggplot(ML_egene, aes(x=num_var)) + geom_histogram(binwidth=1) + theme_classic() + ggtitle("Male leaf")
+p5 <- ggplot(FL_egene, aes(x=num_var)) + geom_histogram(binwidth=1) + theme_classic() + ggtitle("Female leaf")
+p6 <- ggplot(MP_egene, aes(x=num_var)) + geom_histogram(binwidth=1) + theme_classic() + ggtitle("Pollen")
+
+p1 + p2 + p3 + p4 + p5 + p6 + plot_layout(nrow =2)
+```
+

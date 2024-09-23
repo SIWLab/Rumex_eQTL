@@ -1,0 +1,295 @@
+---
+title: "pollen and leaf expression"
+author: "Meng"
+date: "2024-05-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(dplyr)
+library("DESeq2")
+library('RColorBrewer')
+library("stringr")
+library(VennDiagram)
+library(rattle)
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/"
+```
+
+# deseq2
+## prep dataset
+```{r}
+readcnt_pollen <- read.table(paste0(data,"rhastTXeQTLrna_pollen.txt"), header = T)
+readcnt_leaf <- read.table(paste0(data,"rhastTXeQTLrna.txt"), header = T)
+head(readcnt_leaf)
+
+meta_data <- data.frame(colnames(readcnt_leaf))
+colnames(meta_data) <- "id"
+sex <- rep(NA, length(meta_data$id))
+sex[grep("MLR", meta_data$id)] <- "male"
+meta_data <- data.frame(meta_data, sex)
+meta_data$index <- seq.int(nrow(meta_data))
+
+# extract only male leaf samples
+l_m <- meta_data %>% filter(sex == "male") %>% select(index)
+readcnt_leaf <- readcnt_leaf[,t(l_m)]
+
+readcnt <- cbind(readcnt_pollen, readcnt_leaf)
+write.table(readcnt, file = paste0(data,"rhastTXeQTLrna_pollenleaf.txt"), quote = F, row.names = F)
+```
+
+
+```{r}
+readcnt <- read.table(paste0(data,"rhastTXeQTLrna_pollenleaf.txt"), header = T)
+
+#remove 35aMLR (might be female)
+col <- data.frame(colnames(readcnt))
+readcnt <- readcnt[,-93]
+
+readcnt$all_mean <- rowMeans(readcnt[,c(7:157)])
+readcnt <- readcnt %>% filter(all_mean >= 5) # 20256
+
+
+head(readcnt)
+readcnt_matrix<-as.matrix(readcnt[ , -c(1:6, 158)]) 
+rownames(readcnt_matrix) <- readcnt[ , 1]
+str(readcnt_matrix)
+meta_data <- data.frame(colnames(readcnt_matrix))
+
+colnames(meta_data) <- "id"
+tissue <- rep(NA, length(meta_data$id))
+tissue[grep("MLR", meta_data$id)] <- "leaf"
+tissue[grep("MPR", meta_data$id)] <- "pollen"
+meta_data <- data.frame(meta_data, tissue)
+rownames(meta_data) <- meta_data[,1]
+head(meta_data)
+#write.table(meta_data, file = paste0(data,"meta_data.txt"), quote = F, row.names = F)
+#meta_data <- read.table(paste0(data,"meta_data.txt"), header = T)
+rownames(meta_data) <- meta_data[,1]
+```
+
+## run deseq2
+```{r}
+dds_tissue <- DESeqDataSetFromMatrix(countData = readcnt_matrix, 
+                              colData = meta_data,
+                              design = ~ tissue)
+dds_tissue <- DESeq(dds_tissue)
+resultsNames(dds_tissue) # "tissue_pollen_vs_leaf"
+res_tissue <- results(dds_tissue)
+head(res_tissue)
+summary(res_tissue)
+result_tissue <- res_tissue[complete.cases(res_tissue),]
+nrow(res_tissue) # 37659, 20256
+nrow(result_tissue) # 31604, 20256
+```
+
+
+## pollen and leaf bised genes
+
+expressed genes
+```{r}
+# first, make sure all genes are expressed
+normalized_counts <- as.data.frame(counts(dds_tissue, normalized=T))
+normalized_counts <- normalized_counts %>% mutate(gene=rownames(normalized_counts)) 
+normalized_counts <- normalized_counts[,c(152,1:151)]
+
+col<-data.frame(colnames(normalized_counts))
+normalized_counts<-normalized_counts %>%  mutate(p_mean = rowMeans(normalized_counts[,c(2:76)] )) %>% mutate(l_mean = rowMeans(normalized_counts[,c(77:153)] ))
+
+write.table(normalized_counts, file = paste0(data,"normalized_counts_pollenLeaf.txt"), row.names = FALSE)
+
+
+normalized_counts <- normalized_counts %>% select(c(1,154:155))
+head(normalized_counts)
+cnt <- read.table(paste0(data,"cnt.txt"), header = T)
+cnt$all_mean <- rowMeans(cnt[,c(2,3)])
+cnt <- cnt %>% filter(all_mean >= 5)
+```
+
+
+## simplify sample names, keep only autosomes
+```{r}
+colname <- colnames(normalized_counts)
+write.table(colname, file = paste0(data, "colname_pl.txt"), quote = F, row.names = F)
+colname <- read.table(paste0(data, "colname_pl.txt"))
+colnames(normalized_counts) <- colname$V1
+write.table(normalized_counts, file = paste0(data,"normalized_counts_pollenLeaf.txt"), row.names = FALSE, quote = F)
+
+gff$chrom <- factor(gff$chrom)
+levels(gff$chrom)
+autosome <- gff %>% filter(chrom != "X" & chrom != "Y") %>% select(gene)
+
+normalized_counts <- inner_join(autosome, normalized_counts, by = "gene") # 20256 -> 15687
+
+write.table(normalized_counts, file = paste0(data,"normalized_counts_pollenLeaf_a.txt"), row.names = FALSE, quote = F)
+```
+
+
+## make covarate file
+"we controlled for residual population structure by generating a centered kinship matrix with GEMMA (Zhou and Stephens 2012) and including the first five principal components of the kinship matrix as covariates."
+```{r}
+covariate <- data.frame(colnames(normalized_counts[,-1]))
+
+colnames(covariate) <- "id"
+tissue <- rep(NA, length(covariate$id))
+tissue[grep("ML", meta_data$id)] <- 0
+tissue[grep("MP", meta_data$id)] <- 1
+covariate <- data.frame(covariate, tissue)
+covariate <- t(covariate)
+head(covariate)
+
+write.table(covariate, file = paste0(data,"covariate_pollenLeaf.txt"), quote = F, col.names = F)
+```
+
+
+## DE genes
+```{r}
+DE_tissue<-as.data.frame(result_tissue)
+DE_tissue <- DE_tissue %>% mutate(gene = rownames(DE_tissue))
+DE_tissue <- DE_tissue[,c(7,1:6)]
+head(DE_tissue) 
+#write.table(DE_tissue, file = paste0(data,"result_tissue.txt"), row.names = FALSE, quote = FALSE)
+write.table(DE_tissue, file = paste0(data,"result_tissue_cnt5.txt"), row.names = FALSE, quote = FALSE)
+DE_tissue <- read.table(paste0(data,"result_tissue_cnt5.txt"), header = T)
+# DE_tissue <- left_join(DE_tissue,normalized_counts,by="gene")
+# DE_tissue <- DE_tissue %>% filter(p_mean>5 | l_mean>5) # 21269
+# DE_tissue <- DE_tissue %>% filter(padj<0.05) # 20195
+
+DE_tissue_pollen <- DE_tissue %>% filter(log2FoldChange > 0 & padj < 0.05) # 7567
+DE_tissue_leaf <-  DE_tissue %>% filter(log2FoldChange < 0 & padj < 0.05) # 11445
+
+
+DE_tissue_pollen <- DE_tissue %>% filter(log2FoldChange > 1 & padj < 0.05) # 6237
+DE_tissue_leaf <-  DE_tissue %>% filter(log2FoldChange < -1 & padj < 0.05) # 9512
+6237+9512
+
+DE_tissue_pollen <- DE_tissue %>% filter(log2FoldChange > 2 & padj < 0.05) # 4776
+DE_tissue_leaf <-  DE_tissue %>% filter(log2FoldChange < -2 & padj < 0.05) # 6025
+
+table(DE_tissue_pollen$chrom_new)
+table(DE_tissue_leaf$chrom_new)
+
+```
+
+
+
+## separate regions Y vs PAR
+```{r}
+gff <- read.table(paste0(data,"merged_TX_noMatPARlarge_txanno_genes.gtf"))
+gff <- gff[,c(13,1,4,5)]
+colnames(gff) <- c("gene","chrom", "start", "end")
+
+gff <- gff %>% mutate(chrom_new = case_when(
+    chrom == "A1" ~ "A1",
+    chrom == "A2" ~ "A2",
+    chrom == "A3" ~ "A3",
+    chrom == "A4" ~ "A4",
+    chrom == "X" ~ "X",
+    chrom == "Y" & start < 45000000 ~ "PAR",
+    chrom == "Y" & start >= 45000000 ~ "Y"
+))
+
+DE_tissue <- inner_join(DE_tissue, gff, by = "gene")
+DE_tissue_pollen <- DE_tissue %>% filter(log2FoldChange > 1 & padj < 0.05) # 6237
+DE_tissue_leaf <-  DE_tissue %>% filter(log2FoldChange < -1 & padj < 0.05) # 9512
+
+#table(DE_tissue_pollen$chrom)
+table(DE_tissue_pollen$chrom_new)
+#table(DE_tissue_leaf$chrom)
+table(DE_tissue_leaf$chrom_new)
+
+tablep <- as.data.frame(table(DE_tissue_pollen$chrom_new))
+sum(tablep[c(1:4),2]) # 4821
+
+tablel <- as.data.frame(table(DE_tissue_leaf$chrom_new))
+sum(tablel[c(1:4),2]) # 7418
+
+colnames(tablep) <- c("chrom", "pollen")
+colnames(tablel) <- c("chrom", "leaf")
+table <- inner_join(tablep, tablel, by = "chrom")
+
+table <- table %>% add_row(chrom = "A", pollen = 4821, leaf = 7418)
+write.table(table, file = paste0(data,"table_P05_FC2.txt"), row.names = FALSE, quote = FALSE)
+table <- read.table(paste0(data,"table_P05_FC2.txt"), header = T)
+```
+
+
+## PCA of genes
+
+```{r}
+vsdata1 <- vst(dds_tissue, blind=FALSE)
+plotPCA(vsdata1, intgroup=c("tissue")) 
+```
+
+
+
+
+# enrichment on auto vs X vs Y vs PAR
+```{r}
+table_final <- table[c(5:8),]
+table_long <- gather(table_final, lifestage, count, pollen : leaf, factor_key = TRUE)
+write.table(table_long, file = paste0(data,"table_long.txt"), row.names = FALSE, quote = FALSE)
+levels(table_long$lifestage) <- c("gametophyte-bias","sporophyte-bias")
+table_long$lifestage <- factor(table_long$lifestage, level=c("sporophyte-bias","gametophyte-bias"))
+
+hcols <- c("black",  "white")
+
+ggplot(table_long) +
+geom_col(aes(x = chrom, y = count, fill = lifestage), position = "fill", colour ="black")  + xlab("") + ylab("Proportion of DE genes") + theme_light() + scale_fill_manual(values = hcols) + theme(axis.text=element_text(size=12), axis.title=element_text(size=12)) 
+
+ggplot(table_long) +geom_col(aes(x = chrom, y = count, fill = lifestage), colour ="black")  + xlab("") + ylab("Proportion of DE genes") + theme_light() + scale_fill_manual(values = hcols) + theme(axis.text=element_text(size=12), axis.title=element_text(size=12)) 
+
+```
+
+```{r}
+table_final <- table[c(5:8),]
+table_long <- gather(table_final, lifestage, count, pollen : leaf, factor_key = TRUE)
+write.table(table_long, file = paste0(data,"table_long.txt"), row.names = FALSE, quote = FALSE)
+levels(table_long$lifestage) <- c("gametophyte-bias","sporophyte-bias")
+table_long$lifestage <- factor(table_long$lifestage, level=c("sporophyte-bias","gametophyte-bias"))
+
+hcols <- c("black",  "white")
+
+ggplot(table_long) +
+geom_col(aes(x = chrom, y = count, fill = lifestage), position = "fill", colour ="black")  + xlab("") + ylab("Proportion of DE genes") + theme_light() + scale_fill_manual(values = hcols) + theme(axis.text=element_text(size=12), axis.title=element_text(size=12)) 
+
+ggplot(table_long) +geom_col(aes(x = chrom, y = count, fill = lifestage), colour ="black")  + xlab("") + ylab("Proportion of DE genes") + theme_light() + scale_fill_manual(values = hcols) + theme(axis.text=element_text(size=12), axis.title=element_text(size=12)) 
+```
+
+```{r}
+
+```
+
+
+## test
+```{r}
+row.names(table_final) <- table_final[,1]
+head(table_final)
+table_test <- table_final[c(3:4),c(2:3)]
+head(table_test)
+chisq.test(table_test)
+fisher.test(table_test)
+```
+
+```{r}
+table_test <- table_final[c(2,3),c(2:3)]
+head(table_test)
+chisq.test(table_test)
+
+fisher.test(table_test)
+```
+
+```{r}
+head(table_final)
+table_test <- table_final[c(1,3),c(2:3)]
+head(table_test)
+chisq.test(table_test)
+fisher.test(table_test)
+```
+
+
+## merge with ceratodon plots
+```{r}
+
+```
+

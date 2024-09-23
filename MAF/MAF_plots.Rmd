@@ -1,0 +1,105 @@
+---
+title: "MAF plots"
+author: "Meng"
+date: "2024-07-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+get_hist_prop <- function(data) {
+  p <- ggplot(data, aes(x = maf)) + geom_histogram(binwidth = 0.01,stat="count")
+  p_data <- ggplot_build(p)$data[[1]]
+  p_data$y_prop <- p_data$y / sum(p_data$y)
+  return(p_data)
+}
+ml_random <- get_hist_prop(ML_eqtl_sig_random_af) 
+```
+
+```{r}
+median(ML_eqtl_sig_random_af$maf)
+#IQR(interaction$maf)
+median(FL_eqtl_sig_random_af$maf)
+#IQR(no_interaction$maf)
+median(MP_eqtl_sig_random_af$maf)
+
+
+wilcox.test(ML_eqtl_sig_random_af$maf, FL_eqtl_sig_random_af$maf)
+wilcox.test(ML_eqtl_sig_random_af$maf, MP_eqtl_sig_random_af$maf)
+```
+
+```{r}
+p4 <- ggplot(ML_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(aes(y=..density..), colour="black", fill="white",binwidth=0.01) + theme_classic() + ggtitle("Male leaf")+ xlab("MAF")+ theme(text = element_text(size = 10))+geom_density(alpha=.2) 
+p5 <- ggplot(FL_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(aes(y=..density..), colour="black", fill="white",binwidth=0.01) + theme_classic() + ggtitle("Female leaf")+ xlab("MAF")+ theme(text = element_text(size = 10))+geom_density(alpha=.2) 
+p6 <- ggplot(MP_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(aes(y=..density..), colour="black", fill="white",binwidth=0.01) + theme_classic() + ggtitle("Male pollen")+ xlab("MAF")+ theme(text = element_text(size = 10))+geom_density(alpha=.2) 
+
+p4 + p5 + p6
+```
+
+```{r}
+p<-ggplot(ML_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y)
+
+p4 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("Male leaf")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10))+ ylim(0, 0.135)+ geom_vline(xintercept=0.1044776, color = "red",linetype="dashed")
+
+p<-ggplot(FL_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y)
+
+p5 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("Female leaf")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10))+ ylim(0, 0.135)+ geom_vline(xintercept=0.1071429, color = "red",linetype="dashed")
+
+p<-ggplot(MP_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y)
+
+p6 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("Pollen")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.135)+ geom_vline(xintercept=0.1083333, color = "red",linetype="dashed")
+
+p4 + p5 + p6
+```
+```{r}
+median(ML_eqtl_sig_min_af$maf)
+#IQR(interaction$maf)
+median(FL_eqtl_sig_min_af$maf)
+#IQR(no_interaction$maf)
+median(MP_eqtl_sig_min_af$maf)
+
+
+wilcox.test(ML_eqtl_sig_min_af$maf, FL_eqtl_sig_min_af$maf)
+wilcox.test(ML_eqtl_sig_min_af$maf, MP_eqtl_sig_min_af$maf)
+```
+
+```{r}
+p<-ggplot(ML_eqtl_sig_min_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y)
+
+p1 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("Male leaf")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.125)+ geom_vline(xintercept=0.1111111, color = "red",linetype="dashed")
+
+p<-ggplot(FL_eqtl_sig_min_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y)
+
+p2 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("Female leaf")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.125)+ geom_vline(xintercept=0.1190475, color = "red",linetype="dashed")
+
+p<-ggplot(MP_eqtl_sig_min_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y)
+
+p3 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("Pollen")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.125)+ geom_vline(xintercept=0.1169271, color = "red",linetype="dashed")
+
+p1 + p2 + p3
+```
+```{r}
+p1 + p2 + p3 + p4 + p5 + p6 + plot_layout(nrow = 2)
+```
+
+```{r}
+p1 + p2 + p3 + p4 + p5 + p6 + plot_layout(nrow = 2)
+```
+

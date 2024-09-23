@@ -1,0 +1,136 @@
+---
+title: "no sex"
+author: "Meng"
+date: "2024-07-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(arrow)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+library(tidyr)
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
+
+calculate_qvalues <- function(res_df, fdr = 0.1, qvalue_lambda = NULL) {
+  # Number of phenotypes tested
+  num_phenotypes <- nrow(res_df)
+  cat(sprintf("Number of phenotypes tested: %d\n", num_phenotypes))
+  
+  # Determine which p-value column to use
+  if ("pval_beta" %in% colnames(res_df) && !all(is.na(res_df$pval_beta))) {
+    pval_col <- "pval_beta"
+    correlation <- cor(res_df$pval_perm, res_df$pval_beta, use = "complete.obs")
+    cat(sprintf("Correlation between Beta-approximated and empirical p-values: %.4f\n", correlation))
+  } else {
+    pval_col <- "pval_perm"
+    cat("WARNING: no beta-approximated p-values found, using permutation p-values instead.\n")
+  }
+  
+  # Calculate q-values
+  if (!is.null(qvalue_lambda)) {
+    cat(sprintf("Calculating q-values with lambda = %.3f\n", qvalue_lambda))
+    qobj <- qvalue(res_df[[pval_col]], lambda = qvalue_lambda)
+  } else {
+    qobj <- qvalue(res_df[[pval_col]])
+  }
+  
+  res_df$qval <- qobj$qvalues
+  pi0 <- qobj$pi0
+  cat(sprintf("Proportion of significant phenotypes (1-pi0): %.2f\n", 1 - pi0))
+  cat(sprintf("QTL phenotypes @ FDR %.2f: %d\n", fdr, sum(res_df$qval <= fdr)))
+  
+  # Determine global min(p) significance threshold and calculate nominal p-value threshold for each gene
+  if (pval_col == "pval_beta") {
+    lb <- sort(res_df[res_df$qval <= fdr, "pval_beta"])
+    ub <- sort(res_df[res_df$qval > fdr, "pval_beta"])
+    
+    if (length(lb) > 0) {
+      lb <- tail(lb, 1)
+      if (length(ub) > 0) {
+        ub <- head(ub, 1)
+        pthreshold <- (lb + ub) / 2
+      } else {
+        pthreshold <- lb
+      }
+      cat(sprintf("min p-value threshold @ FDR %.2f: %.6g\n", fdr, pthreshold))
+      res_df$pval_nominal_threshold <- qbeta(pthreshold, res_df$beta_shape1, res_df$beta_shape2)
+    }
+  }
+  
+  return(res_df)
+}
+
+```
+
+## permutation
+/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/sex.cis_qtl.txt
+```{r}
+nosex_genes <- read.table(paste0(data, "nosex.cis_qtl.txt"), header = T) # 14549
+
+hist(nosex_genes$pval_beta, nclass = 20)
+
+qval_nosex <- qvalue(nosex_genes$pval_beta)
+summary(qval_nosex)
+hist(qval_nosex)
+
+```
+
+```{r}
+nosex_genes <- calculate_qvalues(nosex_genes)
+
+nosex_egene <- nosex_genes %>% filter(qval < 0.05) # 7522, 7072
+nosex_egene <- nosex_genes %>% filter(qval < 0.1) # 10216, 9557
+```
+Number of phenotypes tested: 14549
+Correlation between Beta-approximated and empirical p-values: 1.0000
+Proportion of significant phenotypes (1-pi0): 0.75
+QTL phenotypes @ FDR 0.10: 9557
+min p-value threshold @ FDR 0.10: 0.265593
+
+## get siginicant eQTLs without interaction
+```{r}
+nosex_A1 <- read_parquet(paste0(data,"nosex.cis_qtl_pairs.A1.parquet"))
+nosex_A2 <- read_parquet(paste0(data,"nosex.cis_qtl_pairs.A2.parquet"))
+nosex_A3 <- read_parquet(paste0(data,"nosex.cis_qtl_pairs.A3.parquet"))
+nosex_A4 <- read_parquet(paste0(data,"nosex.cis_qtl_pairs.A4.parquet"))
+```
+
+
+eQTLs significant for genotype term regarless of sex
+```{r}
+nosex_eqtl <- rbind(nosex_A1, nosex_A2, nosex_A3, nosex_A4) # 1331427
+sum(nosex_genes$num_var) # 1331427
+
+nosex_eqtl_full <- inner_join(nosex_eqtl, nosex_genes[,c(1,16:19)], by = "phenotype_id") # 1331427
+
+nosex_eqtl_sig <- nosex_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold) #  128906, 118608
+
+sum(nosex_egene$num_var) # 974217
+nrow(nosex_egene) # 9557
+length(unique(nosex_eqtl_sig$phenotype_id)) # 10777, 10142
+length(unique(nosex_eqtl_sig$variant_id)) # 
+
+
+# MAF
+nosex_eqtl_sig <- nosex_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
+write.csv(nosex_eqtl_sig, file = paste0(data, "nosex_eqtl_sig.csv"), row.names = F, quote = F)
+
+# unique
+sex_eqtl_sig_af <- ML_eqtl_sig %>% select(variant_id, af, maf) %>% distinct()
+
+# most sigificant
+nosex_eqtl_sig_min <- nosex_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_nominal == min(pval_nominal)) # 10784
+
+write.table(nosex_eqtl_sig_min, file = paste0(data, "nosex_eqtl_sig_min.txt"), row.names = F, quote = F, sep = "\t")
+```
+
+
+# add interaction
+```{r}
+
+```
+

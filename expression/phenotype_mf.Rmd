@@ -131,12 +131,6 @@ adjusted p-value < 0.1
 LFC > 0 (up)       : 1114, 7.5%
 LFC < 0 (down)     : 1135, 7.7%
 
-do separate deseq2 normalization another time
-### separate
-```{r}
-```
-
-
 
 ## quantile normalizatin
 ```{r}
@@ -195,6 +189,7 @@ normalized_counts_fln <- normalized_counts_fln %>%
 colnames(normalized_counts_fln)[1] <- "#chr"
 colnames(normalized_counts_fln)[4] <- "gene_id"
 write.table(normalized_counts_fln, file = paste0(data,"normalized_counts_fln.bed"), row.names = FALSE, quote = F, sep = "\t")
+#normalized_counts_fln <- read.table(paste0(data,"normalized_counts_fln.bed"), header = T)
 
 # combined
 normalized_counts_ln <- inner_join(gff_full, normalized_counts_ln, by = "gene")

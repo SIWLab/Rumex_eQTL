@@ -38,4 +38,21 @@ bcftools stats /ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_${i}_SNP.vcf.gz \
 
 bcftools query -f '%POS\t%INFO/DP\n' /ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_${i}_SNP.vcf.gz > \
 /ohta2/meng.yuan/rumex/eqtl/VCF_filtering/eqtl_mpileup_${i}_SNP.vcf.DP
+# can separate Y and PAR for male samples later
+
+# keep all samples for PAR (on the Y)
+i="Y"
+# remove one sample with extremely low coverage
+bcftools view /ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_${i}.vcf.gz \
+-s ^NS.1594.001.IDT_i7_141---IDT_i5_141.24fMLD -r Y:1-45000000 --threads 20 -m2 -M2 -v snps \
+| bgzip -c > /ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_PAR_SNP.vcf.gz
+
+bcftools stats /ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_PAR_SNP.vcf.gz \
+> /ohta2/meng.yuan/rumex/eqtl/VCF_filtering/eqtl_mpileup_PAR_SNP.vcf.stats
+
+# get DP field to assess its distribution
+bcftools query -f '%INFO/DP\n' /ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_PAR_SNP.vcf.gz > \
+/ohta2/meng.yuan/rumex/eqtl/VCF_filtering/eqtl_mpileup_PAR_SNP.vcf.DP
+
+
 

@@ -1,5 +1,4 @@
-# genotype data for males
-
+# genotype data
 vcftools --vcf my_file.vcf --freq --out my_freq_out_file 
 
 # HWE MAF 5%, missing lower 20%
@@ -16,6 +15,27 @@ plink --vcf $VCF --double-id --allow-extra-chr  \
 
 done
 
+# X chrom for females
+i=FL_X
+VCF=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_X.SNP.FL.filt.vcf.gz
+plink --vcf $VCF --double-id --allow-extra-chr  \
+--keep-allele-order --set-missing-var-ids @:# \
+--maf 0.05 --geno 0.2 \
+--hwe 1e-6 --biallelic-only strict \
+--make-bed --out ${i}
+
+i=FL_X_test
+VCF=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_X.SNP.FL.vcf.gz
+plink --vcf $VCF --double-id --allow-extra-chr  \
+--keep-allele-order --set-missing-var-ids @:# \
+--maf 0.05 --geno 0.2 \
+--hwe 1e-6 --biallelic-only strict \
+--make-bed --out ${i}
+
+
+# PAR for females
+
+
 bcftools view /ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_auto.SNP.ML.filt.vcf.gz \
 -r A1:274220346 | bcftools query -f '%CHROM\t%POS\t%REF\t%ALT[\t%GT]\n' > A1_274220346.vcf
 
@@ -29,6 +49,8 @@ bgzip normalized_counts_mln.bed && tabix -p bed normalized_counts_mln.bed.gz
 bgzip normalized_counts_fln.bed && tabix -p bed normalized_counts_fln.bed.gz
 bgzip normalized_counts_mpn.bed && tabix -p bed normalized_counts_mpn.bed.gz
 
+bgzip normalized_counts_fln_X.bed && tabix -p bed normalized_counts_fln_X.bed.gz
+bgzip normalized_counts_fln_PAR.bed && tabix -p bed normalized_counts_fln_PAR.bed.gz
 
 
 # male leaf
@@ -118,6 +140,40 @@ python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
   #   processing phenotype 14733/14733
   #   time elapsed: 1.25 min
 
+# X and PAR for female
+# X
+plink_prefix_path=/ohta2/meng.yuan/rumex/eqtl/plink/FL_X_test
+expression_bed=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/normalized_counts_fln_X.bed.gz
+prefix=FL_X_test
+covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_FL.txt
+
+# cis-QTL mapping: permutations
+python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
+    --covariates ${covariates_file} \
+    --mode cis --window 1000000
+
+
+
+# cis-QTL mapping: summary statistics for all variant-phenotype pairs
+python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
+    --covariates ${covariates_file} \
+    --mode cis_nominal --window 20000
+
+# PAR
+plink_prefix_path=/ohta2/meng.yuan/rumex/eqtl/plink/FL_PAR
+expression_bed=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/normalized_counts_fln_PAR.bed.gz
+prefix=FL_X
+covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_FL.txt
+
+# cis-QTL mapping: permutations
+python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
+    --covariates ${covariates_file} \
+    --mode cis --window 20000
+
+# cis-QTL mapping: summary statistics for all variant-phenotype pairs
+python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
+    --covariates ${covariates_file} \
+    --mode cis_nominal --window 20000
 
 
 
@@ -159,6 +215,8 @@ python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
   #   * writing output
   #   Mapping chromosome A4
   #   processing phenotype 13794/13794
+
+
 
 
 

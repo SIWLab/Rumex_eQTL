@@ -148,16 +148,21 @@ normalized_counts_fln <- normalized_counts_fln %>%
   arrange(chrom, start) 
 
 colnames(normalized_counts_fln)[4] <- "gene_id"
+normalized_counts_fln$chrom <- factor(normalized_counts_fln$chrom)
+levels(normalized_counts_fln$chrom)
 normalized_counts_fln_X <- normalized_counts_fln %>% filter(chrom == "X") #1894
 normalized_counts_fln_PAR <- normalized_counts_fln %>% filter(chrom == "PAR") #1102
+normalized_counts_fln_auto <- normalized_counts_fln %>% filter(chrom != "PAR" & chrom != "X") #14634
 
 colnames(normalized_counts_fln)[1] <- "#chr"
 colnames(normalized_counts_fln_X)[1] <- "#chr"
 colnames(normalized_counts_fln_PAR)[1] <- "#chr"
+colnames(normalized_counts_fln_auto)[1] <- "#chr"
 
 write.table(normalized_counts_fln, file = paste0(data,"normalized_counts_fln_X_PAR.bed"), row.names = FALSE, quote = F, sep = "\t")
 write.table(normalized_counts_fln_X, file = paste0(data,"normalized_counts_fln_X.bed"), row.names = FALSE, quote = F, sep = "\t")
 write.table(normalized_counts_fln_PAR, file = paste0(data,"normalized_counts_fln_PAR.bed"), row.names = FALSE, quote = F, sep = "\t")
+write.table(normalized_counts_fln_auto, file = paste0(data,"normalized_counts_fln_auto.bed"), row.names = FALSE, quote = F, sep = "\t")
 
 ```
 

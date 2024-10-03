@@ -101,6 +101,15 @@ vcftools --gzvcf ${VCF_OUT} \
 tabix ${VCF_OUT2}
 
 
+# less normalized_counts_fln_X.bed.gz | cut -f 1,2,3  > normalized_counts_fln_X_pos.bed
+# less normalized_counts_fln.bed.gz | cut -f 1,2,3  > normalized_counts_fln_pos.bed
+
+# vcf=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_X_SNP.vcf.gz
+# bcftools view ${vcf} -r normalized_counts_fln_pos.bed | bgzip -c > normalized_counts_fln_pos.vcf.gz
+
+
+
+
 
 
 

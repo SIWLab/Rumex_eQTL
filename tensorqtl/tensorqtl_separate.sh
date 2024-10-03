@@ -46,7 +46,7 @@ cut -f 1,4,5,7  merged_TX_noMatPARlarge_txanno_gene_full.gtf > merged_TX_noMatPA
 
 # already sorted 
 bgzip normalized_counts_mln.bed && tabix -p bed normalized_counts_mln.bed.gz
-bgzip normalized_counts_fln.bed && tabix -p bed normalized_counts_fln.bed.gz
+bgzip normalized_counts_fln_auto.bed && tabix -p bed normalized_counts_fln_auto.bed.gz
 bgzip normalized_counts_mpn.bed && tabix -p bed normalized_counts_mpn.bed.gz
 
 bgzip normalized_counts_fln_X.bed && tabix -p bed normalized_counts_fln_X.bed.gz
@@ -95,9 +95,9 @@ python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
 
 # female leaf
 plink_prefix_path=/ohta2/meng.yuan/rumex/eqtl/plink/FL
-expression_bed=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/normalized_counts_fln.bed.gz
+expression_bed=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/normalized_counts_fln_auto.bed.gz
 prefix=FL
-covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_FL_pc.txt
+covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_FL.txt
 
 # cis-QTL mapping: permutations
 python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
@@ -113,6 +113,8 @@ python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
   #   ** dropping 71 phenotypes without variants in cis-window
   # * computing permutations
   #   processing phenotype 14733/14733
+
+  
 
 # cis-QTL mapping: summary statistics for all variant-phenotype pairs
 python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \

@@ -40,6 +40,7 @@ bcftools query -f '%POS\t%INFO/DP\n' /ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileu
 /ohta2/meng.yuan/rumex/eqtl/VCF_filtering/eqtl_mpileup_${i}_SNP.vcf.DP
 # can separate Y and PAR for male samples later
 
+
 # keep all samples for PAR (on the Y)
 i="Y"
 # remove one sample with extremely low coverage

@@ -1,4 +1,3 @@
-#samples = ['TxF6f6', 'TxF6m23']
 ### workflow ###
 
 with open("DNA.samples_full.txt", "r") as file:

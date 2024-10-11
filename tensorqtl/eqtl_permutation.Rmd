@@ -10,6 +10,7 @@ library(arrow)
 library(dplyr)
 library(ggplot2)
 library(patchwork)
+library(qvalue)
 data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
 ```
 

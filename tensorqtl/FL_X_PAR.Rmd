@@ -1,0 +1,190 @@
+---
+title: "FL X and PAR"
+author: "Meng"
+date: "2024-10-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(arrow)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+library(qvalue)
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
+calculate_qvalues <- function(res_df, fdr = 0.1, qvalue_lambda = NULL) {
+  # Number of phenotypes tested
+  num_phenotypes <- nrow(res_df)
+  cat(sprintf("Number of phenotypes tested: %d\n", num_phenotypes))
+  
+  # Determine which p-value column to use
+  if ("pval_beta" %in% colnames(res_df) && !all(is.na(res_df$pval_beta))) {
+    pval_col <- "pval_beta"
+    correlation <- cor(res_df$pval_perm, res_df$pval_beta, use = "complete.obs")
+    cat(sprintf("Correlation between Beta-approximated and empirical p-values: %.4f\n", correlation))
+  } else {
+    pval_col <- "pval_perm"
+    cat("WARNING: no beta-approximated p-values found, using permutation p-values instead.\n")
+  }
+  
+  # Calculate q-values
+  if (!is.null(qvalue_lambda)) {
+    cat(sprintf("Calculating q-values with lambda = %.3f\n", qvalue_lambda))
+    qobj <- qvalue(res_df[[pval_col]], lambda = qvalue_lambda)
+  } else {
+    qobj <- qvalue(res_df[[pval_col]])
+  }
+  
+  res_df$qval <- qobj$qvalues
+  pi0 <- qobj$pi0
+  cat(sprintf("Proportion of significant phenotypes (1-pi0): %.2f\n", 1 - pi0))
+  cat(sprintf("QTL phenotypes @ FDR %.2f: %d\n", fdr, sum(res_df$qval <= fdr)))
+  
+  # Determine global min(p) significance threshold and calculate nominal p-value threshold for each gene
+  if (pval_col == "pval_beta") {
+    lb <- sort(res_df[res_df$qval <= fdr, "pval_beta"])
+    ub <- sort(res_df[res_df$qval > fdr, "pval_beta"])
+    
+    if (length(lb) > 0) {
+      lb <- tail(lb, 1)
+      if (length(ub) > 0) {
+        ub <- head(ub, 1)
+        pthreshold <- (lb + ub) / 2
+      } else {
+        pthreshold <- lb
+      }
+      cat(sprintf("min p-value threshold @ FDR %.2f: %.6g\n", fdr, pthreshold))
+      res_df$pval_nominal_threshold <- qbeta(pthreshold, res_df$beta_shape1, res_df$beta_shape2)
+    }
+  }
+  
+  return(res_df)
+}
+get_hist_prop <- function(data) {
+  p <- ggplot(data, aes(x = maf)) + geom_histogram(binwidth = 0.01,stat="count")
+  p_data <- ggplot_build(p)$data[[1]]
+  p_data$y_prop <- p_data$y / sum(p_data$y)
+  return(p_data)
+}
+```
+
+```{r}
+FL_PAR <- read.table(paste0(data, "FL_PAR.cis_qtl.txt"), header = T) # 14658
+FL_X <- read.table(paste0(data, "FL_X.cis_qtl.txt"), header = T) # 14733
+
+hist(FL_PAR$pval_beta, nclass = 20)
+hist(FL_X$pval_beta, nclass = 20)
+
+# qval_ML <- qvalue(FL_PAR$pval_beta)
+# qval_FL <- qvalue(FL_X$pval_beta)
+# summary(qval_ML)
+# p1 <- hist(qval_ML)
+
+```
+
+```{r}
+FL_PAR <- calculate_qvalues(FL_PAR)
+FL_X <- calculate_qvalues(FL_X)
+
+```
+
+
+```{r}
+FL_PAR_eqtl <- read_parquet(paste0(data,"FL_PAR.cis_qtl_pairs.1.parquet"))
+FL_PAR_eqtl_full <- inner_join(FL_PAR_eqtl, FL_PAR[,c(1,16:19)], by = "phenotype_id") # 81368
+FL_PAR_eqtl_sig <- FL_PAR_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold) # 1122
+FL_PAR_eqtl_sig <-FL_PAR_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
+#gene <- FL_PAR_eqtl_sig %>% dplyr::select(phenotype_id) %>% distinct()
+
+FL_X_eqtl <- read_parquet(paste0(data,"FL_X.cis_qtl_pairs.2.parquet"))
+FL_X_eqtl_full <- inner_join(FL_X_eqtl, FL_X[,c(1,16:19)], by = "phenotype_id") # 261175
+FL_X_eqtl_sig <- FL_X_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold) # 27519
+FL_X_eqtl_sig <-FL_X_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
+
+
+FL_eqtl_sig <- read.table(paste0(data, "old/FL_eqtl_sig.txt"), header = T)
+
+```
+
+
+```{r}
+length(unique(FL_eqtl_sig$variant_id)) # 31274
+FL_eqtl_multigene <- FL_eqtl_sig %>% 
+     group_by(variant_id) %>%
+     filter(n()>1) # 2089
+
+ML_eqtl_sig_af <- ML_eqtl_sig %>% select(variant_id, af, maf) %>% distinct()
+FL_eqtl_sig_af <- FL_eqtl_sig %>% select(variant_id, af, maf) %>% distinct()
+```
+
+
+```{r}
+FL_eqtl_sig_min <- FL_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_nominal == min(pval_nominal)) # 3393
+FL_eqtl_sig_min_af <- FL_eqtl_sig_min %>% dplyr::select(variant_id, af, maf) %>% distinct()
+
+FL_PAR_sig_min <- FL_PAR_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_nominal == min(pval_nominal)) # 198
+
+FL_PAR_sig_min_af <- FL_PAR_sig_min %>% dplyr::select(variant_id, af, maf) %>% distinct()
+
+
+FL_X_sig_min <- FL_X_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_nominal == min(pval_nominal)) # 1644
+
+FL_X_sig_min_af <- FL_X_sig_min %>% dplyr::select(variant_id, af, maf) %>% distinct()
+```
+
+```{r}
+median(FL_eqtl_sig_min_af$maf)
+median(FL_PAR_sig_min_af$maf)
+median(FL_X_sig_min_af$maf)
+
+
+```
+
+```{r}
+wilcox.test(FL_eqtl_sig_min_af$maf, FL_PAR_sig_min_af$maf)
+wilcox.test(FL_eqtl_sig_min_af$maf, FL_X_sig_min_af$maf)
+wilcox.test(FL_PAR_sig_min_af$maf, FL_X_sig_min_af$maf)
+```
+
+```{r}
+# A
+p<-ggplot(FL_eqtl_sig_min_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y)
+
+p1 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("Female leaf - A")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.177)+ geom_vline(xintercept=0.1190475, color = "red",linetype="dashed")
+
+# PAR
+p<-ggplot(FL_PAR_sig_min_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y)
+
+p2 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("Female leaf - PAR")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.177)+ geom_vline(xintercept=0.1, color = "red",linetype="dashed")
+
+# X
+p<-ggplot(FL_X_sig_min_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y)
+
+
+p3 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("Female leaf - X")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.177)+ geom_vline(xintercept=0.1060606, color = "red",linetype="dashed")
+
+p1 + p2 + p3
+```
+
+
+
+write output
+```{r}
+
+```
+

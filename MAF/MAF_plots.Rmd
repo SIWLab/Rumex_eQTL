@@ -59,6 +59,7 @@ p6 <- ggplot(p_data, aes(x=x, y=y_prop)) +
 
 p4 + p5 + p6
 ```
+
 ```{r}
 median(ML_eqtl_sig_min_af$maf)
 #IQR(interaction$maf)

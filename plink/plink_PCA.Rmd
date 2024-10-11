@@ -16,6 +16,7 @@ data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manus
 
 
 # PCA
+check for outliers
 ```{r}
 pca <- read.table(paste0(data,"sex.eigenvec"))
 eigenval <- scan(paste0(data,"sex.eigenval"))
@@ -54,10 +55,20 @@ b <- b + scale_colour_manual(values = c("red", "blue"))
 b <- b + coord_equal() + theme_light()
 b + xlab(paste0("PC1 (", signif(pve$pve[1], 3), "%)")) + ylab(paste0("PC2 (", signif(pve$pve[2], 3), "%)"))
 ```
+
+see where the 4 outliers are and if you're removing it
+
+
 ## separate
 ```{r}
 pca <- read.table(paste0(data,"MP.eigenvec"))
 eigenval <- scan(paste0(data,"MP.eigenval"))
+
+pca <- read.table(paste0(data,"ML.eigenvec"))
+eigenval <- scan(paste0(data,"ML.eigenval"))
+
+pca <- read.table(paste0(data,"FL.eigenvec"))
+eigenval <- scan(paste0(data,"FL.eigenval"))
 # sort out the pca data
 # remove nuisance column
 pca <- pca[,-1]
@@ -73,132 +84,5 @@ a + ylab("Percentage variance explained") + theme_light()
 
 # plot pca
 ggplot(pca, aes(PC1, PC2, label=ind)) + geom_point(size = 3) + coord_equal() + theme_light() + xlab(paste0("PC1 (", signif(pve$pve[1], 3), "%)")) + ylab(paste0("PC2 (", signif(pve$pve[2], 3), "%)")) + geom_text(hjust=0, vjust=0)
-```
-
-add the first 5 PCs as covariates
-```{r}
-# same for MP ML FL
-pca <- read.table(paste0(data,"FL.eigenvec"))
-pca <- pca[,-1]
-names(pca)[1] <- "id"
-names(pca)[2:ncol(pca)] <- paste0("PC", 1:(ncol(pca)-1))
-pca <- pca[,1:6]
-pca <- t(pca)
-write.table(pca, file = paste0(data, "covariate_FL_pc.txt"), quote = F, row.names = T, col.names = F, sep = "\t")
-
-# sex
-pca <- read.table(paste0(data,"sex.eigenvec"))
-pca <- pca[,-1]
-names(pca)[1] <- "id"
-names(pca)[2:ncol(pca)] <- paste0("PC", 1:(ncol(pca)-1))
-pca <- pca[,1:6]
-pca <- t(pca)
-write.table(pca, file = paste0(data, "covariate_sex_pc.txt"), quote = F, row.names = T, col.names = F, sep = "\t")
-
-sex_cov <- read.table(paste0(data, "covariate_sex_pc.txt"))
-sex_cov2 <- read.table(paste0(data, "covariate_sex.txt"))
-
-sex_cov <- rbind(sex_cov, sex_cov2)
-sex_cov <- sex_cov[-7,]
-
-write.table(sex_cov, file = paste0(data, "covariate_sex_pc.txt"), quote = F, row.names = F, col.names = F, sep = "\t")
-```
-
-
-
-# LD decay
-
-## A1
-```{r}
-# read in data
-ld_bins <- read.table(paste0(data,"A1.ld_decay_bins_10_2"), header =T)
-
-# plot LD decay
-p1 <- ggplot(ld_bins, aes(distance, avg_R2)) + geom_line() +
-  xlab("Distance (bp)") + ylab(expression(italic(r)^2)) + ggtitle("A1")+ xlim(0,1000)+theme_bw()
-p1
-```
-
-## A2
-```{r}
-# read in data
-ld_bins <- read.table(paste0(data,"A2.ld_decay_bins_10_2"), header =T)
-
-# plot LD decay
-p2 <- ggplot(ld_bins, aes(distance, avg_R2)) + geom_line() +
-  xlab("Distance (bp)") + ylab(expression(italic(r)^2)) + ggtitle("A2")+ xlim(0,1000)+theme_bw()
-p2
-```
-
-## A3
-```{r}
-# read in data
-ld_bins <- read.table(paste0(data,"A3.ld_decay_bins_10_2"), header =T)
-
-# plot LD decay
-p3 <- ggplot(ld_bins, aes(distance, avg_R2)) + geom_line() +
-  xlab("Distance (bp)") + ylab(expression(italic(r)^2)) + ggtitle("A3")+ xlim(0,1000)+theme_bw()
-p3
-```
-
-
-## A4
-```{r}
-# read in data
-ld_bins <- read.table(paste0(data,"A4.ld_decay_bins_10_2"), header =T)
-#ggplot(ld_bins, aes(distance, avg_R2)) + geom_line() +xlab("Distance (bp)") + ylab(expression(italic(r)^2)) + ggtitle("A4") + xlim(0,1000)
-
-# plot LD decay
-p4 <- ggplot(ld_bins, aes(distance, avg_R2)) + geom_line() +
-  xlab("Distance (bp)") + ylab(expression(italic(r)^2)) + ggtitle("A4") + xlim(0,1000)+theme_bw()
-p4
-```
-
-```{r}
-p1 + p2 + p3 + p4 + plot_layout(nrow=2)
-```
-
-```{r}
-p1 + p2 + p3 + p4 + plot_layout(nrow=2)
-```
-
-```{r}
-p1 + p2 + p3 + p4 + plot_layout(nrow=2)
-```
-```{r}
-dfr <- read.delim(paste0(data,"A4.ld.summary"),sep="",header=F,check.names=F,stringsAsFactors=F)
-colnames(dfr) <- c("dist","rsq")
-dfr$distc <- cut(dfr$dist,breaks=seq(from=min(dfr$dist)-1,to=max(dfr$dist)+1,by=100000))
-dfr1 <- dfr %>% group_by(distc) %>% summarise(mean=mean(rsq),median=median(rsq))
-dfr1 <- dfr1 %>% mutate(start=as.integer(str_extract(str_replace_all(distc,"[\\(\\)\\[\\]]",""),"^[0-9-e+.]+")),
-                        end=as.integer(str_extract(str_replace_all(distc,"[\\(\\)\\[\\]]",""),"[0-9-e+.]+$")),
-                        mid=start+((end-start)/2))
-
-ggplot()+
-  geom_point(data=dfr1,aes(x=start,y=mean),size=0.4,colour="grey20")+
-  geom_line(data=dfr1,aes(x=start,y=mean),size=0.3,alpha=0.5,colour="grey40")+
-  labs(x="Distance (Megabases)",y=expression(LD~(r^{2})))+
-  scale_x_continuous(breaks=c(0,2*10^6,4*10^6,6*10^6,8*10^6),labels=c("0","2","4","6","8"))+
-  theme_bw()
-```
-```{r}
-dfr <- read.delim("A4.blocks.det",sep="",header=T,check.names=F,stringsAsFactors=F)
-colnames(dfr) <- tolower(colnames(dfr))
-
-# ld block density
-p <- ggplot(dfr,aes(x=kb))+
-  geom_density(size=0.5,colour="grey40")+
-  labs(x="LD block length (Kb)",y="Density")+
-  theme_bw()
-
-```
-
-number of SNPs
-```{r}
-
-59481369 + 40918717+26178124+19708237
-
-
-
 ```
 

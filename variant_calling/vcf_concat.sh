@@ -11,8 +11,9 @@ bcftools concat -f VCF_${i}_sorted.txt --threads 20 | \
 tabix -p vcf /ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_${i}.vcf.gz
 done
 
-# filter for SNPs
-for i in "A1" "A4" "A2" "A3" "X" 
+# filter for SNPs to check DP
+# final filtering in another script
+for i in "A1" "A4" "A2" "A3" 
 do
 # remove one sample with extremely low coverage
 bcftools view /ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_${i}.vcf.gz \

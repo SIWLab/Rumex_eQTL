@@ -1,0 +1,222 @@
+---
+title: "G by lifestage interaction"
+author: "Meng"
+date: "2024-07-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
+```
+
+
+# extract the off diagonal eqtls in the lifestage comparison
+```{r}
+ML_eqtl_sig <- read.csv(paste0(data, "ML_eqtl_sig.csv"))
+FL_eqtl_sig <- read.csv(paste0(data, "FL_eqtl_sig.csv"))
+MP_eqtl_sig <- read.csv(paste0(data, "MP_eqtl_sig.csv"))
+ML_eqtl_sig_min <- ML_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_nominal == min(pval_nominal)) # 1899
+FL_eqtl_sig_min <- FL_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_nominal == min(pval_nominal)) # 1164
+MP_eqtl_sig_min <- MP_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_nominal == min(pval_nominal)) # 2702
+```
+
+## ml
+```{r}
+ml <- ML_eqtl_sig_min %>% select(phenotype_id, variant_id, slope)
+mp <- MP_eqtl_sig %>% select(phenotype_id, variant_id, slope)
+ml_mp <- inner_join(ml, mp, by = c("phenotype_id","variant_id"))
+colnames(ml_mp)[3:4] <- c("male_leaf", "pollen") # 130
+
+ml_mp_inter1 <- ml_mp %>% filter(male_leaf > 0 & pollen < 0) # 2
+ml_mp_inter2 <- ml_mp %>% filter(male_leaf < 0 & pollen > 0) # 3
+ml_mp_inter <- rbind(ml_mp_inter1, ml_mp_inter2)
+```
+
+## fl
+```{r}
+fl <- FL_eqtl_sig_min %>% select(phenotype_id, variant_id, slope)
+mp <- MP_eqtl_sig %>% select(phenotype_id, variant_id, slope)
+
+fl_mp <- inner_join(fl, mp, by = c("phenotype_id","variant_id"))
+colnames(fl_mp)[3:4] <- c("female_leaf", "pollen") # 53
+
+fl_mp_inter1 <- fl_mp %>% filter(female_leaf > 0 & pollen < 0) # 2
+fl_mp_inter2 <- fl_mp %>% filter(female_leaf < 0 & pollen > 0) # 3
+fl_mp_inter <- rbind(fl_mp_inter1, fl_mp_inter2) # 5
+```
+
+## mp
+```{r}
+ml <- ML_eqtl_sig %>% select(phenotype_id, variant_id, slope)
+fl <- FL_eqtl_sig %>% select(phenotype_id, variant_id, slope)
+mp <- MP_eqtl_sig_min %>% select(phenotype_id, variant_id, slope)
+
+mp_ml <- inner_join(mp, ml, by = c("phenotype_id","variant_id"))
+colnames(mp_ml)[3:4] <- c("pollen", "male_leaf") # 138
+mp_fl <- inner_join(mp, fl, by = c("phenotype_id","variant_id"))
+colnames(mp_fl)[3:4] <- c("pollen", "female_leaf") # 84
+
+mp_ml_inter1 <- mp_ml %>% filter(male_leaf < 0 & pollen > 0) # 3
+mp_ml_inter2 <- mp_ml %>% filter(male_leaf > 0 & pollen < 0) # 2
+mp_ml_inter <- rbind(mp_ml_inter1, mp_ml_inter2) # 5
+
+mp_fl_inter1 <- mp_fl %>% filter(female_leaf < 0 & pollen > 0) # 2
+mp_fl_inter2 <- mp_fl %>% filter(female_leaf > 0 & pollen < 0) # 2
+mp_fl_inter <- rbind(mp_fl_inter1, mp_fl_inter2) # 4
+```
+
+## write output
+```{r}
+mp_ml_inter$top_in_pollen <- "yes"
+mp_ml_inter$top_in_leaf <- "no"
+ml_mp_inter$top_in_leaf <- "yes"
+ml_mp_inter$top_in_pollen <- "no"
+
+lifestage_inter <- rbind(ml_mp_inter, mp_ml_inter)
+write.csv(lifestage_inter, file = paste0(data, "lifetage_discordance_full.csv"), row.names = F, quote = F)
+write.csv(mp_fl_inter, file = paste0(data, "mp_fl_inter.csv"), row.names = F, quote = F) # 4
+write.csv(fl_mp_inter, file = paste0(data, "fl_mp_inter.csv"), row.names = F, quote = F) # 5
+```
+
+
+
+# plot the phenotype ~ genotype
+TX_paternal_00008809	1:455264496	0.83494544	-1.005460143	yes	yes
+TX_paternal_00013353	2:162241243	-1.106344342	1.435401559	yes	yes
+TX_paternal_00014304	2:210629115	-1.10489583	1.369669557	yes	yes
+
+## eqtl1
+ml-mp mp-ml	3	A4:30274594 A3:13387496 A1:455264496
+TX_paternal_00029809 TX_paternal_00025458 TX_paternal_00008809
+```{r}
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/"
+normalized_counts_mln <- read.table(paste0(data,"normalized_counts_mln.bed"), header = T)
+normalized_counts_mpn <- read.table(paste0(data,"normalized_counts_mpn.bed"), header = T)
+
+expr_l <- normalized_counts_mln %>% filter(gene_id == "TX_paternal_00029809")
+expr_p <- normalized_counts_mpn %>% filter(gene_id == "TX_paternal_00029809")
+
+geno <- read.table(paste0(data,"A4_30274594.vcf"), header = T)
+geno <- as.data.frame(t(geno[,c(5:79)]))
+geno <- geno %>% mutate(id = row.names(geno))
+colnames(geno) <- c("genotype", "id")
+
+expr_l <- as.data.frame(t(expr_l[,c(5:79)]))
+expr_p <- as.data.frame(t(expr_p[,c(5:77)]))
+expr_l <- expr_l %>% mutate(id = row.names(expr_l))
+colnames(expr_l) <- c("leaf", "id")
+expr_p <- expr_p %>% mutate(id = row.names(expr_p))
+colnames(expr_p) <- c("pollen", "id")
+
+eqtl_lp1 <- geno %>% left_join(expr_l, by = "id") %>% left_join(expr_p, by = "id")
+eqtl_lp1$genotype <- as.factor(eqtl_lp1$genotype)
+table(eqtl_lp1$genotype)
+write.table(eqtl_lp1, file = paste0(data, "eqtl_lp1.txt"), quote = F)
+eqtl_lp1 <- gather(eqtl_lp1, lifestage, Expression, leaf:pollen)
+
+levels(eqtl_lp1$genotype) <- c("./.","GG", "GC","CC")
+eqtl_lp1 <- eqtl_lp1 %>% filter(genotype != "./.")
+write.table(eqtl_lp1, file = paste0(data, "eqtl_lp1_final.txt"), quote = F)
+
+ggplot(eqtl_lp1, aes(x=genotype, y=Expression, colour=lifestage)) + 
+  geom_boxplot(position=position_dodge2(0.85)) + 
+  geom_jitter(shape=16, position=position_jitterdodge(0.2), alpha=0.3) + 
+  theme_classic() + theme(text = element_text(size = 18))+ scale_colour_manual(values = c("red", "blue"))+labs(x="Genotype", y="Expression")
+```
+
+## eqtl2
+ml-mp mp-ml	3	A4:30274594 A3:13387496 A1:455264496
+TX_paternal_00029809 TX_paternal_00025458 TX_paternal_00008809
+```{r}
+expr_l <- normalized_counts_mln %>% filter(gene_id == "TX_paternal_00025458")
+expr_p <- normalized_counts_mpn %>% filter(gene_id == "TX_paternal_00025458")
+
+geno <- read.table(paste0(data,"A3_13387496.vcf"), header = T)
+geno <- as.data.frame(t(geno[,c(5:79)]))
+geno <- geno %>% mutate(id = row.names(geno))
+colnames(geno) <- c("genotype", "id")
+
+expr_l <- as.data.frame(t(expr_l[,c(5:79)]))
+expr_p <- as.data.frame(t(expr_p[,c(5:77)]))
+expr_l <- expr_l %>% mutate(id = row.names(expr_l))
+colnames(expr_l) <- c("leaf", "id")
+expr_p <- expr_p %>% mutate(id = row.names(expr_p))
+colnames(expr_p) <- c("pollen", "id")
+
+eqtl_lp2 <- geno %>% left_join(expr_l, by = "id") %>% left_join(expr_p, by = "id")
+write.table(eqtl_lp2, file = paste0(data, "eqtl_lp2.txt"), quote = F)
+
+eqtl_lp2$genotype <- as.factor(eqtl_lp2$genotype)
+table(eqtl_lp2$genotype)
+levels(eqtl_lp2$genotype) <- c("./.","GG", "GA")
+eqtl_lp2 <- eqtl_lp2 %>% filter(genotype != "./.")
+
+eqtl_lp2 <- gather(eqtl_lp2, lifestage, Expression, leaf:pollen)
+write.table(eqtl_lp2, file = paste0(data, "eqtl_lp2_final.txt"), quote = F)
+
+ggplot(eqtl_lp2, aes(x=genotype, y=Expression, colour=lifestage)) + 
+  geom_boxplot(position=position_dodge2(0.85)) + 
+  geom_jitter(shape=16, position=position_jitterdodge(0.2), alpha=0.3) + 
+  theme_classic() + theme(text = element_text(size = 18))+ scale_colour_manual(values = c("red", "blue"))+labs(x="Genotype", y="Expression")
+```
+
+## eqtl3
+ml-mp mp-ml	3	A4:30274594 A3:13387496 A1:455264496
+TX_paternal_00029809 TX_paternal_00025458 TX_paternal_00008809
+```{r}
+expr_l <- normalized_counts_mln %>% filter(gene_id == "TX_paternal_00008809")
+expr_p <- normalized_counts_mpn %>% filter(gene_id == "TX_paternal_00008809")
+geno <- read.table(paste0(data,"A1_455264496.vcf"), header = T)
+geno <- as.data.frame(t(geno[,c(5:79)]))
+geno <- geno %>% mutate(id = row.names(geno))
+colnames(geno) <- c("genotype", "id")
+expr_l <- as.data.frame(t(expr_l[,c(5:79)]))
+expr_p <- as.data.frame(t(expr_p[,c(5:77)]))
+expr_l <- expr_l %>% mutate(id = row.names(expr_l))
+colnames(expr_l) <- c("leaf", "id")
+expr_p <- expr_p %>% mutate(id = row.names(expr_p))
+colnames(expr_p) <- c("pollen", "id")
+
+eqtl_lp3 <- geno %>% left_join(expr_l, by = "id") %>% left_join(expr_p, by = "id")
+write.table(eqtl_lp3, file = paste0(data, "eqtl_lp3.txt"), quote = F)
+
+eqtl_lp3$genotype <- as.factor(eqtl_lp3$genotype)
+table(eqtl_lp3$genotype)
+levels(eqtl_lp3$genotype) <- c("./.","AA", "AT")
+eqtl_lp3 <- eqtl_lp3 %>% filter(genotype != "./.")
+eqtl_lp3 <- gather(eqtl_lp3, lifestage, Expression, leaf:pollen)
+write.table(eqtl_lp3, file = paste0(data, "eqtl_lp3_final.txt"), quote = F)
+
+ggplot(eqtl_lp3, aes(x=genotype, y=Expression, colour=lifestage)) + 
+  geom_boxplot(position=position_dodge2(0.85)) + 
+  geom_jitter(shape=16, position=position_jitterdodge(0.2), alpha=0.3) + 
+  theme_classic() + theme(text = element_text(size = 18))+ scale_colour_manual(values = c("blue", "red"))+labs(x="Genotype", y="Expression")
+```
+
+
+## plot interaction eqtls
+```{r}
+p1 <- ggplot(eqtl_lp1, aes(x=genotype, y=Expression, colour=lifestage)) + 
+  geom_boxplot(position=position_dodge2(0.85)) + 
+  geom_jitter(shape=16, position=position_jitterdodge(0.2), alpha=0.3) + 
+  theme_classic() + theme(text = element_text(size = 12))+ scale_colour_manual(values = c("red","blue"))+labs(x="Genotype", y="Expression")
+p2 <- ggplot(eqtl_lp2, aes(x=genotype, y=Expression, colour=lifestage)) + 
+  geom_boxplot(position=position_dodge2(0.85)) + 
+  geom_jitter(shape=16, position=position_jitterdodge(0.2), alpha=0.3) + 
+  theme_classic() + theme(text = element_text(size = 12))+ scale_colour_manual(values = c("red","blue"))+labs(x="Genotype", y="Expression")
+p3 <- ggplot(eqtl_lp3, aes(x=genotype, y=Expression, colour=lifestage)) + 
+  geom_boxplot(position=position_dodge2(0.85)) + 
+  geom_jitter(shape=16, position=position_jitterdodge(0.2), alpha=0.3) + 
+  theme_classic() + theme(text = element_text(size = 12))+ scale_colour_manual(values = c("red","blue"))+labs(x="Genotype", y="Expression")
+
+p1 + p2 + p3 + plot_layout(guides = "collect")& theme(legend.position = "right")
+```

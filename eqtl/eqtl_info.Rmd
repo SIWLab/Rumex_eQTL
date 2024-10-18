@@ -1,0 +1,85 @@
+---
+title: "addtional info"
+author: "Meng"
+date: "2024-06-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
+```
+
+
+# number of SNPs per gene tested
+```{r}
+p1 <- ggplot(ML, aes(x=num_var)) + geom_histogram(binwidth=1) + theme_classic() + ggtitle("Male leaf")
+p2 <- ggplot(FL, aes(x=num_var)) + geom_histogram(binwidth=1) + theme_classic() + ggtitle("Female leaf")
+p3 <- ggplot(MP, aes(x=num_var)) + geom_histogram(binwidth=1) + theme_classic() + ggtitle("Pollen")
+
+p1 + p2 + p3
+```
+
+# distance to TSS and number of cis-eQTLs
+−log(p)on y-axis and distance to TSS on x-axis. And put a harizontal line indicating the corresponing pval_nominal_threshold of the gene.
+
+
+
+
+# eqtls that affect multiple genes in the same tissue
+ML: 11882 sig, 11538 unique SNPs, 647 eqtls affect multiple genes
+FL: 23944 sig, 23284 unique SNPs, 1244 eqtls affect multiple genes
+MP: 6464 sig, 6333 unique SNPs, 261 eqtls affect multiple genes
+
+```{r}
+length(unique(FL_eqtl_sig$variant_id)) # 23284
+FL_eqtl_multigene <- FL_eqtl_sig %>% 
+     group_by(variant_id) %>%
+     filter(n()>1) # 1244
+
+length(unique(ML_eqtl_sig$variant_id)) # 11538
+ML_eqtl_multigene <- ML_eqtl_sig %>% 
+     group_by(variant_id) %>%
+     filter(n()>1) # 647
+
+length(unique(MP_eqtl_sig$variant_id)) # 6333
+MP_eqtl_multigene <- MP_eqtl_sig %>% 
+     group_by(variant_id) %>%
+     filter(n()>1) # 261
+
+p1 <- ggplot(ML_eqtl_multigene, aes(x=maf)) + geom_histogram(binwidth=0.01) + theme_classic() + ggtitle("Male leaf")
+p2 <- ggplot(FL_eqtl_multigene, aes(x=maf)) + geom_histogram(binwidth=0.01) + theme_classic() + ggtitle("Female leaf")
+p3 <- ggplot(MP_eqtl_multigene, aes(x=maf)) + geom_histogram(binwidth=0.01) + theme_classic() + ggtitle("Male pollen")
+
+p1 + p2 + p3
+```
+
+
+```{r}
+wilcox.test(ML_eqtl_multigene$maf, MP_eqtl_multigene$maf)
+```
+
+
+# venn diagram of significant eQTLs (should be unique)
+```{r}
+v1<-ML_eqtl_sig$variant_id
+v2<-FL_eqtl_sig$variant_id
+v3<-MP_eqtl_sig$variant_id
+
+write.table(v1, file = paste0(data, "ml_variant.txt"), row.names = F, quote = F, col.names = F)
+write.table(v2, file = paste0(data, "fl_variant.txt"), row.names = F, quote = F, col.names = F)
+write.table(v3, file = paste0(data, "mp_variant.txt"), row.names = F, quote = F, col.names = F)
+
+# v1 <- unique(v1) # 22643
+# 
+# venn.diagram(
+#   x = list(v1, v2, v3),
+#   category.names = c("male leaf" , "female leaf" , "pollen"),
+#   filename = 'venn_diagramm_eQTL.png',
+#   output=TRUE,
+#   # Set names
+#   cat.cex = 1,
+#   cat.fontface = "bold")
+```

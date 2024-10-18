@@ -1,0 +1,122 @@
+---
+title: "permutation"
+author: "Meng"
+date: "2024-06-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(arrow)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+library(qvalue)
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
+```
+
+
+# permutations, empirical p-values for phenotypes
+
+## histogram of empirical p values for phenotypes
+```{r}
+ML <- read.table(paste0(data, "ML.cis_qtl.txt"), header = T) # 14792
+FL <- read.table(paste0(data, "FL.cis_qtl.txt"), header = T) # 14564
+MP <- read.table(paste0(data, "MP.cis_qtl.txt"), header = T) # 13785
+
+qval_ML <- qvalue(ML$pval_beta)
+qval_FL <- qvalue(FL$pval_beta)
+qval_MP <- qvalue(MP$pval_beta)
+summary(qval_ML)
+p1 <- hist(qval_ML)
+summary(qval_FL)
+p2 <- hist(qval_FL)
+summary(qval_MP)
+p3 <- hist(qval_MP)
+
+p1 <- ggplot(ML, aes(x=pval_beta)) + geom_histogram(color="black", fill="white") + theme_classic() + xlab("p-value")+ggtitle("a")
+p2 <- ggplot(FL, aes(x=pval_beta)) + geom_histogram(color="black", fill="white") + theme_classic()+ xlab("p-value")+ggtitle("b")
+p3 <- ggplot(MP, aes(x=pval_beta)) + geom_histogram(color="black", fill="white") + theme_classic()+ xlab("p-value")+ggtitle("c")
+
+p1 + p2 + p3 
+```
+
+ML 14658 tested, 4075 (q < 0.1)
+FL 14733 tested, 4260 (q < 0.1)
+MP 13794 tested, 2192 (q < 0.1)
+
+## extract eGenes
+```{r}
+ML_egene <- ML %>% filter(qval < 0.1) # 2560
+FL_egene <- FL %>% filter(qval < 0.1) # 3459
+MP_egene <- MP %>% filter(qval < 0.1) # 1474
+# Venn of egenes
+write.csv(MP_egene, file = paste0(data, "MP_egene.csv"), row.names = F, quote = F)
+write.csv(ML_egene, file = paste0(data, "ML_egene.csv"), row.names = F, quote = F)
+write.csv(FL_egene, file = paste0(data, "FL_egene.csv"), row.names = F, quote = F)
+
+write.table(MP_egene$phenotype_id, file = paste0(data, "MP_egene.txt"), row.names = F, quote = F, col.names = F)
+write.table(ML_egene$phenotype_id, file = paste0(data, "ML_egene.txt"), row.names = F, quote = F, col.names = F)
+write.table(FL_egene$phenotype_id, file = paste0(data, "FL_egene.txt"), row.names = F, quote = F, col.names = F)
+```
+
+
+## extract FDR-corrected significant eQTLs
+```{r}
+ML_A1 <- read_parquet(paste0(data,"ML.cis_qtl_pairs.1.parquet"))
+ML_A2 <- read_parquet(paste0(data,"ML.cis_qtl_pairs.2.parquet"))
+ML_A3 <- read_parquet(paste0(data,"ML.cis_qtl_pairs.3.parquet"))
+ML_A4 <- read_parquet(paste0(data,"ML.cis_qtl_pairs.4.parquet"))
+ML_eqtl <- rbind(ML_A1, ML_A2, ML_A3, ML_A4) # 1369956
+sum(ML$num_var) # 1369956
+
+FL_A1 <- read_parquet(paste0(data,"FL.cis_qtl_pairs.1.parquet"))
+FL_A2 <- read_parquet(paste0(data,"FL.cis_qtl_pairs.2.parquet"))
+FL_A3 <- read_parquet(paste0(data,"FL.cis_qtl_pairs.3.parquet"))
+FL_A4 <- read_parquet(paste0(data,"FL.cis_qtl_pairs.4.parquet"))
+FL_eqtl <- rbind(FL_A1, FL_A2, FL_A3, FL_A4) # 1687298
+sum(FL$num_var) # 1687298
+
+MP_A1 <- read_parquet(paste0(data,"MP.cis_qtl_pairs.1.parquet"))
+MP_A2 <- read_parquet(paste0(data,"MP.cis_qtl_pairs.2.parquet"))
+MP_A3 <- read_parquet(paste0(data,"MP.cis_qtl_pairs.3.parquet"))
+MP_A4 <- read_parquet(paste0(data,"MP.cis_qtl_pairs.4.parquet"))
+MP_eqtl <- rbind(MP_A1, MP_A2, MP_A3, MP_A4) # 1182102
+sum(MP$num_var) # 1182102
+```
+
+```{r}
+head(ML_eqtl)
+ML_eqtl_full <- inner_join(ML_eqtl, ML[,c(1,16:19)], by = "phenotype_id") 
+#ML_eqtl_full <- inner_join(ML_eqtl, ML_egene[,c(1,16:19)], by = "phenotype_id") # same result
+ML_eqtl_sig <- ML_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold) # 11882
+
+FL_eqtl_full <- inner_join(FL_eqtl, FL[,c(1,16:19)], by = "phenotype_id") 
+FL_eqtl_sig <- FL_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold) # 23944
+
+MP_eqtl_full <- inner_join(MP_eqtl, MP[,c(1,16:19)], by = "phenotype_id") 
+MP_eqtl_sig <- MP_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold) # 6464
+```
+
+save output
+```{r}
+ML_eqtl_sig <- ML_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
+FL_eqtl_sig <- FL_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
+MP_eqtl_sig <- MP_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
+
+write.csv(ML_eqtl_sig, file = paste0(data, "ML_eqtl_sig.csv"), row.names = F, quote = F)
+write.csv(FL_eqtl_sig, file = paste0(data, "FL_eqtl_sig.csv"), row.names = F, quote = F)
+write.csv(MP_eqtl_sig, file = paste0(data, "MP_eqtl_sig.csv"), row.names = F, quote = F)
+
+length(unique(ML_eqtl_sig$phenotype_id)) # 1891
+length(unique(FL_eqtl_sig$phenotype_id)) # 2692
+length(unique(MP_eqtl_sig$phenotype_id)) # 1158
+
+write.table(unique(ML_eqtl_sig$phenotype_id), file = paste0(data, "ML_egene_eqtl.txt"), row.names = F, quote = F, col.names = F)
+write.table(unique(MP_eqtl_sig$phenotype_id), file = paste0(data, "MP_egene_eqtl.txt"), row.names = F, quote = F, col.names = F)
+write.table(unique(FL_eqtl_sig$phenotype_id), file = paste0(data, "FL_egene_eqtl.txt"), row.names = F, quote = F, col.names = F)
+```
+
+
+
+
+

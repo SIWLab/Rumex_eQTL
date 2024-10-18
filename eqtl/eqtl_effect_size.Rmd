@@ -1,0 +1,110 @@
+---
+title: "effect size plots"
+author: "Meng"
+date: "2024-10-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
+```
+
+# Effect size plots
+need to generate FL_eqtl_full from eqtl_permutation.Rmd  
+```{r}
+FL_eqtl_full <- FL_eqtl_full %>% mutate(category = ifelse(pval_nominal < pval_nominal_threshold, "Significant", "Not_Significant"))
+ML_eqtl_full <- ML_eqtl_full %>% mutate(category = ifelse(pval_nominal < pval_nominal_threshold, "Significant", "Not_Significant"))
+MP_eqtl_full <- MP_eqtl_full %>% mutate(category = ifelse(pval_nominal < pval_nominal_threshold, "Significant", "Not_Significant"))
+```
+
+# separate left joins
+## sex
+```{r}
+ml <- ML_eqtl_sig_min %>% dplyr::select(phenotype_id, variant_id, slope)
+fl <- FL_eqtl_full %>% dplyr::select(phenotype_id, variant_id, slope, category)
+
+pair1 <- inner_join(ml, fl, by = c("phenotype_id","variant_id"))
+colnames(pair1)[3:5] <- c("male_leaf", "female_leaf", "sig_fl") # 1042
+pair1$sig_ml <- "Significant"
+
+ml <- ML_eqtl_full %>% dplyr::select(phenotype_id, variant_id, slope, category)
+fl <- FL_eqtl_sig_min %>% dplyr::select(phenotype_id, variant_id, slope)
+
+pair2 <- inner_join(fl, ml, by = c("phenotype_id","variant_id"))
+colnames(pair2)[3:5] <- c("female_leaf", "male_leaf", "sig_ml") # 1090
+pair2$sig_fl <- "Significant"
+
+ml_fl <- rbind(pair1, pair2) # 2132
+ml_fl <- ml_fl %>%  mutate(category = case_when(
+    sig_ml == "Significant" & sig_fl != "Significant" ~ "male",
+    sig_fl == "Significant" & sig_ml != "Significant" ~ "female",
+    sig_ml == "Significant" & sig_fl == "Significant" ~ "both"
+    ))
+```
+ 
+# lifestage
+```{r}
+ml <- ML_eqtl_sig_min %>% dplyr::select(phenotype_id, variant_id, slope)
+mp <- MP_eqtl_full %>% dplyr::select(phenotype_id, variant_id, slope, category)
+pair1 <- inner_join(ml, mp, by = c("phenotype_id","variant_id"))
+colnames(pair1)[3:5] <- c("male_leaf", "pollen", "sig_mp") # 1297
+pair1$sig_ml <- "Significant"
+
+ml <- ML_eqtl_full %>% dplyr::select(phenotype_id, variant_id, slope, category)
+mp <- MP_eqtl_sig_min %>% dplyr::select(phenotype_id, variant_id, slope)
+pair2 <- inner_join(mp, ml, by = c("phenotype_id","variant_id"))
+colnames(pair2)[3:5] <- c("pollen", "male_leaf", "sig_ml") # 935
+pair2$sig_mp <- "Significant"
+
+ml_mp <- rbind(pair1, pair2) # 2232
+ml_mp <- ml_mp %>%  mutate(category = case_when(
+    sig_ml == "Significant" & sig_mp != "Significant" ~ "leaf",
+    sig_mp == "Significant" & sig_ml != "Significant" ~ "pollen",
+    sig_ml == "Significant" & sig_mp == "Significant" ~ "both"
+    ))
+```
+
+
+```{r}
+cor.test(ml_fl$male_leaf, ml_fl$female_leaf, method=c("spearman")) 
+cor.test(ml_mp$male_leaf, ml_mp$pollen, method=c("spearman")) 
+```
+Warning: Cannot compute exact p-value with ties
+	Spearman's rank correlation rho
+
+data:  ml_fl$male_leaf and ml_fl$female_leaf
+S = 412663101, p-value < 2.2e-16
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+      rho 
+0.7445032 
+
+Warning: Cannot compute exact p-value with ties
+	Spearman's rank correlation rho
+
+data:  ml_mp$male_leaf and ml_mp$pollen
+S = 1161797501, p-value < 2.2e-16
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+      rho 
+0.3730987
+
+```{r}
+p1 <- ggplot(ml_fl, aes(x = male_leaf, y = female_leaf, color = category)) + geom_point(size=0.8)+ theme_classic() + labs(x="Male leaf", y="Female leaf") + theme(text = element_text(size = 11))+ scale_colour_manual(values = c("black", "#CBC3E3", "#FFDBBB"))+ geom_vline(xintercept=0, color = "black",linetype="dashed") + geom_hline(yintercept=0, color = "black",linetype="dashed")
+
+p2 <- ggplot(ml_mp, aes(x = male_leaf, y = pollen, color = category)) + geom_point(size=0.8)+ theme_classic() + labs(x="Male leaf", y="Pollen") + theme(text = element_text(size = 11))+ scale_colour_manual(values = c("black", "#FFCCCB", "#ADD8E6")) + geom_vline(xintercept=0, color = "black",linetype="dashed") + geom_hline(yintercept=0, color = "black",linetype="dashed")
+
+p1 + p2
+```
+
+# write output
+```{r}
+write.csv(ml_fl, file = paste0(data, "effect_size_ml_fl.csv"), row.names = F, quote = F)
+write.csv(ml_mp, file = paste0(data, "effect_size_ml_mp.csv"), row.names = F, quote = F)
+ml_fl <- read.csv(paste0(data, "effect_size_ml_fl.csv"))
+ml_mp <- read.csv(paste0(data, "effect_size_ml_mp.csv"))
+```
+

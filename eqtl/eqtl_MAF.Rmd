@@ -1,0 +1,235 @@
+---
+title: "MAF plots"
+author: "Meng"
+date: "2024-07-16"
+output: html_document
+---
+```{r setup, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
+get_hist_prop <- function(data) {
+  p <- ggplot(data, aes(x = maf)) + geom_histogram(binwidth = 0.01,stat="count")
+  p_data <- ggplot_build(p)$data[[1]]
+  p_data$y_prop <- p_data$y / sum(p_data$y)
+  return(p_data)
+}
+```
+
+# MAF for significant cis-eQTL in each tissue
+
+## keep unique SNPs for MAF
+```{r}
+ML_eqtl_sig <- read.csv(paste0(data, "ML_eqtl_sig.csv"))
+FL_eqtl_sig <- read.csv(paste0(data, "FL_eqtl_sig.csv"))
+MP_eqtl_sig <- read.csv(paste0(data, "MP_eqtl_sig.csv"))
+
+# ML_eqtl_sig_af <- ML_eqtl_sig %>% dplyr::select(variant_id, af, maf) %>% distinct()
+# FL_eqtl_sig_af <- FL_eqtl_sig %>% dplyr::select(variant_id, af, maf) %>% distinct()
+# MP_eqtl_sig_af <- MP_eqtl_sig %>% dplyr::select(variant_id, af, maf) %>% distinct()
+```
+
+## keep the most significant SNP per gene
+```{r}
+ML_eqtl_sig_min <- ML_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_nominal == min(pval_nominal)) # 1899
+
+FL_eqtl_sig_min <- FL_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_nominal == min(pval_nominal)) # 1164
+
+MP_eqtl_sig_min <- MP_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_nominal == min(pval_nominal)) # 2702
+
+ML_eqtl_sig_min_af <- ML_eqtl_sig_min %>% dplyr::select(variant_id, af, maf) %>% distinct()
+FL_eqtl_sig_min_af <- FL_eqtl_sig_min %>% dplyr::select(variant_id, af, maf) %>% distinct()
+MP_eqtl_sig_min_af <- MP_eqtl_sig_min %>% dplyr::select(variant_id, af, maf) %>% distinct()
+```
+
+plots
+```{r}
+p1 <- ggplot(ML_eqtl_sig_min_af, aes(x=maf)) + geom_histogram(binwidth=0.01) + theme_classic() + ggtitle("Male leaf")+ xlab("MAF")+ theme(text = element_text(size = 10))
+p2 <- ggplot(FL_eqtl_sig_min_af, aes(x=maf)) + geom_histogram(binwidth=0.01) + theme_classic() + ggtitle("Female leaf")+ xlab("MAF")+ theme(text = element_text(size = 10))
+p3 <- ggplot(MP_eqtl_sig_min_af, aes(x=maf)) + geom_histogram(binwidth=0.01) + theme_classic() + ggtitle("Male pollen")+ xlab("MAF")+ theme(text = element_text(size = 10))
+p1 + p2 + p3
+```
+
+
+## keep a random SNP per gene
+```{r}
+set.seed(123)
+MP_eqtl_sig_random <- MP_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  slice_sample(n = 1)
+
+ML_eqtl_sig_random <- ML_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  slice_sample(n = 1)
+
+FL_eqtl_sig_random <- FL_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  slice_sample(n = 1)
+
+ML_eqtl_sig_random_af <- ML_eqtl_sig_random %>% dplyr::select(variant_id, af, maf) %>% distinct()
+FL_eqtl_sig_random_af <- FL_eqtl_sig_random %>% dplyr::select(variant_id, af, maf) %>% distinct()
+MP_eqtl_sig_random_af <- MP_eqtl_sig_random %>% dplyr::select(variant_id, af, maf) %>% distinct()
+```
+plots
+```{r}
+# p4 <- ggplot(ML_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(aes(y=..density..), colour="black", fill="white",binwidth=0.01) + theme_classic() + ggtitle("Male leaf")+ xlab("MAF")+ theme(text = element_text(size = 10))+geom_density(alpha=.2) 
+# p5 <- ggplot(FL_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(aes(y=..density..), colour="black", fill="white",binwidth=0.01) + theme_classic() + ggtitle("Female leaf")+ xlab("MAF")+ theme(text = element_text(size = 10))+geom_density(alpha=.2) 
+# p6 <- ggplot(MP_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(aes(y=..density..), colour="black", fill="white",binwidth=0.01) + theme_classic() + ggtitle("Male pollen")+ xlab("MAF")+ theme(text = element_text(size = 10))+geom_density(alpha=.2) 
+# 
+# p4 + p5 + p6
+```
+
+
+# Mann-Whitney U test of MAF of each tissue and prep plots
+## most significant
+```{r}
+median(ML_eqtl_sig_min_af$maf)
+median(FL_eqtl_sig_min_af$maf)
+median(MP_eqtl_sig_min_af$maf)
+
+IQR(ML_eqtl_sig_min_af$maf)
+IQR(FL_eqtl_sig_min_af$maf)
+IQR(MP_eqtl_sig_min_af$maf)
+
+wilcox.test(ML_eqtl_sig_min_af$maf, FL_eqtl_sig_min_af$maf)
+wilcox.test(ML_eqtl_sig_min_af$maf, MP_eqtl_sig_min_af$maf)
+wilcox.test(FL_eqtl_sig_min_af$maf, MP_eqtl_sig_min_af$maf)
+```
+[1] 0.1171875
+[1] 0.1166667
+[1] 0.1160714
+[1] 0.1158847
+[1] 0.1262295
+[1] 0.112782
+Wilcoxon rank sum test with continuity correction
+
+data:  ML_eqtl_sig_min_af$maf and FL_eqtl_sig_min_af$maf
+W = 2503232, p-value = 0.1601
+alternative hypothesis: true location shift is not equal to 0
+
+
+	Wilcoxon rank sum test with continuity correction
+
+data:  ML_eqtl_sig_min_af$maf and MP_eqtl_sig_min_af$maf
+W = 1118508, p-value = 0.5759
+alternative hypothesis: true location shift is not equal to 0
+
+
+	Wilcoxon rank sum test with continuity correction
+
+data:  FL_eqtl_sig_min_af$maf and MP_eqtl_sig_min_af$maf
+W = 1631618, p-value = 0.06361
+alternative hypothesis: true location shift is not equal to 0
+
+```{r}
+p<-ggplot(ML_eqtl_sig_min_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y) # 0.096
+
+p1 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("a")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.11)+ geom_vline(xintercept=0.1171875, color = "red",linetype="dashed")
+
+p<-ggplot(FL_eqtl_sig_min_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y) # 0.1065
+
+p2 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("b")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.11)+ geom_vline(xintercept=0.1166667, color = "red",linetype="dashed")
+
+p<-ggplot(MP_eqtl_sig_min_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y) # 0.1065
+
+p3 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("c")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.11)+ geom_vline(xintercept=0.1160714, color = "red",linetype="dashed")
+```
+
+
+
+## random significant
+```{r}
+median(ML_eqtl_sig_random_af$maf)
+median(FL_eqtl_sig_random_af$maf)
+median(MP_eqtl_sig_random_af$maf)
+
+IQR(ML_eqtl_sig_random_af$maf)
+IQR(FL_eqtl_sig_random_af$maf)
+IQR(MP_eqtl_sig_random_af$maf)
+
+wilcox.test(ML_eqtl_sig_random_af$maf, FL_eqtl_sig_random_af$maf)
+wilcox.test(ML_eqtl_sig_random_af$maf, MP_eqtl_sig_random_af$maf)
+wilcox.test(FL_eqtl_sig_random_af$maf, MP_eqtl_sig_random_af$maf)
+```
+[1] 0.112069
+[1] 0.1065574
+[1] 0.112069
+[1] 0.1077907
+[1] 0.1182121
+[1] 0.115245
+	Wilcoxon rank sum test with continuity correction
+
+data:  ML_eqtl_sig_random_af$maf and FL_eqtl_sig_random_af$maf
+W = 2523448, p-value = 0.6205
+alternative hypothesis: true location shift is not equal to 0
+
+
+	Wilcoxon rank sum test with continuity correction
+
+data:  ML_eqtl_sig_random_af$maf and MP_eqtl_sig_random_af$maf
+W = 1098730, p-value = 0.8707
+alternative hypothesis: true location shift is not equal to 0
+
+
+	Wilcoxon rank sum test with continuity correction
+
+data:  FL_eqtl_sig_random_af$maf and MP_eqtl_sig_random_af$maf
+W = 1582935, p-value = 0.4429
+alternative hypothesis: true location shift is not equal to 0
+
+```{r}
+p<-ggplot(ML_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y) # 0.111
+
+p4 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("d")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10))+ ylim(0, 0.13)+ geom_vline(xintercept=0.112069, color = "red",linetype="dashed")
+
+p<-ggplot(FL_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y) # 0.122
+
+p5 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("e")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10))+ ylim(0, 0.13)+ geom_vline(xintercept=0.1065574, color = "red",linetype="dashed")
+
+p<-ggplot(MP_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y) # 0.111
+
+p6 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("f")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.13)+ geom_vline(xintercept=0.112069, color = "red",linetype="dashed")
+```
+
+
+## combine plots
+```{r}
+p1 + p2 + p3 + p4 + p5 + p6 + plot_layout(nrow = 2)
+```
+
+# write outputs
+```{r}
+write.csv(ML_eqtl_sig_random_af, file = paste0(data, "ML_eqtl_sig_random_af.csv"), row.names = F, quote = F)
+write.csv(FL_eqtl_sig_random_af, file = paste0(data, "FL_eqtl_sig_random_af.csv"), row.names = F, quote = F)
+write.csv(MP_eqtl_sig_random_af, file = paste0(data, "MP_eqtl_sig_random_af.csv"), row.names = F, quote = F)
+
+write.csv(ML_eqtl_sig_min_af, file = paste0(data, "ML_eqtl_sig_min_af.csv"), row.names = F, quote = F)
+write.csv(FL_eqtl_sig_min_af, file = paste0(data, "FL_eqtl_sig_min_af.csv"), row.names = F, quote = F)
+write.csv(MP_eqtl_sig_min_af, file = paste0(data, "MP_eqtl_sig_min_af.csv"), row.names = F, quote = F)
+```
+

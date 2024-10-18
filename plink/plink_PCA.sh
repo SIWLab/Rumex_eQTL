@@ -34,7 +34,7 @@ for i in "ML" "MP" "L"
 do 
 VCF=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_auto.SNP.${i}.filt.vcf.gz
 VCF2=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_auto.SNP.${i}.filt2.vcf.gz
-bcftools view ${VCF} -s ^7bM,27eM,53b,5aM --threads 20 | bgzip -c > ${VCF2}
+bcftools view ${VCF} -s ^7bM,27eM,53bM,5aM --threads 20 | bgzip -c > ${VCF2}
 done
 
 

@@ -95,12 +95,18 @@ vcftools --gzvcf ${VCF_OUT} \
 tabix ${VCF_OUT2}
 
 
+i="Y"
+# remove one sample with extremely low coverage
+bcftools view /ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_${i}.vcf.gz \
+-s ^NS.1594.001.IDT_i7_141---IDT_i5_141.24fMLD -r Y:1-45000000 --threads 20 -m2 -M2 -v snps \
+| bgzip -c > /ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_PAR_SNP.vcf.gz
+
+
 # PAR for female
 VCF=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_Y.vcf.gz
 VCF_OUT=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_PAR.SNP.FL.vcf.gz
 VCF_OUT2=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_PAR.SNP.FL.filt.vcf.gz
 
-tabix ${VCF}
 bcftools reheader ${VCF} --threads 20 -s sample_names.txt \
 | bcftools view -S FL_74.txt -r Y:1-45000000 -m2 -M2 -v snps --threads 20 |\
 bcftools annotate --rename-chrs chr_namesY | bgzip -c > ${VCF_OUT} 

@@ -18,8 +18,8 @@ data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manus
 # PCA
 check for outliers
 ```{r}
-pca <- read.table(paste0(data,"sex.eigenvec"))
-eigenval <- scan(paste0(data,"sex.eigenval"))
+pca <- read.table(paste0(data,"L_ld.eigenvec"))
+eigenval <- scan(paste0(data,"L_ld.eigenval"))
 # sort out the pca data
 # remove nuisance column
 pca <- pca[,-1]
@@ -43,10 +43,10 @@ cumsum(pve$pve)
 a <- ggplot(pve, aes(PC, pve)) + geom_bar(stat = "identity")
 a + ylab("Percentage variance explained") + theme_light()
 ```
- [1]   6.360536  12.228722  17.830549  23.204612  28.529886  33.639426
- [7]  38.733896  43.690294  48.617882  53.506370  58.366490  63.156672
-[13]  67.930390  72.651109  77.310217  81.927154  86.538075  91.048189
-[19]  95.545798 100.000000
+6.273595  12.193925  17.662851  23.099417  28.308537  33.461433
+ [7]  38.480761  43.450744  48.414720  53.338554  58.215466  63.042483
+[13]  67.833686  72.568116  77.260209  81.909286  86.479114  91.017681
+[19]  95.518690 100.000000
 
 ```{r}
 # plot pca
@@ -56,18 +56,30 @@ b <- b + coord_equal() + theme_light()
 b + xlab(paste0("PC1 (", signif(pve$pve[1], 3), "%)")) + ylab(paste0("PC2 (", signif(pve$pve[2], 3), "%)"))
 ```
 
+```{r}
+# plot pca
+b <- ggplot(pca, aes(PC1, PC2, col = sex, , label=ind)) + geom_point(size = 3)
+b <- b + scale_colour_manual(values = c("red", "blue"))
+b <- b + coord_equal() + theme_light()
+b + xlab(paste0("PC1 (", signif(pve$pve[1], 3), "%)")) + ylab(paste0("PC2 (", signif(pve$pve[2], 3), "%)"))+ geom_text(hjust=0, vjust=0)
+```
+
 
 
 ## separate
 ```{r}
-pca <- read.table(paste0(data,"MP.eigenvec"))
-eigenval <- scan(paste0(data,"MP.eigenval"))
+pca <- read.table(paste0(data,"MP_ld.eigenvec"))
+eigenval <- scan(paste0(data,"MP_ld.eigenval"))
 
-pca <- read.table(paste0(data,"ML.eigenvec"))
-eigenval <- scan(paste0(data,"ML.eigenval"))
+pca <- read.table(paste0(data,"ML_ld.eigenvec"))
+eigenval <- scan(paste0(data,"ML_ld.eigenval"))
 
-pca <- read.table(paste0(data,"FL.eigenvec"))
-eigenval <- scan(paste0(data,"FL.eigenval"))
+pca <- read.table(paste0(data,"FL_ld.eigenvec"))
+eigenval <- scan(paste0(data,"FL_ld.eigenval"))
+
+```
+
+```{r}
 # sort out the pca data
 # remove nuisance column
 pca <- pca[,-1]
@@ -84,11 +96,5 @@ a + ylab("Percentage variance explained") + theme_light()
 # plot pca
 ggplot(pca, aes(PC1, PC2, label=ind)) + geom_point(size = 3) + coord_equal() + theme_light() + xlab(paste0("PC1 (", signif(pve$pve[1], 3), "%)")) + ylab(paste0("PC2 (", signif(pve$pve[2], 3), "%)")) + geom_text(hjust=0, vjust=0)
 ```
-
-# add genetic PC to covariate file
-```{r}
-
-```
-
 
 

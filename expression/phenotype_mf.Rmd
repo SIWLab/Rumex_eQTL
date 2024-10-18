@@ -1,7 +1,7 @@
 ---
-title: "expression phenotype files"
+title: "phenotype for female leaf and male leaf separate normalization"
 author: "Meng"
-date: "2024-06-13"
+date: "2024-09-23"
 output: html_document
 ---
 
@@ -13,103 +13,96 @@ library("stringr")
 data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/"
 ```
 
-
-# female leaf gene expression phenotype files
-
-## remove unmatched samples and sex chroms before all nomalization
+## prep read cnt file
 ```{r}
 readcnt_leaf <- read.table(paste0(data,"rhastTXeQTLrna.txt"), header = T)
 head(readcnt_leaf)
-
-# simplify sample id
-#colname <- colnames(readcnt_leaf)
+colname <- colnames(readcnt_leaf)
 #write.table(colname, file = paste0(data, "colname_mf.txt"), quote = F, row.names = F)
 colname <- read.table(paste0(data, "colname_mf.txt"))
 colnames(readcnt_leaf) <- colname$V1
-
 # sort sample id, males then females
 readcnt_leaf <- readcnt_leaf %>%
-  select(1:6, sort(names(readcnt_leaf)[7:161]), everything())
-
-readcnt_leaf_m <- readcnt_leaf %>% select(ends_with("M"))
-readcnt_leaf_f <- readcnt_leaf %>% select(ends_with("F"))
-
-write.table(colnames(readcnt_leaf_m), file = paste0(data, "colname_m.txt"), quote = F, row.names = F)
-write.table(colnames(readcnt_leaf_f), file = paste0(data, "colname_f.txt"), quote = F, row.names = F)
+  dplyr::select(1:6, sort(names(readcnt_leaf)[7:161]), everything())
+readcnt_leaf_m <- readcnt_leaf %>% dplyr::select(ends_with("M")) # 77
+readcnt_leaf_f <- readcnt_leaf %>% dplyr::select(ends_with("F")) # 78
 
 # remove 35aMLR (might be female), 40aF (might be male)
 # remove 24fM (low genomic coverage)
 # remove RNA samples that don't have matching DNA samples
 # 26fML and 73aML dont have matching pollen sample but can be kept here
-cols_to_remove <- c("35aM", "24fM")
+cols_to_remove <- c("24fM", "35aM","7bM","27eM","53bM","5aM")
 readcnt_leaf_m <- readcnt_leaf_m %>%
-  select(-all_of(cols_to_remove))
+  dplyr::select(-all_of(cols_to_remove)) # 71
 
 cols_to_remove <- c("14bF", "40aF", "45aF", "67eF")
 readcnt_leaf_f <- readcnt_leaf_f %>%
-  select(-all_of(cols_to_remove))
+  dplyr::select(-all_of(cols_to_remove)) # 74
 
 readcnt_leaf <- cbind(readcnt_leaf$Geneid, readcnt_leaf_m, readcnt_leaf_f)
 readcnt_leaf_m <- cbind(readcnt_leaf[,1], readcnt_leaf_m)
 readcnt_leaf_f <- cbind(readcnt_leaf[,1], readcnt_leaf_f)
 
 # remove genes with low read count 
-readcnt_leaf$all_mean <- rowMeans(readcnt_leaf[,c(2:150)])
-readcnt_leaf_m$all_mean <- rowMeans(readcnt_leaf_m[,c(2:76)])
+readcnt_leaf_m$all_mean <- rowMeans(readcnt_leaf_m[,c(2:72)])
 readcnt_leaf_f$all_mean <- rowMeans(readcnt_leaf_f[,c(2:75)])
 
-readcnt_leaf <- readcnt_leaf %>% filter(all_mean >= 5)  # 19152
-readcnt_leaf_m <- readcnt_leaf_m %>% filter(all_mean >= 5)  # 19353
+readcnt_leaf_m <- readcnt_leaf_m %>% filter(all_mean >= 5)  # 19348
 readcnt_leaf_f <- readcnt_leaf_f %>% filter(all_mean >= 5)  # 18604
 colnames(readcnt_leaf)[1] <- "gene"
 colnames(readcnt_leaf_m)[1] <- "gene"
 colnames(readcnt_leaf_f)[1] <- "gene"
 
-# remove sex chroms
+write.table(readcnt_leaf, file = paste0(data,"readcnt_leaf_sept.txt"), row.names = FALSE, quote = F) # 37659
+write.table(readcnt_leaf_m, file = paste0(data,"readcnt_leaf_m_sept.txt"), row.names = FALSE, quote = F)
+write.table(readcnt_leaf_f, file = paste0(data,"readcnt_leaf_f_sept.txt"), row.names = FALSE, quote = F)
+#readcnt_leaf_f <- read.table(paste0(data,"readcnt_leaf_f_sept.txt"), header = T, check.names = F)
+
+# remove Y for FL
 gff <- read.table(paste0(data,"merged_TX_noMatPARlarge_txanno_genes.gtf"))
 gff <- gff[,c(13,1,4,5)]
 colnames(gff) <- c("gene","chrom", "start", "end")
 
-readcnt_leaf <- inner_join(gff, readcnt_leaf, by = "gene")
-readcnt_leaf <- readcnt_leaf %>% filter(chrom != "X" & chrom != "Y") # 14804
-
-readcnt_leaf_m <- inner_join(gff, readcnt_leaf_m, by = "gene")
-readcnt_leaf_m <- readcnt_leaf_m %>% filter(chrom != "X" & chrom != "Y") # 14948
+gff <- gff %>% mutate(chrom_new = case_when(
+    chrom == "A1" ~ "A1",
+    chrom == "A2" ~ "A2",
+    chrom == "A3" ~ "A3",
+    chrom == "A4" ~ "A4",
+    chrom == "X" ~ "X",
+    chrom == "Y" & start < 45000000 ~ "PAR",
+    chrom == "Y" & start >= 45000000 ~ "Y"
+))
 
 readcnt_leaf_f <- inner_join(gff, readcnt_leaf_f, by = "gene")
-readcnt_leaf_f <- readcnt_leaf_f %>% filter(chrom != "X" & chrom != "Y") # 14634
-
-write.table(readcnt_leaf, file = paste0(data,"readcnt_leaf_jun14.txt"), row.names = FALSE, quote = F)
-write.table(readcnt_leaf_m, file = paste0(data,"readcnt_leaf_m_jun14.txt"), row.names = FALSE, quote = F)
-write.table(readcnt_leaf_f, file = paste0(data,"readcnt_leaf_f_jun14.txt"), row.names = FALSE, quote = F)
+# keep the X chromosome and PAR
+readcnt_leaf_f <- readcnt_leaf_f %>% filter(chrom_new != "Y") # 14634 A 17630
+table(readcnt_leaf_f$chrom_new)
+write.table(readcnt_leaf_f, file = paste0(data,"readcnt_leaf_f_filt.txt"), row.names = FALSE, quote = F)
 ```
+A1   A2   A3   A4  PAR    X 
+4928 4668 2691 2347 1102 1894
 
-## perform normalization both separate and combined 
-run deseq2 to get normalized read counts
-
-### combined
+## run deseq2 just to get normalized read counts
+### FL
 ```{r}
 # prep for deseq2
 # exclude gene info columns and all_mean column
-readcnt_matrix<-as.matrix(readcnt_leaf[ , -c(1:4,154)]) 
-rownames(readcnt_matrix) <- readcnt_leaf[ , 1]
+readcnt_matrix<-as.matrix(readcnt_leaf_f[ , -c(1:5,80)]) 
+rownames(readcnt_matrix) <- readcnt_leaf_f[ , 1]
 str(readcnt_matrix)
 meta_data <- data.frame(colnames(readcnt_matrix))
 
 colnames(meta_data) <- "id"
-sex <- rep(NA, length(meta_data$id))
-sex[grep("M", meta_data$id)] <- "male"
-sex[grep("F", meta_data$id)] <- "female"
-meta_data <- data.frame(meta_data, sex)
 rownames(meta_data) <- meta_data[,1]
+meta_data$sex <- "f"
 head(meta_data)
 
 # run deseq2
 dds <- DESeqDataSetFromMatrix(countData = readcnt_matrix, 
                               colData = meta_data,
-                              design = ~ sex)
+                              design = ~ 1)
 dds <- DESeq(dds)
-resultsNames(dds) # "sex_male_vs_female"
+resultsNames(dds) # "Intercept"
 res <- results(dds)
 head(res)
 summary(res)
@@ -119,17 +112,45 @@ nrow(result) # 14804
 
 normalized_countsl <- as.data.frame(counts(dds, normalized=T))
 normalized_countsl <- normalized_countsl %>% mutate(gene=rownames(normalized_countsl)) 
-normalized_countsl <- normalized_countsl[,c(150,1:149)]
-write.table(normalized_countsl, file = paste0(data,"normalized_countsl_jun14.txt"), row.names = FALSE, quote = F)
+normalized_countsl <- normalized_countsl[,c(75,1:74)]
 
-col <- data.frame(colnames(normalized_countsl))
-normalized_counts_ml <- normalized_countsl[,c(1,2:76)]
-normalized_counts_fl <- normalized_countsl[,c(1,77:150)]
+write.table(normalized_countsl, file = paste0(data,"normalized_counts_fl_sept.txt"), row.names = FALSE, quote = F)
+normalized_counts_fl <- normalized_countsl
 ```
-out of 14804 with nonzero total read count
-adjusted p-value < 0.1
-LFC > 0 (up)       : 1114, 7.5%
-LFC < 0 (down)     : 1135, 7.7%
+
+### ML
+```{r}
+# prep for deseq2
+# exclude gene info columns and all_mean column
+readcnt_matrix<-as.matrix(readcnt_leaf_m[ , -c(1,73)]) 
+rownames(readcnt_matrix) <- readcnt_leaf_m[ , 1]
+str(readcnt_matrix)
+meta_data <- data.frame(colnames(readcnt_matrix))
+
+colnames(meta_data) <- "id"
+rownames(meta_data) <- meta_data[,1]
+meta_data$sex <- "m"
+head(meta_data)
+
+# run deseq2
+dds <- DESeqDataSetFromMatrix(countData = readcnt_matrix, 
+                              colData = meta_data,
+                              design = ~ 1)
+dds <- DESeq(dds)
+resultsNames(dds) # "Intercept"
+res <- results(dds)
+head(res)
+summary(res)
+result <- res[complete.cases(res),]
+nrow(res) #  19348
+nrow(result) # 19348
+
+normalized_counts_ml <- as.data.frame(counts(dds, normalized=T))
+normalized_counts_ml <- normalized_counts_ml %>% mutate(gene=rownames(normalized_counts_ml)) 
+normalized_counts_ml <- normalized_counts_ml[,c(72,1:71)]
+# includes sex chromosomes, separate autosomes later
+write.table(normalized_counts_ml, file = paste0(data,"normalized_counts_ml_sept.txt"), row.names = FALSE, quote = F)
+```
 
 
 ## quantile normalizatin
@@ -147,61 +168,72 @@ normalized_counts_mln <- as.data.frame(t(normalized_counts_mln))
 normalized_counts_mln <- cbind(normalized_counts_ml[,1], normalized_counts_mln)
 colnames(normalized_counts_mln) <- colnames(normalized_counts_ml)
 
-# combined
-normalized_counts_ln = apply(normalized_countsl[,-1], 1, qn)
-normalized_counts_ln <- as.data.frame(t(normalized_counts_ln))
-normalized_counts_ln <- cbind(normalized_countsl[,1], normalized_counts_ln)
-colnames(normalized_counts_ln) <- colnames(normalized_countsl)
-
 ```
 
-
-## get TSS info for each gene
-
+## add TSS info
 ```{r}
 gff_full <- read.table(paste0(data, "merged_TX_noMatPARlarge_txanno_gene_full.bed"))
 colnames(gff_full) <- c("chrom", "start", "end", "strand")
 gff_full <- inner_join(gff_full, gff, by = c("chrom", "start", "end"))
-
 gff_full <- gff_full %>%
     mutate(start_tss = ifelse(strand == "+", start, end)) %>%
     mutate(end_tss = start_tss+1) 
-
-gff_full <- gff_full[,c(1,6,7,5)]
+gff_full <- gff_full[,c(6,7,8,5)]
 colnames(gff_full) <- c("chrom", "start", "end", "gene")
 
-# male leaf
-normalized_counts_mln <- inner_join(gff_full, normalized_counts_mln, by = "gene")
-#sort start pos for each chrom
-normalized_counts_mln <- normalized_counts_mln %>%
-  arrange(chrom, start) 
 
-colnames(normalized_counts_mln)[1] <- "#chr"
-colnames(normalized_counts_mln)[4] <- "gene_id"
-write.table(normalized_counts_mln, file = paste0(data,"normalized_counts_mln.bed"), row.names = FALSE, quote = F, sep = "\t")
-
-# female leaf
 normalized_counts_fln <- inner_join(gff_full, normalized_counts_fln, by = "gene")
 #sort start pos for each chrom
 normalized_counts_fln <- normalized_counts_fln %>%
   arrange(chrom, start) 
 
-colnames(normalized_counts_fln)[1] <- "#chr"
 colnames(normalized_counts_fln)[4] <- "gene_id"
-write.table(normalized_counts_fln, file = paste0(data,"normalized_counts_fln.bed"), row.names = FALSE, quote = F, sep = "\t")
-#normalized_counts_fln <- read.table(paste0(data,"normalized_counts_fln.bed"), header = T)
+normalized_counts_fln$chrom <- factor(normalized_counts_fln$chrom)
+levels(normalized_counts_fln$chrom)
+normalized_counts_fln_X <- normalized_counts_fln %>% filter(chrom == "X") #1894
+normalized_counts_fln_PAR <- normalized_counts_fln %>% filter(chrom == "PAR") #1102
+normalized_counts_fln_auto <- normalized_counts_fln %>% filter(chrom != "PAR" & chrom != "X") #14634
 
-# combined
-normalized_counts_ln <- inner_join(gff_full, normalized_counts_ln, by = "gene")
-#sort start pos for each chrom
-normalized_counts_ln <- normalized_counts_ln %>%
-  arrange(chrom, start) 
+colnames(normalized_counts_fln)[1] <- "#chr"
+colnames(normalized_counts_fln_X)[1] <- "#chr"
+colnames(normalized_counts_fln_PAR)[1] <- "#chr"
+colnames(normalized_counts_fln_auto)[1] <- "#chr"
 
-colnames(normalized_counts_ln)[1] <- "#chr"
-colnames(normalized_counts_ln)[4] <- "gene_id"
-write.table(normalized_counts_ln, file = paste0(data,"normalized_counts_ln.bed"), row.names = FALSE, quote = F, sep = "\t")
-
-write.table(colnames(normalized_counts_ln), file = paste0(data, "colname_mf.txt"), quote = F, row.names = F)
+write.table(normalized_counts_fln, file = paste0(data,"normalized_counts_fln_X_PAR.bed"), row.names = FALSE, quote = F, sep = "\t")
+write.table(normalized_counts_fln_X, file = paste0(data,"normalized_counts_fln_X.bed"), row.names = FALSE, quote = F, sep = "\t")
+write.table(normalized_counts_fln_PAR, file = paste0(data,"normalized_counts_fln_PAR.bed"), row.names = FALSE, quote = F, sep = "\t")
+write.table(normalized_counts_fln_auto, file = paste0(data,"normalized_counts_fln_auto.bed"), row.names = FALSE, quote = F, sep = "\t")
 
 ```
 
+```{r}
+# male leaf
+normalized_counts_mln <- inner_join(gff_full, normalized_counts_mln, by = "gene")
+
+#sort start pos for each chrom
+normalized_counts_mln <- normalized_counts_mln %>%
+  arrange(chrom, start) 
+
+colnames(normalized_counts_mln)[4] <- "gene_id"
+normalized_counts_mln$chrom <- factor(normalized_counts_mln$chrom)
+table(normalized_counts_mln$chrom)
+
+normalized_counts_mln_X <- normalized_counts_mln %>% filter(chrom == "X") # 1827
+normalized_counts_mln_PAR <- normalized_counts_mln %>% filter(chrom == "PAR") # 1135
+normalized_counts_mln_Y <- normalized_counts_mln %>% filter(chrom == "Y") # 1446
+normalized_counts_mln_auto <- normalized_counts_mln %>% filter(chrom != "PAR" & chrom != "X" & chrom != "Y") # 14940
+
+colnames(normalized_counts_mln)[1] <- "#chr"
+colnames(normalized_counts_mln_X)[1] <- "#chr"
+colnames(normalized_counts_mln_PAR)[1] <- "#chr"
+colnames(normalized_counts_mln_Y)[1] <- "#chr"
+colnames(normalized_counts_mln_auto)[1] <- "#chr"
+
+write.table(normalized_counts_mln, file = paste0(data,"normalized_counts_mln_full.bed"), row.names = FALSE, quote = F, sep = "\t")
+write.table(normalized_counts_mln_X, file = paste0(data,"normalized_counts_mln_X.bed"), row.names = FALSE, quote = F, sep = "\t")
+write.table(normalized_counts_mln_PAR, file = paste0(data,"normalized_counts_mln_PAR.bed"), row.names = FALSE, quote = F, sep = "\t")
+write.table(normalized_counts_mln_Y, file = paste0(data,"normalized_counts_mln_Y.bed"), row.names = FALSE, quote = F, sep = "\t")
+write.table(normalized_counts_mln_auto, file = paste0(data,"normalized_counts_mln_auto.bed"), row.names = FALSE, quote = F, sep = "\t")
+```
+A1   A2   A3   A4  PAR    X    Y 
+5041 4770 2739 2390 1135 1827 1446

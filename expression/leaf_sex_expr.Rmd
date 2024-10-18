@@ -1,5 +1,5 @@
 ---
-title: "expression PCA"
+title: "male leaf vs female leaf differential expresion"
 author: "Meng"
 date: "2024-05-22"
 output: html_document
@@ -17,19 +17,17 @@ data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manus
 ```
 
 ## male leaf vs female leaf
+already run deseq2 for A and PAR in phenotype_L.Rmd
+can rerun for sex chroms here
 ```{r}
-readcnt_leaf <- read.table(paste0(data,"rhastTXeQTLrna.txt"), header = T)
-head(readcnt_leaf)
+# unwanted samples already removed
+readcnt_leaf <- read.table(paste0(data,"readcnt_leaf_sept.txt"), header = T, check.names = F)
+col<-data.frame(colnames(readcnt_leaf))
+readcnt_leaf <- readcnt_leaf %>%  mutate(m_mean = rowMeans(readcnt_leaf[,c(2:72)] )) %>% mutate(f_mean = rowMeans(readcnt_leaf[,c(73:146)] ))
+# remove genes with low read counts
+readcnt_leaf <- readcnt_leaf %>% filter(m_mean >= 5 | f_mean >= 5) # 37659 -> 19486
 
-#remove 35aMLR (might be female), 40aF
-col <- data.frame(colnames(readcnt_leaf))
-readcnt_leaf <- readcnt_leaf[,-c(58,8)]
-
-readcnt_leaf$all_mean <- rowMeans(readcnt_leaf[,c(7:159)])
-readcnt_leaf <- readcnt_leaf %>% filter(all_mean >= 5) #19156
-
-
-readcnt_matrix<-as.matrix(readcnt_leaf[ , -c(1:6,160)]) 
+readcnt_matrix<-as.matrix(readcnt_leaf[ , -c(1,147,148)]) 
 rownames(readcnt_matrix) <- readcnt_leaf[ , 1]
 str(readcnt_matrix)
 meta_data <- data.frame(colnames(readcnt_matrix))
@@ -41,19 +39,8 @@ sex[grep("F", meta_data$id)] <- "female"
 meta_data <- data.frame(meta_data, sex)
 rownames(meta_data) <- meta_data[,1]
 head(meta_data)
-write.table(meta_data, file = paste0(data,"meta_data_sex.txt"), quote = F, row.names = F)
-meta_data_sex <- read.table(paste0(data,"meta_data_sex.txt"), header = T)
-```
-simplify sample names
-```{r}
-colname <- colnames(readcnt_leaf)
-write.table(colname, file = paste0(data, "colname.txt"), quote = F, row.names = F)
-colname <- read.table(paste0(data, "colname.txt"))
-colnames(readcnt_leaf) <- colname$V1
-```
 
-
-```{r}
+# run deseq2
 dds <- DESeqDataSetFromMatrix(countData = readcnt_matrix, 
                               colData = meta_data,
                               design = ~ sex)
@@ -63,73 +50,78 @@ res <- results(dds)
 head(res)
 summary(res)
 result <- res[complete.cases(res),]
-nrow(res) # 37659, 19156
-nrow(result) # 24458, 19156
-```
-```{r}
-normalized_countsl <- as.data.frame(counts(dds, normalized=T))
-normalized_countsl <- normalized_countsl %>% mutate(gene=rownames(normalized_countsl)) 
-normalized_countsl <- normalized_countsl[,c(156,1:155)]
+nrow(res) #  19486
+nrow(result) # 19485
 
-col<-data.frame(colnames(normalized_countsl))
-normalized_countsl <- normalized_countsl %>%  mutate(all_mean = rowMeans(normalized_countsl[,c(2:156)] )) 
-
-cntl <- normalized_countsl %>% select(c(1,157))
-cntl <- cntl %>% filter(all_mean >= 5)
-```
-
-
-
-```{r}
-vsdata <- vst(dds, blind=FALSE)
-p1 <- plotPCA(vsdata, intgroup=c("sex")) 
-
-vsdata1 <- vst(dds_tissue, blind=FALSE)
-p2 <- plotPCA(vsdata1, intgroup=c("tissue")) 
-
-p1 + p2 + plot_layout(nrow = 2)
-```
-
-```{r} 
-plotPCA(vsdata, intgroup=c("sex"))  + geom_text(aes(label=name),vjust=2)
-```
-
-DE genes
-```{r}
 DE_sex<-as.data.frame(result)
 DE_sex <- DE_sex %>% mutate(gene = rownames(DE_sex))
 DE_sex <- DE_sex[,c(7,1:6)]
-head(DE_sex) 
 DE_sex <- inner_join(DE_sex, gff, by = "gene")
-write.table(DE_sex, file = paste0(data,"result_sex_cnt5.txt"), row.names = FALSE, quote = FALSE)
-DE_sex <- read.table(paste0(data,"result_sex_cnt5.txt"), header = T)
+write.table(DE_sex, file = paste0(data,"DE_sex_full.txt"), row.names = FALSE, quote = F)
+```
 
-DE_sex <- DE_sex %>% filter(chrom != "X" & chrom != "Y")
+## expression PCA including sex chroms
+```{r}
+vsdata <- vst(dds, blind=FALSE)
+#+ geom_text(aes(label=name),vjust=2)
+p2 <- plotPCA(vsdata, intgroup=c("sex"))  
+p2
+#plotPCA(vsdata, intgroup=c("sex"))  + geom_text(aes(label=name),vjust=2)
+```
 
-DE_sex_m <-  DE_sex %>% filter(log2FoldChange > 0 & padj < 0.05) # 2928
-DE_sex_f <-  DE_sex %>% filter(log2FoldChange < 0 & padj < 0.05) # 2137
 
-DE_sex_m <-  DE_sex %>% filter(log2FoldChange > 1 & padj < 0.05) # 977
-DE_sex_f <-  DE_sex %>% filter(log2FoldChange < -1 & padj < 0.05) # 298
+
+## DE genes
+```{r}
+DE_sex <- read.table(paste0(data,"DE_sex_full.txt"), header = T)
+head(DE_sex) 
+DE_sex <- DE_sex %>% filter(padj<0.05) # 5606
+
+results_male <- data.frame(chrom = c("A1", "A2", "A3", "A4", "PAR", "X", "Y"), log2FC_1 = NA, log2FC_2 = NA, log2FC_3 = NA)
+results_female <- data.frame(chrom = c("A1", "A2", "A3", "A4", "PAR", "X", "Y"), log2FC_1 = NA, log2FC_2 = NA, log2FC_3 = NA)
+
+log2_fold_changes <- c(0, 1, 2)
+for (i in seq_along(log2_fold_changes)) {
+  DE_sex_male <- DE_sex %>% filter(log2FoldChange > log2_fold_changes[i] & padj < 0.05)
+  DE_sex_male$chrom_new <- factor(DE_sex_male$chrom_new, levels=c("A1", "A2", "A3", "A4", "PAR", "X", "Y"))
+  tablem <- as.data.frame(table(DE_sex_male$chrom_new))
+  results_male[1:7, paste0("log2FC_", i)] <- tablem[c(1:7), 2]  
+  
+  DE_sex_female <- DE_sex %>% filter(log2FoldChange < -log2_fold_changes[i] & padj < 0.05)
+  DE_sex_female$chrom_new <- factor(DE_sex_female$chrom_new, levels=c("A1", "A2", "A3", "A4", "PAR", "X", "Y"))
+  tablef <- as.data.frame(table(DE_sex_female$chrom_new))
+  results_female[1:7, paste0("log2FC_", i)] <- tablef[c(1:7), 2]  
+}
+write.csv(results_male, paste0(data,"DE_male_cnt.csv"), row.names = FALSE)
+write.csv(results_female, paste0(data,"DE_female_cnt.csv"), row.names = FALSE)
+```
+
+```{r}
+DE_sex <- read.table(paste0(data,"DE_sex_full.txt"), header = T)
+head(DE_sex) 
+DE_sex <- DE_sex %>% filter(padj<0.05) # 5606
+
+DE_sex_m <-  DE_sex %>% filter(log2FoldChange > 0 & padj < 0.05) # 
+DE_sex_f <-  DE_sex %>% filter(log2FoldChange < 0 & padj < 0.05) # 
+
+DE_sex_m <-  DE_sex %>% filter(log2FoldChange > 1 & padj < 0.05) # 
+DE_sex_f <-  DE_sex %>% filter(log2FoldChange < -1 & padj < 0.05) # 
 977+298
 
-DE_sex_m <-  DE_sex %>% filter(log2FoldChange > 2 & padj < 0.05) # 657
-DE_sex_f <-  DE_sex %>% filter(log2FoldChange < -2 & padj < 0.05) # 1
-
+DE_sex_m <-  DE_sex %>% filter(log2FoldChange > 2 & padj < 0.05) # 
+DE_sex_f <-  DE_sex %>% filter(log2FoldChange < -2 & padj < 0.05) # 
 
 table(DE_sex_m$chrom_new)
 table(DE_sex_f$chrom_new)
-
 ```
 
-Venn
+## Venn diagram
+all genes, FC = 2
 ```{r}
-DE_tissue <- inner_join(DE_tissue, gff, by = "gene")
-DE_tissue <- read.table(paste0(data,"result_tissue_cnt5.txt"), header = T)
-
-DE_tissue <- DE_tissue  %>% filter(chrom != "X" & chrom != "Y")
-DE_tissue_pollen <- DE_tissue %>% filter(log2FoldChange > 0 & padj < 0.05) # 7567
-DE_tissue_leaf <-  DE_tissue %>% filter(log2FoldChange < 0 & padj < 0.05) # 11445
+DE_sex_m <-  DE_sex %>% filter(log2FoldChange > 1 & padj < 0.05) # 1087
+DE_sex_f <-  DE_sex %>% filter(log2FoldChange < -1 & padj < 0.05) # 412
+DE_tissue_pollen <- DE_tissue %>% filter(log2FoldChange > 1 & padj < 0.05) # 6702
+DE_tissue_leaf <-  DE_tissue %>% filter(log2FoldChange < -1 & padj < 0.05) # 9947
 
 v1<-DE_tissue_pollen$gene
 v2<-DE_tissue_leaf$gene
@@ -139,24 +131,7 @@ v4<-DE_sex_m$gene
 venn.diagram(
   x = list(v1, v2, v3, v4),
   category.names = c("pollen-bias" , "leaf-bias" , "female-bias", "male-bias"),
-  filename = '4venn_diagramm_p05_auto.png',
-  output=TRUE,
-  # Set names
-  cat.cex = 1,
-  cat.fontface = "bold")
-
-```
-
-```{r}
-v1<-DE_tissue_pollen$gene
-v2<-DE_tissue_leaf$gene
-v3<-DE_sex_f$gene
-v4<-DE_sex_m$gene
-
-venn.diagram(
-  x = list(v1, v2, v3, v4),
-  category.names = c("pollen-bias" , "leaf-bias" , "female-bias", "male-bias"),
-  filename = '4venn_diagramm_p05.png',
+  filename = 'venn_FC2_p05.png',
   output=TRUE,
   # Set names
   cat.cex = 1,
@@ -166,22 +141,82 @@ write.table(v1, file = paste0(data, "pollen.txt"), row.names = F, quote = F, col
 write.table(v2, file = paste0(data, "leaf.txt"), row.names = F, quote = F, col.names = F)
 write.table(v3, file = paste0(data, "f.txt"), row.names = F, quote = F, col.names = F)
 write.table(v4, file = paste0(data, "m.txt"), row.names = F, quote = F, col.names = F)
+
+pm <- inner_join(DE_tissue_pollen,DE_sex_m, by = c("gene","chrom", "start", "end", "chrom_new"))
+table(pm$chrom_new)
+
+pf <- inner_join(DE_tissue_pollen,DE_sex_f, by = c("gene","chrom", "start", "end", "chrom_new"))
+table(pf$chrom_new)
+```
+A1  A2  A3 PAR   X   Y 
+  9   9   4   5   1 268 
+ A1  A2 PAR   X   Y 
+  4   1   1  64   3  
+  
+all genes, FC = 4
+```{r}
+DE_sex_m <-  DE_sex %>% filter(log2FoldChange > 2 & padj < 0.05) # 755
+DE_sex_f <-  DE_sex %>% filter(log2FoldChange < -2 & padj < 0.05) # 5
+DE_tissue_pollen <- DE_tissue %>% filter(log2FoldChange > 2 & padj < 0.05) # 5205
+DE_tissue_leaf <-  DE_tissue %>% filter(log2FoldChange < -2 & padj < 0.05) # 6297
+
+v1<-DE_tissue_pollen$gene
+v2<-DE_tissue_leaf$gene
+v3<-DE_sex_f$gene
+v4<-DE_sex_m$gene
+
+venn.diagram(
+  x = list(v1, v2, v3, v4),
+  category.names = c("pollen-bias" , "leaf-bias" , "female-bias", "male-bias"),
+  filename = 'venn_FC4_p05.png',
+  output=TRUE,
+  # Set names
+  cat.cex = 1,
+  cat.fontface = "bold")
+
+write.table(v1, file = paste0(data, "pollen_FC4.txt"), row.names = F, quote = F, col.names = F)
+write.table(v2, file = paste0(data, "leaf_FC4.txt"), row.names = F, quote = F, col.names = F)
+write.table(v3, file = paste0(data, "f_FC4.txt"), row.names = F, quote = F, col.names = F)
+write.table(v4, file = paste0(data, "m_FC4.txt"), row.names = F, quote = F, col.names = F)
 ```
 
-## test
-male female
-all, 977, 298
-pollen, 253, 52
-
-male female
-all, 1581, 466
-pollen, 632, 60
-
-male female
-all, 1581, 466
-leaf, 826, 389
+all genes, FC = 1
 ```{r}
-data <- matrix(c(1581, 632, 466, 60), nrow = 2, byrow = TRUE)
+DE_sex_m <-  DE_sex %>% filter(log2FoldChange > 0 & padj < 0.05) # 3308
+DE_sex_f <-  DE_sex %>% filter(log2FoldChange < 0 & padj < 0.05) # 2298
+DE_tissue_pollen <- DE_tissue %>% filter(log2FoldChange > 0 & padj < 0.05) # 7991
+DE_tissue_leaf <-  DE_tissue %>% filter(log2FoldChange < 0 & padj < 0.05) # 11831
+
+v1<-DE_tissue_pollen$gene
+v2<-DE_tissue_leaf$gene
+v3<-DE_sex_f$gene
+v4<-DE_sex_m$gene
+
+venn.diagram(
+  x = list(v1, v2, v3, v4),
+  category.names = c("pollen-bias" , "leaf-bias" , "female-bias", "male-bias"),
+  filename = 'venn_FC1_p05.png',
+  output=TRUE,
+  # Set names
+  cat.cex = 1,
+  cat.fontface = "bold")
+
+# write.table(v1, file = paste0(data, "pollen_FC4.txt"), row.names = F, quote = F, col.names = F)
+# write.table(v2, file = paste0(data, "leaf_FC4.txt"), row.names = F, quote = F, col.names = F)
+# write.table(v3, file = paste0(data, "f_FC4.txt"), row.names = F, quote = F, col.names = F)
+# write.table(v4, file = paste0(data, "m_FC4.txt"), row.names = F, quote = F, col.names = F)
+```
+
+
+
+## contigency test
+FC 2
+male female
+all, 1087, 412
+pollen, 296, 73
+
+```{r}
+data <- matrix(c(1087, 412, 296, 73), nrow = 2, byrow = TRUE)
 
 rownames(data) <- c("all", "pollen")
 colnames(data) <- c("male", "female")
@@ -190,15 +225,16 @@ table_data <- as.table(data)
 
 fisher.test(table_data)
 ```
+
 ```{r}
-data <- matrix(c(1581, 826, 466, 389), nrow = 2, byrow = TRUE)
-
-rownames(data) <- c("all", "leaf")
-colnames(data) <- c("male", "female")
-
-table_data <- as.table(data)
-
-fisher.test(table_data)
+# data <- matrix(c(1581, 826, 466, 389), nrow = 2, byrow = TRUE)
+# 
+# rownames(data) <- c("all", "leaf")
+# colnames(data) <- c("male", "female")
+# 
+# table_data <- as.table(data)
+# 
+# fisher.test(table_data)
 ```
 
 

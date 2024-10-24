@@ -20,9 +20,9 @@ phenotype_mf.Rmd: remove unmatched samples
 # unwanted samples already removed
 readcnt_leaf <- read.table(paste0(data,"readcnt_leaf_sept.txt"), header = T, check.names = F)
 col<-data.frame(colnames(readcnt_leaf))
-readcnt_leaf <- readcnt_leaf %>%  mutate(m_mean = rowMeans(readcnt_leaf[,c(2:72)] )) %>% mutate(f_mean = rowMeans(readcnt_leaf[,c(73:146)] ))
+readcnt_leaf <- readcnt_leaf %>%  mutate(m_mean = rowMeans(readcnt_leaf[,c(2:70)] )) %>% mutate(f_mean = rowMeans(readcnt_leaf[,c(71:144)] ))
 # remove genes with low read counts
-readcnt_leaf <- readcnt_leaf %>% filter(m_mean >= 5 | f_mean >= 5) # 37659 -> 19486
+readcnt_leaf <- readcnt_leaf %>% filter(m_mean >= 5 | f_mean >= 5) # 37659 -> 19494
 
 gff <- read.table(paste0(data,"merged_TX_noMatPARlarge_txanno_genes.gtf"))
 gff <- gff[,c(13,1,4,5)]
@@ -37,14 +37,15 @@ gff <- gff %>% mutate(chrom_new = case_when(
     chrom == "Y" & start >= 45000000 ~ "Y"
 ))
 write.table(gff, file=paste0(data,"gff.txt"), row.names = FALSE, quote = F, sep = "\t")
+gff <- read.table(paste0(data, "gff.txt"), header = T)
 readcnt_leaf <- inner_join(gff, readcnt_leaf, by = "gene")
 
 # keep only autosomes and PAR, figure out normalization on sex chroms later
-readcnt_leaf <- readcnt_leaf %>% filter(chrom_new != "X" & chrom_new != "Y") # 19486 -> 16124
+readcnt_leaf <- readcnt_leaf %>% filter(chrom_new != "X" & chrom_new != "Y") # 19486 -> 16131
 table(readcnt_leaf$chrom_new)
 ```
 A1   A2   A3   A4  PAR 
-5061 4778 2748 2398 1139
+5064 4778 2751 2399 1139
 
 ## perform normalization combined 
 run deseq2 to get normalized read counts
@@ -52,7 +53,7 @@ run deseq2 to get normalized read counts
 ```{r}
 # prep for deseq2
 # exclude gene info columns and all_mean column
-readcnt_matrix<-as.matrix(readcnt_leaf[ , -c(1:5,151,152)]) 
+readcnt_matrix<-as.matrix(readcnt_leaf[ , -c(1:5,149,150)]) 
 rownames(readcnt_matrix) <- readcnt_leaf[ , 1]
 str(readcnt_matrix)
 meta_data <- data.frame(colnames(readcnt_matrix))
@@ -64,6 +65,7 @@ sex[grep("F", meta_data$id)] <- "female"
 meta_data <- data.frame(meta_data, sex)
 rownames(meta_data) <- meta_data[,1]
 head(meta_data)
+write.table(meta_data, file=paste0(data,"meta_data_sex.txt"), row.names = FALSE, quote = F)
 
 # run deseq2
 dds <- DESeqDataSetFromMatrix(countData = readcnt_matrix, 
@@ -75,12 +77,12 @@ res <- results(dds)
 head(res)
 summary(res)
 result <- res[complete.cases(res),]
-nrow(res) #   16124
-nrow(result) # 16124
+nrow(res) #   16131
+nrow(result) # 16131
 
 normalized_countsl <- as.data.frame(counts(dds, normalized=T))
 normalized_countsl <- normalized_countsl %>% mutate(gene=rownames(normalized_countsl)) 
-normalized_countsl <- normalized_countsl[,c(146,1:145)]
+normalized_countsl <- normalized_countsl[,c(144,1:143)]
 write.table(normalized_countsl, file = paste0(data,"normalized_countsl_sept.txt"), row.names = FALSE, quote = F)
 
 # DE_sex<-as.data.frame(result)
@@ -136,7 +138,7 @@ colnames(normalized_counts_ln)[4] <- "gene_id"
 normalized_counts_ln$chrom <- factor(normalized_counts_ln$chrom)
 table(normalized_counts_ln$chrom)
 
-normalized_counts_ln_auto <- normalized_counts_ln %>% filter(chrom != "PAR") # 14985
+normalized_counts_ln_auto <- normalized_counts_ln %>% filter(chrom != "PAR") # 14992
 normalized_counts_ln_PAR <- normalized_counts_ln %>% filter(chrom == "PAR") # 1139
 
 colnames(normalized_counts_ln_PAR)[1] <- "#chr"

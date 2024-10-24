@@ -93,9 +93,9 @@ sample estimates:
 0.3730987
 
 ```{r}
-p1 <- ggplot(ml_fl, aes(x = male_leaf, y = female_leaf, color = category)) + geom_point(size=0.8)+ theme_classic() + labs(x="Male leaf", y="Female leaf") + theme(text = element_text(size = 11))+ scale_colour_manual(values = c("black", "#CBC3E3", "#FFDBBB"))+ geom_vline(xintercept=0, color = "black",linetype="dashed") + geom_hline(yintercept=0, color = "black",linetype="dashed")
+p1 <- ggplot(ml_fl, aes(x = male_leaf, y = female_leaf, color = category)) + geom_point(size=0.8)+ theme_classic() + labs(x="Male leaf", y="Female leaf", title = "a") + theme(text = element_text(size = 11))+ scale_colour_manual(values = c("black", "#CBC3E3", "#FFDBBB"))+ geom_vline(xintercept=0, color = "black",linetype="dashed") + geom_hline(yintercept=0, color = "black",linetype="dashed")
 
-p2 <- ggplot(ml_mp, aes(x = male_leaf, y = pollen, color = category)) + geom_point(size=0.8)+ theme_classic() + labs(x="Male leaf", y="Pollen") + theme(text = element_text(size = 11))+ scale_colour_manual(values = c("black", "#FFCCCB", "#ADD8E6")) + geom_vline(xintercept=0, color = "black",linetype="dashed") + geom_hline(yintercept=0, color = "black",linetype="dashed")
+p2 <- ggplot(ml_mp, aes(x = male_leaf, y = pollen, color = category)) + geom_point(size=0.8)+ theme_classic() + labs(x="Male leaf", y="Pollen", title = "b") + theme(text = element_text(size = 11))+ scale_colour_manual(values = c("black", "#FFCCCB", "#ADD8E6")) + geom_vline(xintercept=0, color = "black",linetype="dashed") + geom_hline(yintercept=0, color = "black",linetype="dashed")
 
 p1 + p2
 ```

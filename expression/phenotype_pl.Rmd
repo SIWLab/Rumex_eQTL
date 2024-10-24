@@ -169,7 +169,9 @@ colnames(readcnt) <- colname$V1
 # remove RNA samples that don't have matching DNA samples
 # remove RNA samples that doesn't have pollen-leaf match "26fML", "73aML"
 # remove genetic PCA outliers "7bM","27eM","53bM","5aM"
-cols_to_remove <- c("24fMP", "24fML", "35aMP", "35aML", "26fML", "73aML", "7bMP","27eMP","53bMP","5aMP","7bML","27eML","53bML","5aML")
+cols_to_remove <- c("24fMP", "35aMP","7bMP","27eMP","53bMP","5aMP",
+                    "24fML", "35aML","7bML","27eML","53bML","5aML",
+                    "26fML", "73aML")
 readcnt <- readcnt %>%
   dplyr::select(-all_of(cols_to_remove))	  
 

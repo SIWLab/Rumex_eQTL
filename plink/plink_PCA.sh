@@ -2,7 +2,7 @@
 # LD pruning then perform PCA
 
 cd /ohta2/meng.yuan/rumex/eqtl/plink
-for i in "ML" "FL" "MP" "L"
+for i in "ML" "FL" "L"
 do 	
 VCF=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_auto.SNP.${i}.filt.vcf.gz
 
@@ -30,16 +30,16 @@ done
 
 
 # manualy remove outlier sampled identified from PCA
-for i in "ML" "MP" "L"
+for i in "ML" "L"
 do 
 VCF=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_auto.SNP.${i}.filt.vcf.gz
 VCF2=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_auto.SNP.${i}.filt2.vcf.gz
-bcftools view ${VCF} -s ^7bM,27eM,53bM,5aM --threads 20 | bgzip -c > ${VCF2}
+bcftools view ${VCF} -s ^5aM,7bM,27eM,53bM --threads 20 | bgzip -c > ${VCF2}
 done
 
 
 # rerun LD pruning
-for i in "ML" "MP" "L"
+for i in "ML" "L"
 do 	
 VCF=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_auto.SNP.${i}.filt2.vcf.gz
 
@@ -66,7 +66,7 @@ done
 
 
 # in EIGENSOFT, use smartpca to do PCA and TW test
-for i in "ML" "FL" "MP" "L"
+for i in "ML" "FL" "L"
 do 
 # not marking samples as missing	
 sed -i 's/\-9/1/g' ${i}_ld.fam
@@ -85,7 +85,7 @@ done
 
 
 # related matrix
-for i in "ML" "FL" "MP" "L"
+for i in "ML" "FL" "L"
 do 
 plink --bfile ${i} --make-rel triangle --allow-extra-chr --out ${i}
 plink --bfile ${i} -make-grm-gz no-gz --allow-extra-chr --out ${i}

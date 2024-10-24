@@ -53,7 +53,7 @@ covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_ML.txt
 # cis-QTL mapping: permutations
 python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
     --covariates ${covariates_file} \
-    --mode cis --window 20000
+    --mode cis --window 20000 --fdr 0.1
 #   * 71 samples
 #   * 14940 phenotypes
 #   * 7 covariates
@@ -99,123 +99,18 @@ python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
 #     time elapsed: 0.30 min
 #     * writing output
 
-# female leaf
-plink_prefix_path=/ohta2/meng.yuan/rumex/eqtl/plink/FL
-expression_bed=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/normalized_counts_fln_auto.bed.gz
-prefix=FL
-covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_FL.txt
-
-# cis-QTL mapping: permutations
-python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
-    --covariates ${covariates_file} \
-    --mode cis --window 20000
-#   * 74 samples
-#   * 14634 phenotypes
-#   * 5 covariates
-#   * 4509904 variants
-#   * cis-window: ±20,000
-#   * checking phenotypes: 14634/14634
-#     ** dropping 70 phenotypes without variants in cis-window
-#   * computing permutations
-#     processing phenotype 14564/14564
-#   Time elapsed: 9.64 min
-# done.
-#   * writing output
-# Computing q-values
-#   * Number of phenotypes tested: 14564
-#   * Correlation between Beta-approximated and empirical p-values: 1.0000
-#   * Proportion of significant phenotypes (1-pi0): 0.53
-#   * QTL phenotypes @ FDR 0.05: 2226
-#   * min p-value threshold @ FDR 0.05: 0.0162608
-  
-# cis-QTL mapping: summary statistics for all variant-phenotype pairs
-python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
-    --covariates ${covariates_file} \
-    --mode cis_nominal --window 20000
-  # * 74 samples
-  # * 14634 phenotypes
-  # * 5 covariates
-  # * 4509904 variants
-  # * cis-window: ±20,000
-  # * checking phenotypes: 14634/14634
-  #   ** dropping 70 phenotypes without variants in cis-window
-  # * Computing associations
-  #   Mapping chromosome 1
-  #   processing phenotype 4922/14564    time elapsed: 0.10 min
-  #   * writing output
-  #   Mapping chromosome 2
-  #   processing phenotype 9557/14564    time elapsed: 0.20 min
-  #   * writing output
-  #   Mapping chromosome 3
-  #   processing phenotype 12227/14564    time elapsed: 0.26 min
-  #   * writing output
-  #   Mapping chromosome 4
-  #   processing phenotype 14564/14564
-
-# X and PAR for female
-# X
-plink_prefix_path=/ohta2/meng.yuan/rumex/eqtl/plink/FL_X
-expression_bed=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/normalized_counts_fln_X.bed.gz
-prefix=FL_X
-covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_FL.txt
-
-# cis-QTL mapping: permutations
-python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
-    --covariates ${covariates_file} \
-    --mode cis --window 20000
-
-
-# cis-QTL mapping: summary statistics for all variant-phenotype pairs
-python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
-    --covariates ${covariates_file} \
-    --mode cis_nominal --window 20000
-
-# PAR
-plink_prefix_path=/ohta2/meng.yuan/rumex/eqtl/plink/FL_PAR
-expression_bed=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/normalized_counts_fln_PAR.bed.gz
-prefix=FL_PAR
-covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_FL.txt
-
-# cis-QTL mapping: permutations
-python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
-    --covariates ${covariates_file} \
-    --mode cis --window 20000
-  # * 74 samples
-  # * 1102 phenotypes
-  # * 0 covariates
-  # * 96911 variants
-  # * cis-window: ±20,000
-  # * checking phenotypes: 1102/1102
-  #   ** dropping 12 phenotypes without variants in cis-window
-  # * computing permutations
-  #   processing phenotype 1090/1090
-
-# cis-QTL mapping: summary statistics for all variant-phenotype pairs
-python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
-    --covariates ${covariates_file} \
-    --mode cis_nominal --window 20000
-  # * 74 samples
-  # * 1102 phenotypes
-  # * 0 covariates
-  # * 96911 variants
-  # * cis-window: ±20,000
-  # * checking phenotypes: 1102/1102
-  #   ** dropping 12 phenotypes without variants in cis-window
-  # * Computing associations
-  #   Mapping chromosome 1
-  #   processing phenotype 1090/1090
-
 
 # pollen (MP)
-plink_prefix_path=/ohta2/meng.yuan/rumex/eqtl/plink/MP
+# genotype files are the same for male leaf and pollen
+plink_prefix_path=/ohta2/meng.yuan/rumex/eqtl/plink/ML
 expression_bed=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/normalized_counts_mpn_auto.bed.gz
 prefix=MP
-covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_MP.txt
+covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_ML.txt
 
 # cis-QTL mapping: permutations
 python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
     --covariates ${covariates_file} \
-    --mode cis --window 20000
+    --mode cis --window 20000 --fdr 0.1
 #   * 69 samples
 #   * 13923 phenotypes
 #   * 6 covariates
@@ -258,6 +153,115 @@ python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
   #   * writing output
   #   Mapping chromosome 4
   #   processing phenotype 13785/13785
+
+
+# female leaf (autosomes)
+plink_prefix_path=/ohta2/meng.yuan/rumex/eqtl/plink/FL
+expression_bed=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/normalized_counts_fln_auto.bed.gz
+prefix=FL
+covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_FL.txt
+
+# cis-QTL mapping: permutations
+python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
+    --covariates ${covariates_file} \
+    --mode cis --window 20000 --fdr 0.1
+#   * 74 samples
+#   * 14634 phenotypes
+#   * 5 covariates
+#   * 4509904 variants
+#   * cis-window: ±20,000
+#   * checking phenotypes: 14634/14634
+#     ** dropping 70 phenotypes without variants in cis-window
+#   * computing permutations
+#     processing phenotype 14564/14564
+#   Time elapsed: 9.64 min
+# done.
+#   * writing output
+# Computing q-values
+#   * Number of phenotypes tested: 14564
+#   * Correlation between Beta-approximated and empirical p-values: 1.0000
+#   * Proportion of significant phenotypes (1-pi0): 0.53
+#   * QTL phenotypes @ FDR 0.05: 2226
+#   * min p-value threshold @ FDR 0.05: 0.0162608
+
+# cis-QTL mapping: summary statistics for all variant-phenotype pairs
+python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
+    --covariates ${covariates_file} \
+    --mode cis_nominal --window 20000
+  # * 74 samples
+  # * 14634 phenotypes
+  # * 5 covariates
+  # * 4509904 variants
+  # * cis-window: ±20,000
+  # * checking phenotypes: 14634/14634
+  #   ** dropping 70 phenotypes without variants in cis-window
+  # * Computing associations
+  #   Mapping chromosome 1
+  #   processing phenotype 4922/14564    time elapsed: 0.10 min
+  #   * writing output
+  #   Mapping chromosome 2
+  #   processing phenotype 9557/14564    time elapsed: 0.20 min
+  #   * writing output
+  #   Mapping chromosome 3
+  #   processing phenotype 12227/14564    time elapsed: 0.26 min
+  #   * writing output
+  #   Mapping chromosome 4
+  #   processing phenotype 14564/14564
+
+# X and PAR for female
+# X
+plink_prefix_path=/ohta2/meng.yuan/rumex/eqtl/plink/FL_X
+expression_bed=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/normalized_counts_fln_X.bed.gz
+prefix=FL_X
+covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_FL.txt
+
+# cis-QTL mapping: permutations
+python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
+    --covariates ${covariates_file} \
+    --mode cis --window 20000 --fdr 0.1
+
+
+# cis-QTL mapping: summary statistics for all variant-phenotype pairs
+python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
+    --covariates ${covariates_file} \
+    --mode cis_nominal --window 20000
+
+# PAR
+plink_prefix_path=/ohta2/meng.yuan/rumex/eqtl/plink/FL_PAR
+expression_bed=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/normalized_counts_fln_PAR.bed.gz
+prefix=FL_PAR
+covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_FL.txt
+
+# cis-QTL mapping: permutations
+python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
+    --covariates ${covariates_file} \
+    --mode cis --window 20000 --fdr 0.1
+  # * 74 samples
+  # * 1102 phenotypes
+  # * 0 covariates
+  # * 96911 variants
+  # * cis-window: ±20,000
+  # * checking phenotypes: 1102/1102
+  #   ** dropping 12 phenotypes without variants in cis-window
+  # * computing permutations
+  #   processing phenotype 1090/1090
+
+# cis-QTL mapping: summary statistics for all variant-phenotype pairs
+python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
+    --covariates ${covariates_file} \
+    --mode cis_nominal --window 20000
+  # * 74 samples
+  # * 1102 phenotypes
+  # * 0 covariates
+  # * 96911 variants
+  # * cis-window: ±20,000
+  # * checking phenotypes: 1102/1102
+  #   ** dropping 12 phenotypes without variants in cis-window
+  # * Computing associations
+  #   Mapping chromosome 1
+  #   processing phenotype 1090/1090
+
+
 
 
 

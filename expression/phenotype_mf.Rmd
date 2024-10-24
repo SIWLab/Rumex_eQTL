@@ -30,10 +30,10 @@ readcnt_leaf_f <- readcnt_leaf %>% dplyr::select(ends_with("F")) # 78
 # remove 35aMLR (might be female), 40aF (might be male)
 # remove 24fM (low genomic coverage)
 # remove RNA samples that don't have matching DNA samples
-# 26fML and 73aML dont have matching pollen sample but can be kept here
-cols_to_remove <- c("24fM", "35aM","7bM","27eM","53bM","5aM")
+# remove RNA samples that doesn't have pollen-leaf match "26fML", "73aML"
+cols_to_remove <- c("24fM", "35aM","7bM","27eM","53bM","5aM","26fM","73aM")
 readcnt_leaf_m <- readcnt_leaf_m %>%
-  dplyr::select(-all_of(cols_to_remove)) # 71
+  dplyr::select(-all_of(cols_to_remove)) # 69
 
 cols_to_remove <- c("14bF", "40aF", "45aF", "67eF")
 readcnt_leaf_f <- readcnt_leaf_f %>%
@@ -44,10 +44,10 @@ readcnt_leaf_m <- cbind(readcnt_leaf[,1], readcnt_leaf_m)
 readcnt_leaf_f <- cbind(readcnt_leaf[,1], readcnt_leaf_f)
 
 # remove genes with low read count 
-readcnt_leaf_m$all_mean <- rowMeans(readcnt_leaf_m[,c(2:72)])
+readcnt_leaf_m$all_mean <- rowMeans(readcnt_leaf_m[,c(2:70)])
 readcnt_leaf_f$all_mean <- rowMeans(readcnt_leaf_f[,c(2:75)])
 
-readcnt_leaf_m <- readcnt_leaf_m %>% filter(all_mean >= 5)  # 19348
+readcnt_leaf_m <- readcnt_leaf_m %>% filter(all_mean >= 5)  # 19361
 readcnt_leaf_f <- readcnt_leaf_f %>% filter(all_mean >= 5)  # 18604
 colnames(readcnt_leaf)[1] <- "gene"
 colnames(readcnt_leaf_m)[1] <- "gene"
@@ -122,7 +122,7 @@ normalized_counts_fl <- normalized_countsl
 ```{r}
 # prep for deseq2
 # exclude gene info columns and all_mean column
-readcnt_matrix<-as.matrix(readcnt_leaf_m[ , -c(1,73)]) 
+readcnt_matrix<-as.matrix(readcnt_leaf_m[ , -c(1,71)]) 
 rownames(readcnt_matrix) <- readcnt_leaf_m[ , 1]
 str(readcnt_matrix)
 meta_data <- data.frame(colnames(readcnt_matrix))
@@ -142,12 +142,12 @@ res <- results(dds)
 head(res)
 summary(res)
 result <- res[complete.cases(res),]
-nrow(res) #  19348
-nrow(result) # 19348
+nrow(res) #  19361
+nrow(result) # 19360
 
 normalized_counts_ml <- as.data.frame(counts(dds, normalized=T))
 normalized_counts_ml <- normalized_counts_ml %>% mutate(gene=rownames(normalized_counts_ml)) 
-normalized_counts_ml <- normalized_counts_ml[,c(72,1:71)]
+normalized_counts_ml <- normalized_counts_ml[,c(70,1:69)]
 # includes sex chromosomes, separate autosomes later
 write.table(normalized_counts_ml, file = paste0(data,"normalized_counts_ml_sept.txt"), row.names = FALSE, quote = F)
 ```
@@ -180,7 +180,7 @@ gff_full <- gff_full %>%
     mutate(end_tss = start_tss+1) 
 gff_full <- gff_full[,c(6,7,8,5)]
 colnames(gff_full) <- c("chrom", "start", "end", "gene")
-
+# gff_full <- read.table(paste0(data, "gff_full.txt"), header = T)
 
 normalized_counts_fln <- inner_join(gff_full, normalized_counts_fln, by = "gene")
 #sort start pos for each chrom
@@ -218,10 +218,10 @@ colnames(normalized_counts_mln)[4] <- "gene_id"
 normalized_counts_mln$chrom <- factor(normalized_counts_mln$chrom)
 table(normalized_counts_mln$chrom)
 
-normalized_counts_mln_X <- normalized_counts_mln %>% filter(chrom == "X") # 1827
-normalized_counts_mln_PAR <- normalized_counts_mln %>% filter(chrom == "PAR") # 1135
-normalized_counts_mln_Y <- normalized_counts_mln %>% filter(chrom == "Y") # 1446
-normalized_counts_mln_auto <- normalized_counts_mln %>% filter(chrom != "PAR" & chrom != "X" & chrom != "Y") # 14940
+normalized_counts_mln_X <- normalized_counts_mln %>% filter(chrom == "X") # 1829
+normalized_counts_mln_PAR <- normalized_counts_mln %>% filter(chrom == "PAR") # 1136
+normalized_counts_mln_Y <- normalized_counts_mln %>% filter(chrom == "Y") # 1447
+normalized_counts_mln_auto <- normalized_counts_mln %>% filter(chrom != "PAR" & chrom != "X" & chrom != "Y") # 14949
 
 colnames(normalized_counts_mln)[1] <- "#chr"
 colnames(normalized_counts_mln_X)[1] <- "#chr"
@@ -235,5 +235,5 @@ write.table(normalized_counts_mln_PAR, file = paste0(data,"normalized_counts_mln
 write.table(normalized_counts_mln_Y, file = paste0(data,"normalized_counts_mln_Y.bed"), row.names = FALSE, quote = F, sep = "\t")
 write.table(normalized_counts_mln_auto, file = paste0(data,"normalized_counts_mln_auto.bed"), row.names = FALSE, quote = F, sep = "\t")
 ```
-A1   A2   A3   A4  PAR    X    Y 
-5041 4770 2739 2390 1135 1827 1446
+ A1   A2   A3   A4  PAR    X    Y 
+5043 4770 2744 2392 1136 1829 1447

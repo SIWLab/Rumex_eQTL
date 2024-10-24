@@ -1,4 +1,5 @@
 # LD decay
+# use /ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_auto.SNP.L.filt.vcf.gz instead
 #SNPs 1 kb apart were ignored. 10% of SNPs were kept to calculate mean r2 between SNP pairs in 10-bp bins.
 VCF=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_A4.SNP.filt.vcf.gz
 plink --vcf $VCF --double-id --allow-extra-chr \

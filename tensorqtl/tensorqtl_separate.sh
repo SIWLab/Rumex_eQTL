@@ -45,7 +45,7 @@ bgzip normalized_counts_fln_PAR.bed && tabix -p bed normalized_counts_fln_PAR.be
 
 ############################## run tensorqtl ##############################
 # male leaf
-plink_prefix_path=/ohta2/meng.yuan/rumex/eqtl/plink/ML
+plink_prefix_path=/ohta2/meng.yuan/rumex/eqtl/plink/MP
 expression_bed=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/normalized_counts_mln_auto.bed.gz
 prefix=ML
 covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_ML.txt
@@ -54,18 +54,26 @@ covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_ML.txt
 python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
     --covariates ${covariates_file} \
     --mode cis --window 20000 --fdr 0.1
-#   * 71 samples
-#   * 14940 phenotypes
-#   * 7 covariates
-#   * 3524400 variants
+#   * 69 samples
+#   * 14949 phenotypes
+#   * 6 covariates
+#   * 3288995 variants
 #   * cis-window: ±20,000
-#   * checking phenotypes: 14940/14940
-#     ** dropping 148 phenotypes without variants in cis-window
+#   * checking phenotypes: 14949/14949
+#     ** dropping 172 phenotypes without variants in cis-window
 #   * computing permutations
-#     processing phenotype 14792/14792
-#   Time elapsed: 9.44 min
+#     processing phenotype 14777/14777
+#   Time elapsed: 9.46 min
 # done.
 #   * writing output
+# Computing q-values
+#   * Number of phenotypes tested: 14777
+#   * Correlation between Beta-approximated and empirical p-values: 1.0000
+#   * Proportion of significant phenotypes (1-pi0): 0.48
+#   * QTL phenotypes @ FDR 0.10: 2425
+#   * min p-value threshold @ FDR 0.1: 0.0318499
+
+# old  
 # Computing q-values
 #   * Number of phenotypes tested: 14792
 #   * Correlation between Beta-approximated and empirical p-values: 1.0000
@@ -77,32 +85,30 @@ python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
 python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
     --covariates ${covariates_file} \
     --mode cis_nominal --window 20000
-# * 71 samples
-#   * 14940 phenotypes
-#   * 7 covariates
-#   * 3524400 variants
+# * 69 samples
+#   * 14949 phenotypes
+#   * 6 covariates
+#   * 3288995 variants
 #   * cis-window: ±20,000
-#   * checking phenotypes: 14940/14940
-#     ** dropping 148 phenotypes without variants in cis-window
+#   * checking phenotypes: 14949/14949
+#     ** dropping 172 phenotypes without variants in cis-window
 #   * Computing associations
 #     Mapping chromosome 1
-#     processing phenotype 5023/14792    time elapsed: 0.09 min
+#     processing phenotype 5024/14777    time elapsed: 0.09 min
 #     * writing output
 #     Mapping chromosome 2
-#     processing phenotype 9734/14792    time elapsed: 0.19 min
+#     processing phenotype 9733/14777    time elapsed: 0.19 min
 #     * writing output
 #     Mapping chromosome 3
-#     processing phenotype 12447/14792    time elapsed: 0.25 min
+#     processing phenotype 12445/14777    time elapsed: 0.25 min
 #     * writing output
 #     Mapping chromosome 4
-#     processing phenotype 14792/14792
-#     time elapsed: 0.30 min
-#     * writing output
+#     processing phenotype 14777/14777
 
 
 # pollen (MP)
 # genotype files are the same for male leaf and pollen
-plink_prefix_path=/ohta2/meng.yuan/rumex/eqtl/plink/ML
+plink_prefix_path=/ohta2/meng.yuan/rumex/eqtl/plink/MP
 expression_bed=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/normalized_counts_mpn_auto.bed.gz
 prefix=MP
 covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_ML.txt
@@ -120,9 +126,17 @@ python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
 #     ** dropping 138 phenotypes without variants in cis-window
 #   * computing permutations
 #     processing phenotype 13785/13785
-#   Time elapsed: 8.62 min
+#   Time elapsed: 8.63 min
 # done.
 #   * writing output
+# Computing q-values
+#   * Number of phenotypes tested: 13785
+#   * Correlation between Beta-approximated and empirical p-values: 1.0000
+#   * Proportion of significant phenotypes (1-pi0): 0.35
+#   * QTL phenotypes @ FDR 0.10: 1481
+#   * min p-value threshold @ FDR 0.1: 0.0165895
+
+# old  
 # Computing q-values
 #   * Number of phenotypes tested: 13785
 #   * Correlation between Beta-approximated and empirical p-values: 1.0000
@@ -173,10 +187,19 @@ python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
 #   * checking phenotypes: 14634/14634
 #     ** dropping 70 phenotypes without variants in cis-window
 #   * computing permutations
+#     processing phenotype 9823/14564
 #     processing phenotype 14564/14564
-#   Time elapsed: 9.64 min
+#   Time elapsed: 9.90 min
 # done.
 #   * writing output
+# Computing q-values
+#   * Number of phenotypes tested: 14564
+#   * Correlation between Beta-approximated and empirical p-values: 1.0000
+#   * Proportion of significant phenotypes (1-pi0): 0.53
+#   * QTL phenotypes @ FDR 0.10: 3445
+#   * min p-value threshold @ FDR 0.1: 0.0502758
+
+# old
 # Computing q-values
 #   * Number of phenotypes tested: 14564
 #   * Correlation between Beta-approximated and empirical p-values: 1.0000

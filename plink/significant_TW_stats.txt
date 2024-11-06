@@ -1,4 +1,4 @@
-ML
+ML/MP
 ## Tracy-Widom statistics: rows: 69  cols: 91648
   #N    eigenvalue  difference    twstat      p-value effect. n
    1      1.435112          NA    18.350  1.18544e-24  4194.689
@@ -22,4 +22,4 @@ FL
 L
 ## Tracy-Widom statistics: rows: 144  cols: 149431
   #N    eigenvalue  difference    twstat      p-value effect. n
-   1      2.013657          NA     1.922     0.011841   877.009
+   1      2.018389          NA     1.328    0.0302206   844.265

@@ -12,56 +12,6 @@ library(ggplot2)
 library(patchwork)
 library(tidyr)
 data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
-
-calculate_qvalues <- function(res_df, fdr = 0.1, qvalue_lambda = NULL) {
-  # Number of phenotypes tested
-  num_phenotypes <- nrow(res_df)
-  cat(sprintf("Number of phenotypes tested: %d\n", num_phenotypes))
-  
-  # Determine which p-value column to use
-  if ("pval_beta" %in% colnames(res_df) && !all(is.na(res_df$pval_beta))) {
-    pval_col <- "pval_beta"
-    correlation <- cor(res_df$pval_perm, res_df$pval_beta, use = "complete.obs")
-    cat(sprintf("Correlation between Beta-approximated and empirical p-values: %.4f\n", correlation))
-  } else {
-    pval_col <- "pval_perm"
-    cat("WARNING: no beta-approximated p-values found, using permutation p-values instead.\n")
-  }
-  
-  # Calculate q-values
-  if (!is.null(qvalue_lambda)) {
-    cat(sprintf("Calculating q-values with lambda = %.3f\n", qvalue_lambda))
-    qobj <- qvalue(res_df[[pval_col]], lambda = qvalue_lambda)
-  } else {
-    qobj <- qvalue(res_df[[pval_col]])
-  }
-  
-  res_df$qval <- qobj$qvalues
-  pi0 <- qobj$pi0
-  cat(sprintf("Proportion of significant phenotypes (1-pi0): %.2f\n", 1 - pi0))
-  cat(sprintf("QTL phenotypes @ FDR %.2f: %d\n", fdr, sum(res_df$qval <= fdr)))
-  
-  # Determine global min(p) significance threshold and calculate nominal p-value threshold for each gene
-  if (pval_col == "pval_beta") {
-    lb <- sort(res_df[res_df$qval <= fdr, "pval_beta"])
-    ub <- sort(res_df[res_df$qval > fdr, "pval_beta"])
-    
-    if (length(lb) > 0) {
-      lb <- tail(lb, 1)
-      if (length(ub) > 0) {
-        ub <- head(ub, 1)
-        pthreshold <- (lb + ub) / 2
-      } else {
-        pthreshold <- lb
-      }
-      cat(sprintf("min p-value threshold @ FDR %.2f: %.6g\n", fdr, pthreshold))
-      res_df$pval_nominal_threshold <- qbeta(pthreshold, res_df$beta_shape1, res_df$beta_shape2)
-    }
-  }
-  
-  return(res_df)
-}
-
 ```
 
 
@@ -78,17 +28,6 @@ summary(qval_sex)
 hist(qval_sex)
 
 ```
-Call:
-qvalue(p = sex$pval_beta)
-
-pi0:	0.2203196	
-
-Cumulative number of significant calls:
-
-          <1e-04 <0.001 <0.01 <0.025 <0.05  <0.1    <1
-p-value     1707   2522  3958   4892  5895  7161 14549
-q-value     1547   2391  4170   5711  7522 10216 14549
-local FDR   1117   1652  2712   3505  4401  5870 14536
 
 
 ```{r}

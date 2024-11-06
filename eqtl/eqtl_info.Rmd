@@ -34,17 +34,17 @@ FL: 23944 sig, 23284 unique SNPs, 1244 eqtls affect multiple genes
 MP: 6464 sig, 6333 unique SNPs, 261 eqtls affect multiple genes
 
 ```{r}
-length(unique(FL_eqtl_sig$variant_id)) # 23284
+length(unique(FL_eqtl_sig$variant_id)) # 34176
 FL_eqtl_multigene <- FL_eqtl_sig %>% 
      group_by(variant_id) %>%
      filter(n()>1) # 1244
 
-length(unique(ML_eqtl_sig$variant_id)) # 11538
+length(unique(ML_eqtl_sig$variant_id)) # 16722
 ML_eqtl_multigene <- ML_eqtl_sig %>% 
      group_by(variant_id) %>%
      filter(n()>1) # 647
 
-length(unique(MP_eqtl_sig$variant_id)) # 6333
+length(unique(MP_eqtl_sig$variant_id)) # 9616
 MP_eqtl_multigene <- MP_eqtl_sig %>% 
      group_by(variant_id) %>%
      filter(n()>1) # 261

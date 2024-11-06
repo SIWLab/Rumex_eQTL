@@ -1,0 +1,17 @@
+---
+title: "G x Sex eQTLs"
+author: "Meng"
+date: "2024-11-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+```
+
+
+# check eQTLs that only show sex effect
+```{r}
+
+```
+

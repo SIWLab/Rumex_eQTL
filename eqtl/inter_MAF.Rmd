@@ -11,7 +11,7 @@ library(dplyr)
 library(ggplot2)
 library(patchwork)
 library(tidyr)
-data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/sex/"
 padjust_bh <- function(p, fdr_threshold = 0.1) {
   if (any(!is.finite(p))) {
     stop('P values must be finite.')
@@ -27,26 +27,17 @@ padjust_bh <- function(p, fdr_threshold = 0.1) {
 
 ```
 
-# 
-only genotype term with sex as a covariate
-sex_eqtl_sig
-sex_eqtl_sig_min
-
-only genotype term without sex as a covariate
-nosex_eqtl_sig
-nosex_eqtl_sig_min
-
 
 # all gene-variant pairs with interaction term
 without sex as a covariate
 ```{r}
-sex_interaction_A1 <- read_parquet(paste0(data,"nosex_inter.cis_qtl_pairs.A1.parquet"))
-sex_interaction_A2 <- read_parquet(paste0(data,"nosex_inter.cis_qtl_pairs.A2.parquet"))
-sex_interaction_A3 <- read_parquet(paste0(data,"nosex_inter.cis_qtl_pairs.A3.parquet"))
-sex_interaction_A4 <- read_parquet(paste0(data,"nosex_inter.cis_qtl_pairs.A4.parquet"))
+sex_interaction_A1 <- read_parquet(paste0(data,"nosex_inter.cis_qtl_pairs.1.parquet"))
+sex_interaction_A2 <- read_parquet(paste0(data,"nosex_inter.cis_qtl_pairs.2.parquet"))
+sex_interaction_A3 <- read_parquet(paste0(data,"nosex_inter.cis_qtl_pairs.3.parquet"))
+sex_interaction_A4 <- read_parquet(paste0(data,"nosex_inter.cis_qtl_pairs.4.parquet"))
 colnames(sex_interaction_A4)
 
-sex_inter <- rbind(sex_interaction_A1, sex_interaction_A2, sex_interaction_A3, sex_interaction_A4) # 1063500
+sex_inter <- rbind(sex_interaction_A1, sex_interaction_A2, sex_interaction_A3, sex_interaction_A4) # 1083706
 colnames(sex_inter)
 ```
 
@@ -76,22 +67,10 @@ i_adj_01_min <- i_adj_01 %>%
 
 # top association for each phenotype sex_inter_top
 ```{r}
-sex_inter_top <- read.table(paste0(data, "nosex_inter.cis_qtl_top_assoc.txt"), header = T) # 14374
+sex_inter_top <- read.table(paste0(data, "nosex_inter.cis_qtl_top_assoc.txt"), header = T) # 14587
 colnames(sex_inter_top)
 length(unique(sex_inter_top$phenotype_id)) 
 
-padjust_bh <- function(p, fdr_threshold = 0.1) {
-  if (any(!is.finite(p))) {
-    stop('P values must be finite.')
-  }
-  n <- length(p)
-  i <- n:1
-  o <- order(p, decreasing = TRUE)
-  ro <- order(o)
-  adjusted_p <- pmin(1, cummin(n / i * p[o]))[ro]
-  
-  return(adjusted_p)
-}
 
 sex_inter_top$pval_gi_adj <- padjust_bh(sex_inter_top$pval_gi, fdr_threshold = 0.1)
 sex_inter_top$pval_i_adj <- padjust_bh(sex_inter_top$pval_i, fdr_threshold = 0.1)
@@ -121,14 +100,14 @@ write.csv(pval_adj_bh, file = paste0(data, "sex_interaction_padj_bh01.csv"), row
 
 227 2723
 ```{r}
-g <- p_g_adj_01 %>% select(variant_id, af) %>% distinct() # 2950, 7273
-gi <- p_gi_adj_01 %>% select(variant_id, af)  %>% distinct() # 233, 9163
+g <- p_g_adj_01 %>% select(variant_id, af) %>% distinct() # 2950, 7273, 7551
+gi <- p_gi_adj_01 %>% select(variant_id, af)  %>% distinct() # 233, 9163, 9370
 
 
 no_interaction <-  g %>%
   anti_join(gi, by = "variant_id") # 621
 
-interaction <- inner_join(g, gi, by = c("variant_id","af")) # 241
+#interaction <- inner_join(g, gi, by = c("variant_id","af")) # 241
 interaction <-  gi
 
 interaction <- interaction %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
@@ -143,7 +122,7 @@ p <-ggplot(no_interaction, aes(x=maf)) + geom_histogram(binwidth=0.01)
 p_data <- ggplot_build(p)$data[[1]]
 p_data$y_prop <- p_data$y/sum(p_data$y)
 p8 <- ggplot(p_data, aes(x=x, y=y_prop)) +
-  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("Pollen")+ labs(x="MAF", y="Proportion", title="G")+ theme(text = element_text(size = 10)) + ylim(0, 0.23)+ geom_vline(xintercept=0.0807692, color = "red",linetype="dashed")
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("Pollen")+ labs(x="MAF", y="Proportion", title="G")+ theme(text = element_text(size = 10)) + ylim(0, 0.23)+ geom_vline(xintercept=0.0778689, color = "red",linetype="dashed")
 p7 + p8
 ```
 

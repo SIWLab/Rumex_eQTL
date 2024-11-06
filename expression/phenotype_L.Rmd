@@ -127,6 +127,7 @@ gff_full <- gff_full %>%
 gff_full <- gff_full[,c(6,7,8,5)]
 colnames(gff_full) <- c("chrom", "start", "end", "gene")
 write.table(gff_full, file = paste0(data, "gff_full.txt"), row.names = FALSE, quote = F, sep = "\t")
+gff_full <- read.table(paste0(data, "gff_full.txt"), header = T)
 
 # combined
 normalized_counts_ln <- inner_join(gff_full, normalized_counts_ln, by = "gene")
@@ -150,3 +151,15 @@ write.table(normalized_counts_ln_auto, file = paste0(data,"normalized_counts_ln_
 ```
 A1   A2   A3   A4  PAR 
 5061 4778 2748 2398 1139 
+
+re-order the columns so it match the genotype data
+```{r}
+normalized_counts_ln <- read.table(paste0(data,"normalized_counts_ln_full.bed"), header = T, check.names = F)
+new_order <- scan(paste0(data,"sex_143.txt"), what = character(), sep = "\n")
+normalized_counts_ln <- normalized_counts_ln[, c(names(normalized_counts_ln)[1:4], new_order)]
+
+normalized_counts_ln_auto <- normalized_counts_ln %>% filter(chrom != "PAR") # 14992
+normalized_counts_ln_PAR <- normalized_counts_ln %>% filter(chrom == "PAR") # 1139
+
+```
+

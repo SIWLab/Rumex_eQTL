@@ -6,12 +6,262 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+library(arrow)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+library(tidyr)
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/sex/"
+```
 
+# plot eQTLs showing significant G x Sex
+
+```{r}
+normalized_counts_ln <- read.table("/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/normalized_counts_ln_auto.bed", header = T, check.names = F)
+
+# pval_adj_bh <- sex_inter_top %>% filter(pval_adj_bh < 0.1) # 5
+pval_adj_bh <- read.csv(paste0(data, "sex_interaction_padj_bh01.csv"))
+pval_adj_bh <- pval_adj_bh[order(pval_adj_bh$pval_adj_bh),]
+pval_adj_bh[,c(1:2,18)]
+```
+  phenotype_id  variant_id pval_adj_bh
+2 TX_paternal_00002596 1:159008371  0.00197039
+3 TX_paternal_00010325  2:14033315  0.00197039
+5 TX_paternal_00025295  3:10654019  0.00317137
+1 TX_paternal_00001727  1:70371578  0.06471960
+4 TX_paternal_00015022 2:250749626  0.07920580
+
+## 1 TX_paternal_00002596 1:159008371 G	A
+```{r}
+expr <- normalized_counts_ln %>% filter(gene_id == "TX_paternal_00002596")
+geno <- read.table(paste0(data,"A1_159008371.vcf"), header = T, check.names = F)
+pheno <- expr[,c(5:147)]
+geno1 <- geno[,c(5:147)]
+eqtl <- rbind(geno1,pheno)
+eqtl <- as.data.frame(t(eqtl))
+eqtl <- eqtl %>% mutate(id = row.names(eqtl))
+colnames(eqtl) <- c("genotype", "phenotype", "id")
+eqtl$genotype <- factor(eqtl$genotype)
+levels(eqtl$genotype)
+table(eqtl$genotype)
+
+levels(eqtl$genotype) <-c ("./.", "GG","GA", "AA")
+eqtl <- eqtl %>% filter(genotype != "./." & genotype != "AA")
+eqtl$phenotype <- as.numeric(eqtl$phenotype)
+
+sex <- rep(NA, length(eqtl$id))
+sex[grep("M", eqtl$id)] <- "M"
+sex[grep("F", eqtl$id)] <- "F"
+eqtl <- data.frame(eqtl, sex)
+write.table(eqtl, file = paste0(data, "A1_159008371.eqtl"), quote = F)
+#eqtl <- read.table(paste0(data, "A1_159008371.eqtl"), header = T)
+p1 <- ggplot(eqtl, aes(x=genotype, y=phenotype, colour=sex)) + 
+  geom_boxplot(position=position_dodge2(0.85)) + 
+  geom_jitter(shape=16, position=position_jitterdodge(0.2), alpha=0.3) + 
+  theme_classic() + theme(text = element_text(size = 10))+ scale_colour_manual(values = c("purple", "orange"))+labs(x="Genotype", y="Expression", title = "a")
+p1 
+```
+
+## 2 TX_paternal_00010325  2:14033315 A C
+```{r}
+expr <- normalized_counts_ln %>% filter(gene_id == "TX_paternal_00010325")
+geno <- read.table(paste0(data,"A2_14033315.vcf"), header = T, check.names = F)
+pheno <- expr[,c(5:147)]
+geno1 <- geno[,c(5:147)]
+eqtl <- rbind(geno1,pheno)
+eqtl <- as.data.frame(t(eqtl))
+eqtl <- eqtl %>% mutate(id = row.names(eqtl))
+colnames(eqtl) <- c("genotype", "phenotype", "id")
+eqtl$genotype <- factor(eqtl$genotype)
+levels(eqtl$genotype)
+table(eqtl$genotype)
+
+levels(eqtl$genotype) <-c ("./.", "AC", "CC")
+eqtl <- eqtl %>% filter(genotype != "./.")
+eqtl$phenotype <- as.numeric(eqtl$phenotype)
+
+sex <- rep(NA, length(eqtl$id))
+sex[grep("M", eqtl$id)] <- "M"
+sex[grep("F", eqtl$id)] <- "F"
+eqtl <- data.frame(eqtl, sex)
+write.table(eqtl, file = paste0(data, "A2_14033315.eqtl"), quote = F)
+#eqtl <- read.table(paste0(data, "A2_14033315.eqtl"), header = T)
+
+p2 <- ggplot(eqtl, aes(x=genotype, y=phenotype, colour=sex)) + 
+  geom_boxplot(position=position_dodge2(0.85)) + 
+  geom_jitter(shape=16, position=position_jitterdodge(0.2), alpha=0.3) + 
+  theme_classic() + theme(text = element_text(size = 10))+ scale_colour_manual(values = c("purple", "orange"))+labs(x="Genotype", y="Expression", title = "b")
+p2 
+```
+
+## 3 TX_paternal_00025295  3:10654019 G A
+```{r}
+expr <- normalized_counts_ln %>% filter(gene_id == "TX_paternal_00025295")
+geno <- read.table(paste0(data,"A3_10654019.vcf"), header = T, check.names = F)
+pheno <- expr[,c(5:147)]
+geno1 <- geno[,c(5:147)]
+eqtl <- rbind(geno1,pheno)
+eqtl <- as.data.frame(t(eqtl))
+eqtl <- eqtl %>% mutate(id = row.names(eqtl))
+colnames(eqtl) <- c("genotype", "phenotype", "id")
+eqtl$genotype <- factor(eqtl$genotype)
+levels(eqtl$genotype)
+table(eqtl$genotype)
+
+levels(eqtl$genotype) <-c ("./.", "GG","GA", "AA")
+eqtl <- eqtl %>% filter(genotype != "./." & genotype != "GG")
+eqtl$phenotype <- as.numeric(eqtl$phenotype)
+
+sex <- rep(NA, length(eqtl$id))
+sex[grep("M", eqtl$id)] <- "M"
+sex[grep("F", eqtl$id)] <- "F"
+eqtl <- data.frame(eqtl, sex)
+write.table(eqtl, file = paste0(data, "A3_10654019.eqtl"), quote = F)
+#eqtl <- read.table(paste0(data, "A3_10654019.eqtl"), header = T)
+
+p3 <- ggplot(eqtl, aes(x=genotype, y=phenotype, colour=sex)) + 
+  geom_boxplot(position=position_dodge2(0.85)) + 
+  geom_jitter(shape=16, position=position_jitterdodge(0.2), alpha=0.3) + 
+  theme_classic() + theme(text = element_text(size = 10))+ scale_colour_manual(values = c("purple", "orange"))+labs(x="Genotype", y="Expression", title = "c")
+p3 
+```
+
+## 4 TX_paternal_00001727  1:70371578 G T
+```{r}
+expr <- normalized_counts_ln %>% filter(gene_id == "TX_paternal_00001727")
+geno <- read.table(paste0(data,"A1_70371578.vcf"), header = T, check.names = F)
+pheno <- expr[,c(5:147)]
+geno1 <- geno[,c(5:147)]
+eqtl <- rbind(geno1,pheno)
+eqtl <- as.data.frame(t(eqtl))
+eqtl <- eqtl %>% mutate(id = row.names(eqtl))
+colnames(eqtl) <- c("genotype", "phenotype", "id")
+
+eqtl$genotype <- factor(eqtl$genotype)
+levels(eqtl$genotype)
+levels(eqtl$genotype) <-c ("./.","GT", "TT")
+eqtl <- eqtl %>% filter(genotype != "./.")
+eqtl$phenotype <- as.numeric(eqtl$phenotype)
+
+sex <- rep(NA, length(eqtl$id))
+sex[grep("M", eqtl$id)] <- "M"
+sex[grep("F", eqtl$id)] <- "F"
+eqtl <- data.frame(eqtl, sex)
+write.table(eqtl, file = paste0(data, "A1_70371578.eqtl"), quote = F)
+#eqtl <- read.table(paste0(data, "A1_70371578.eqtl"), header = T)
+p4 <- ggplot(eqtl, aes(x=genotype, y=phenotype, colour=sex)) + 
+  geom_boxplot(position=position_dodge2(0.85)) + 
+  geom_jitter(shape=16, position=position_jitterdodge(0.2), alpha=0.3) + 
+  theme_classic() + theme(text = element_text(size = 10))+ scale_colour_manual(values = c("purple", "orange"))+labs(x="Genotype", y="Expression", title = "d")
+p4 
+```
+
+
+
+## 5 TX_paternal_00015022 2:250749626 A G
+```{r}
+expr <- normalized_counts_ln %>% filter(gene_id == "TX_paternal_00015022")
+geno <- read.table(paste0(data,"A2_250749626.vcf"), header = T, check.names = F)
+pheno <- expr[,c(5:147)]
+geno1 <- geno[,c(5:147)]
+eqtl <- rbind(geno1,pheno)
+eqtl <- as.data.frame(t(eqtl))
+eqtl <- eqtl %>% mutate(id = row.names(eqtl))
+colnames(eqtl) <- c("genotype", "phenotype", "id")
+eqtl$genotype <- factor(eqtl$genotype)
+levels(eqtl$genotype)
+table(eqtl$genotype)
+
+levels(eqtl$genotype) <-c ("./.","AG", "GG")
+eqtl <- eqtl %>% filter(genotype != "./.")
+eqtl$phenotype <- as.numeric(eqtl$phenotype)
+
+sex <- rep(NA, length(eqtl$id))
+sex[grep("M", eqtl$id)] <- "M"
+sex[grep("F", eqtl$id)] <- "F"
+eqtl <- data.frame(eqtl, sex)
+write.table(eqtl, file = paste0(data, "A2_250749626.eqtl"), quote = F)
+#eqtl <- read.table(paste0(data, "A2_250749626.eqtl"), header = T)
+
+p5 <- ggplot(eqtl, aes(x=genotype, y=phenotype, colour=sex)) + 
+  geom_boxplot(position=position_dodge2(0.85)) + 
+  geom_jitter(shape=16, position=position_jitterdodge(0.2), alpha=0.3) + 
+  theme_classic() + theme(text = element_text(size = 10))+ scale_colour_manual(values = c("purple", "orange"))+labs(x="Genotype", y="Expression", title = "e")
+p5
+```
+
+
+
+## plot all
+```{r}
+p1 + p2 + p3 + p4 + p5 + plot_layout(nrow = 2,guides = "collect") & theme(legend.position = "right")
 ```
 
 
 # check eQTLs that only show sex effect
+4:79507645
 ```{r}
-
+p_i_adj_01 %>% filter(variant_id == "4:79507645")
 ```
+ phenotype_id variant_id start_distance       af ma_samples ma_count
+1 TX_paternal_00030453 4:79507645           1521 0.135659         35       35
+     pval_g      b_g   b_g_se      pval_i     b_i   b_i_se  pval_gi      b_gi
+1 0.0901987 0.786358 0.460851 6.07478e-17 1.43296 0.149801 0.185892 -0.398788
+   b_gi_se tests_emt pval_emt pval_adj_bh pval_gi_adj   pval_i_adj pval_g_adj
+1 0.299964        23        1           1   0.2131096 5.907521e-14  0.1374715
+
+## A4_79507645.vcf
+ref C alt T
+```{r}
+normalized_counts_ln <- read.table("/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/normalized_counts_ln_auto.bed", header = T, check.names = F)
+expr <- normalized_counts_ln %>% filter(gene_id == "TX_paternal_00030453")
+geno <- read.table(paste0(data,"A4_79507645.vcf"), header = T, check.names = F)
+
+pheno <- expr[,c(5:147)]
+geno1 <- geno[,c(5:147)]
+eqtl <- rbind(geno1,pheno)
+eqtl <- as.data.frame(t(eqtl))
+
+eqtl <- eqtl %>% mutate(id = row.names(eqtl))
+colnames(eqtl) <- c("genotype", "phenotype", "id")
+
+eqtl$genotype <- factor(eqtl$genotype)
+eqtl <- eqtl %>% filter(genotype != "./.")
+levels(eqtl$genotype)
+eqtl$phenotype <- as.numeric(eqtl$phenotype)
+
+sex <- rep(NA, length(eqtl$id))
+sex[grep("M", eqtl$id)] <- "M"
+sex[grep("F", eqtl$id)] <- "F"
+eqtl <- data.frame(eqtl, sex)
+
+write.table(eqtl, file = paste0(data, "A4_79507645.eqtl"), quote = F)
+
+f <- eqtl %>% filter(sex == "F")
+m <- eqtl %>% filter(sex == "M")
+table(f$genotype)
+table(m$genotype)
+```
+./.  CC C/T 
+  0  49  15
+./.  CC C/T 
+  0  45  20 
+```{r}
+eqtl <- eqtl %>% filter(genotype == "0/0" | genotype == "0/1")
+levels(eqtl$genotype) <-c ("./.","CC", "CT")
+# p1 <- ggplot(eqtl, aes(x=sex, y=phenotype, colour=genotype)) + 
+#   geom_boxplot(position=position_dodge2(0.85)) + 
+#   geom_jitter(shape=16, position=position_jitterdodge(0.2), alpha=0.3) + 
+#   theme_classic()+ theme(text = element_text(size = 15))
+
+p2 <- ggplot(eqtl, aes(x=genotype, y=phenotype, colour=sex)) + 
+  geom_boxplot(position=position_dodge2(0.85)) + 
+  geom_jitter(shape=16, position=position_jitterdodge(0.2), alpha=0.3) + 
+  theme_classic() + theme(text = element_text(size = 18))+ scale_colour_manual(values = c("red", "blue"))+labs(x="Genotype", y="Expression")
+p2 
+```
+
+
+
+
 

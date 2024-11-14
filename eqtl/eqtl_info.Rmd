@@ -12,42 +12,104 @@ library(patchwork)
 data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
 ```
 
-
-# number of SNPs per gene tested
+need to produce files from eqtl_permutation.Rmd eg ML_eqtl_full
 ```{r}
-p1 <- ggplot(ML, aes(x=num_var)) + geom_histogram(binwidth=1) + theme_classic() + ggtitle("Male leaf")
-p2 <- ggplot(FL, aes(x=num_var)) + geom_histogram(binwidth=1) + theme_classic() + ggtitle("Female leaf")
-p3 <- ggplot(MP, aes(x=num_var)) + geom_histogram(binwidth=1) + theme_classic() + ggtitle("Pollen")
+ML_eqtl_sig <-read.csv(paste0(data, "ML_eqtl_sig.csv"))
+FL_eqtl_sig <-read.csv(paste0(data, "FL_eqtl_sig.csv"))
+MP_eqtl_sig <-read.csv(paste0(data, "MP_eqtl_sig.csv"))
 
-p1 + p2 + p3
 ```
+
+
+# number of significant eqtl per gene
+```{r}
+
+ml_table <- ML_eqtl_sig %>% group_by(phenotype_id) %>%
+  dplyr::summarise(
+    count = length(variant_id),
+    mean_tss = mean(abs(start_distance)),
+    median_tss = median(abs(start_distance)))
+
+fl_table <- FL_eqtl_sig %>% group_by(phenotype_id) %>%
+  dplyr::summarise(
+    count = length(variant_id),
+    mean_tss = mean(abs(start_distance)),
+    median_tss = median(abs(start_distance)))
+
+mp_table <- MP_eqtl_sig %>% group_by(phenotype_id) %>%
+  dplyr::summarise(
+    count = length(variant_id),
+    mean_tss = mean(abs(start_distance)),
+    median_tss = median(abs(start_distance)))
+
+
+ml_table$category <- "Male_leaf"
+fl_table$category <- "Female_leaf"
+mp_table$category <- "Pollen"
+
+write.table(ml_table, file = paste0(data, "ml_table.txt"), row.names = F, quote = F, col.names = F)
+write.table(fl_table, file = paste0(data, "fl_table.txt"), row.names = F, quote = F, col.names = F)
+write.table(mp_table, file = paste0(data, "mp_table.txt"), row.names = F, quote = F, col.names = F)
+
+
+median(ml_table$count)
+median(fl_table$count)
+median(mp_table$count)
+
+tablec <- rbind(ml_table,fl_table,mp_table)
+
+ggplot(tablec, aes(x=category, y=count)) + 
+  geom_boxplot() + theme_classic() + ylim(1,10)
+```
+
 
 # distance to TSS and number of cis-eQTLs
 −log(p)on y-axis and distance to TSS on x-axis. And put a harizontal line indicating the corresponing pval_nominal_threshold of the gene.
+```{r}
+median(ml_table$median_tss) # 7331
+median(fl_table$median_tss) # 7587
+median(mp_table$median_tss) # 7056.5
+
+mean(ml_table$median_tss) # 8089.743
+mean(fl_table$median_tss) # 8251.179
+mean(mp_table$median_tss) # 8034.049
+
+```
+
+
+
+```{r}
+gene1 <- ML_eqtl_full %>% filter(phenotype_id == "TX_paternal_00029650")
+gene2 <- FL_eqtl_full %>% filter(phenotype_id == "TX_paternal_00030127")
+gene3 <- MP_eqtl_full %>% filter(phenotype_id == "TX_paternal_00006330")
+
+
+p1 <- ggplot(gene1, aes(x=start_distance, y=-log(pval_nominal))) + geom_point(alpha = 0.6) + theme_classic() + geom_hline(yintercept=-log(0.0011044), color = "red") + labs(title = "a")+ theme(text = element_text(size = 10))
+p2 <- ggplot(gene2, aes(x=start_distance, y=-log(pval_nominal))) + geom_point(alpha = 0.6) + theme_classic() + geom_hline(yintercept=-log(0.00101239), color = "red") + labs(title = "b")+ theme(text = element_text(size = 10))
+p3 <- ggplot(gene3, aes(x=start_distance, y=-log(pval_nominal))) + geom_point(alpha = 0.6) + theme_classic() + geom_hline(yintercept=-log(0.000283815), color = "red") + labs(title = "c")+ theme(text = element_text(size = 10))
+
+p1 + p2 + p3 
+```
 
 
 
 
 # eqtls that affect multiple genes in the same tissue
-ML: 11882 sig, 11538 unique SNPs, 647 eqtls affect multiple genes
-FL: 23944 sig, 23284 unique SNPs, 1244 eqtls affect multiple genes
-MP: 6464 sig, 6333 unique SNPs, 261 eqtls affect multiple genes
-
 ```{r}
 length(unique(FL_eqtl_sig$variant_id)) # 34176
 FL_eqtl_multigene <- FL_eqtl_sig %>% 
      group_by(variant_id) %>%
-     filter(n()>1) # 1244
+     filter(n()>1) # 1952
 
 length(unique(ML_eqtl_sig$variant_id)) # 16722
 ML_eqtl_multigene <- ML_eqtl_sig %>% 
      group_by(variant_id) %>%
-     filter(n()>1) # 647
+     filter(n()>1) # 1058
 
 length(unique(MP_eqtl_sig$variant_id)) # 9616
 MP_eqtl_multigene <- MP_eqtl_sig %>% 
      group_by(variant_id) %>%
-     filter(n()>1) # 261
+     filter(n()>1) # 434
 
 p1 <- ggplot(ML_eqtl_multigene, aes(x=maf)) + geom_histogram(binwidth=0.01) + theme_classic() + ggtitle("Male leaf")
 p2 <- ggplot(FL_eqtl_multigene, aes(x=maf)) + geom_histogram(binwidth=0.01) + theme_classic() + ggtitle("Female leaf")
@@ -60,6 +122,7 @@ p1 + p2 + p3
 ```{r}
 wilcox.test(ML_eqtl_multigene$maf, MP_eqtl_multigene$maf)
 ```
+
 
 
 # venn diagram of significant eQTLs (should be unique)

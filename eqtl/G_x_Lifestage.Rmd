@@ -34,11 +34,11 @@ MP_eqtl_sig_min <- MP_eqtl_sig %>%
 ml <- ML_eqtl_sig_min %>% select(phenotype_id, variant_id, slope)
 mp <- MP_eqtl_sig %>% select(phenotype_id, variant_id, slope)
 ml_mp <- inner_join(ml, mp, by = c("phenotype_id","variant_id"))
-colnames(ml_mp)[3:4] <- c("male_leaf", "pollen") # 130
+colnames(ml_mp)[3:4] <- c("male_leaf", "pollen") # 130, 201
 
-ml_mp_inter1 <- ml_mp %>% filter(male_leaf > 0 & pollen < 0) # 2
-ml_mp_inter2 <- ml_mp %>% filter(male_leaf < 0 & pollen > 0) # 3
-ml_mp_inter <- rbind(ml_mp_inter1, ml_mp_inter2)
+ml_mp_inter1 <- ml_mp %>% filter(male_leaf > 0 & pollen < 0) # 2, 7
+ml_mp_inter2 <- ml_mp %>% filter(male_leaf < 0 & pollen > 0) # 3, 7
+ml_mp_inter <- rbind(ml_mp_inter1, ml_mp_inter2) # 14
 ```
 
 ## fl
@@ -47,11 +47,11 @@ fl <- FL_eqtl_sig_min %>% select(phenotype_id, variant_id, slope)
 mp <- MP_eqtl_sig %>% select(phenotype_id, variant_id, slope)
 
 fl_mp <- inner_join(fl, mp, by = c("phenotype_id","variant_id"))
-colnames(fl_mp)[3:4] <- c("female_leaf", "pollen") # 53
+colnames(fl_mp)[3:4] <- c("female_leaf", "pollen") # 53, 72
 
-fl_mp_inter1 <- fl_mp %>% filter(female_leaf > 0 & pollen < 0) # 2
+fl_mp_inter1 <- fl_mp %>% filter(female_leaf > 0 & pollen < 0) # 2, 4
 fl_mp_inter2 <- fl_mp %>% filter(female_leaf < 0 & pollen > 0) # 3
-fl_mp_inter <- rbind(fl_mp_inter1, fl_mp_inter2) # 5
+fl_mp_inter <- rbind(fl_mp_inter1, fl_mp_inter2) # 5, 7
 ```
 
 ## mp
@@ -61,13 +61,13 @@ fl <- FL_eqtl_sig %>% select(phenotype_id, variant_id, slope)
 mp <- MP_eqtl_sig_min %>% select(phenotype_id, variant_id, slope)
 
 mp_ml <- inner_join(mp, ml, by = c("phenotype_id","variant_id"))
-colnames(mp_ml)[3:4] <- c("pollen", "male_leaf") # 138
+colnames(mp_ml)[3:4] <- c("pollen", "male_leaf") # 138, 211
 mp_fl <- inner_join(mp, fl, by = c("phenotype_id","variant_id"))
-colnames(mp_fl)[3:4] <- c("pollen", "female_leaf") # 84
+colnames(mp_fl)[3:4] <- c("pollen", "female_leaf") # 84, 114
 
-mp_ml_inter1 <- mp_ml %>% filter(male_leaf < 0 & pollen > 0) # 3
-mp_ml_inter2 <- mp_ml %>% filter(male_leaf > 0 & pollen < 0) # 2
-mp_ml_inter <- rbind(mp_ml_inter1, mp_ml_inter2) # 5
+mp_ml_inter1 <- mp_ml %>% filter(male_leaf < 0 & pollen > 0) # 3, 9
+mp_ml_inter2 <- mp_ml %>% filter(male_leaf > 0 & pollen < 0) # 2, 9
+mp_ml_inter <- rbind(mp_ml_inter1, mp_ml_inter2) # 5, 18
 
 mp_fl_inter1 <- mp_fl %>% filter(female_leaf < 0 & pollen > 0) # 2
 mp_fl_inter2 <- mp_fl %>% filter(female_leaf > 0 & pollen < 0) # 2
@@ -82,9 +82,21 @@ ml_mp_inter$top_in_leaf <- "yes"
 ml_mp_inter$top_in_pollen <- "no"
 
 lifestage_inter <- rbind(ml_mp_inter, mp_ml_inter)
-write.csv(lifestage_inter, file = paste0(data, "lifetage_discordance_full.csv"), row.names = F, quote = F)
-write.csv(mp_fl_inter, file = paste0(data, "mp_fl_inter.csv"), row.names = F, quote = F) # 4
-write.csv(fl_mp_inter, file = paste0(data, "fl_mp_inter.csv"), row.names = F, quote = F) # 5
+write.csv(lifestage_inter, file = paste0(data, "lifetage_discordance_full_Nov.csv"), row.names = F, quote = F)
+lifestage_inter<- read.csv(paste0(data, "lifetage_discordance_full_Nov.csv"))
+
+write.csv(mp_fl_inter, file = paste0(data, "mp_fl_inter_Nov.csv"), row.names = F, quote = F) # 4, 10
+write.csv(fl_mp_inter, file = paste0(data, "fl_mp_inter_Nov.csv"), row.names = F, quote = F) # 5, 7
+```
+
+```{r}
+ml_mp1 <- lifestage_inter %>% filter(male_leaf < 0 & pollen > 0) # 11
+ml_mp2 <- lifestage_inter %>% filter(male_leaf > 0 & pollen < 0) # 12
+range(ml_mp1$maf)
+median(ml_mp1$maf)
+range(ml_mp2$maf)
+median(ml_mp2$maf)
+lifestage_inter <- left_join(lifestage_inter, ML_eqtl_sig, by = c("phenotype_id", "variant_id"))
 ```
 
 
@@ -93,6 +105,7 @@ write.csv(fl_mp_inter, file = paste0(data, "fl_mp_inter.csv"), row.names = F, qu
 TX_paternal_00008809	1:455264496	0.83494544	-1.005460143	yes	yes
 TX_paternal_00013353	2:162241243	-1.106344342	1.435401559	yes	yes
 TX_paternal_00014304	2:210629115	-1.10489583	1.369669557	yes	yes
+
 
 ## eqtl1
 ml-mp mp-ml	3	A4:30274594 A3:13387496 A1:455264496
@@ -127,6 +140,7 @@ levels(eqtl_lp1$genotype) <- c("./.","GG", "GC","CC")
 eqtl_lp1 <- eqtl_lp1 %>% filter(genotype != "./.")
 write.table(eqtl_lp1, file = paste0(data, "eqtl_lp1_final.txt"), quote = F)
 
+eqtl_lp1 <- read.table(paste0(data, "eqtl_lp1_final.txt"))
 ggplot(eqtl_lp1, aes(x=genotype, y=Expression, colour=lifestage)) + 
   geom_boxplot(position=position_dodge2(0.85)) + 
   geom_jitter(shape=16, position=position_jitterdodge(0.2), alpha=0.3) + 
@@ -157,11 +171,12 @@ write.table(eqtl_lp2, file = paste0(data, "eqtl_lp2.txt"), quote = F)
 
 eqtl_lp2$genotype <- as.factor(eqtl_lp2$genotype)
 table(eqtl_lp2$genotype)
-levels(eqtl_lp2$genotype) <- c("./.","GG", "GA")
+levels(eqtl_lp2$genotype) <- c("GG", "GA")
 eqtl_lp2 <- eqtl_lp2 %>% filter(genotype != "./.")
 
 eqtl_lp2 <- gather(eqtl_lp2, lifestage, Expression, leaf:pollen)
 write.table(eqtl_lp2, file = paste0(data, "eqtl_lp2_final.txt"), quote = F)
+eqtl_lp2 <- read.table(paste0(data, "eqtl_lp2_final.txt"), header = T)
 
 ggplot(eqtl_lp2, aes(x=genotype, y=Expression, colour=lifestage)) + 
   geom_boxplot(position=position_dodge2(0.85)) + 
@@ -195,6 +210,7 @@ levels(eqtl_lp3$genotype) <- c("./.","AA", "AT")
 eqtl_lp3 <- eqtl_lp3 %>% filter(genotype != "./.")
 eqtl_lp3 <- gather(eqtl_lp3, lifestage, Expression, leaf:pollen)
 write.table(eqtl_lp3, file = paste0(data, "eqtl_lp3_final.txt"), quote = F)
+eqtl_lp3 <- read.table(paste0(data, "eqtl_lp3_final.txt"), header = T)
 
 ggplot(eqtl_lp3, aes(x=genotype, y=Expression, colour=lifestage)) + 
   geom_boxplot(position=position_dodge2(0.85)) + 

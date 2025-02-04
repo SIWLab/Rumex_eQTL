@@ -19,30 +19,31 @@ get_hist_prop <- function(data) {
 
 # MAF for significant cis-eQTL in each tissue
 
-## keep unique SNPs for MAF
-```{r}
-ML_eqtl_sig <- read.csv(paste0(data, "ML_eqtl_sig.csv"))
-FL_eqtl_sig <- read.csv(paste0(data, "FL_eqtl_sig.csv"))
-MP_eqtl_sig <- read.csv(paste0(data, "MP_eqtl_sig.csv"))
-
-# ML_eqtl_sig_af <- ML_eqtl_sig %>% dplyr::select(variant_id, af, maf) %>% distinct()
-# FL_eqtl_sig_af <- FL_eqtl_sig %>% dplyr::select(variant_id, af, maf) %>% distinct()
-# MP_eqtl_sig_af <- MP_eqtl_sig %>% dplyr::select(variant_id, af, maf) %>% distinct()
-```
-
 ## keep the most significant SNP per gene
 ```{r}
+ML_eqtl_sig <-read.csv(paste0(data, "ML_eqtl_sig_Nov.csv"))
+FL_eqtl_sig <-read.csv(paste0(data, "FL_eqtl_sig_Nov.csv"))
+MP_eqtl_sig <-read.csv(paste0(data, "MP_eqtl_sig_Nov.csv"))
+
+set.seed(13)
 ML_eqtl_sig_min <- ML_eqtl_sig %>%
   group_by(phenotype_id) %>% 
-  filter(pval_nominal == min(pval_nominal)) # 1899
+  filter(pval_nominal == min(pval_nominal)) %>% 
+  slice_sample(n = 1) # 2421
 
 FL_eqtl_sig_min <- FL_eqtl_sig %>%
   group_by(phenotype_id) %>% 
-  filter(pval_nominal == min(pval_nominal)) # 1164
+  filter(pval_nominal == min(pval_nominal)) %>% 
+  slice_sample(n = 1) # 3442
 
 MP_eqtl_sig_min <- MP_eqtl_sig %>%
   group_by(phenotype_id) %>% 
-  filter(pval_nominal == min(pval_nominal)) # 2702
+  filter(pval_nominal == min(pval_nominal)) %>% 
+  slice_sample(n = 1) # 1475
+
+write.csv(ML_eqtl_sig_min, file = paste0(data, "ML_eqtl_sig_min.csv"), row.names = F, quote = F)
+write.csv(FL_eqtl_sig_min, file = paste0(data, "FL_eqtl_sig_min.csv"), row.names = F, quote = F)
+write.csv(MP_eqtl_sig_min, file = paste0(data, "MP_eqtl_sig_min.csv"), row.names = F, quote = F)
 
 ML_eqtl_sig_min_af <- ML_eqtl_sig_min %>% dplyr::select(variant_id, af, maf) %>% distinct()
 FL_eqtl_sig_min_af <- FL_eqtl_sig_min %>% dplyr::select(variant_id, af, maf) %>% distinct()
@@ -63,15 +64,20 @@ p1 + p2 + p3
 set.seed(123)
 MP_eqtl_sig_random <- MP_eqtl_sig %>%
   group_by(phenotype_id) %>% 
-  slice_sample(n = 1)
+  slice_sample(n = 1)  # 1475
 
 ML_eqtl_sig_random <- ML_eqtl_sig %>%
   group_by(phenotype_id) %>% 
-  slice_sample(n = 1)
+  slice_sample(n = 1) # 2421
 
 FL_eqtl_sig_random <- FL_eqtl_sig %>%
   group_by(phenotype_id) %>% 
-  slice_sample(n = 1)
+  slice_sample(n = 1)  # 3442
+
+
+write.csv(ML_eqtl_sig_random, file = paste0(data, "ML_eqtl_sig_random.csv"), row.names = F, quote = F)
+write.csv(FL_eqtl_sig_random, file = paste0(data, "FL_eqtl_sig_random.csv"), row.names = F, quote = F)
+write.csv(MP_eqtl_sig_random, file = paste0(data, "MP_eqtl_sig_random.csv"), row.names = F, quote = F)
 
 ML_eqtl_sig_random_af <- ML_eqtl_sig_random %>% dplyr::select(variant_id, af, maf) %>% distinct()
 FL_eqtl_sig_random_af <- FL_eqtl_sig_random %>% dplyr::select(variant_id, af, maf) %>% distinct()

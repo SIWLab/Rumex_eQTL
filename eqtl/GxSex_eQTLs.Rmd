@@ -21,15 +21,17 @@ normalized_counts_ln <- read.table("/Users/yuanmeng/Library/CloudStorage/OneDriv
 
 # pval_adj_bh <- sex_inter_top %>% filter(pval_adj_bh < 0.1) # 5
 pval_adj_bh <- read.csv(paste0(data, "sex_interaction_padj_bh01.csv"))
+write.table(pval_adj_bh$variant_id, file = paste0(data, "pval_adj_bh.txt"), row.names = F, quote = F, col.names = F)
+
 pval_adj_bh <- pval_adj_bh[order(pval_adj_bh$pval_adj_bh),]
 pval_adj_bh[,c(1:2,18)]
 ```
   phenotype_id  variant_id pval_adj_bh
-2 TX_paternal_00002596 1:159008371  0.00197039
-3 TX_paternal_00010325  2:14033315  0.00197039
-5 TX_paternal_00025295  3:10654019  0.00317137
-1 TX_paternal_00001727  1:70371578  0.06471960
-4 TX_paternal_00015022 2:250749626  0.07920580
+1 TX_paternal_00002596 1:159008371  0.00197039
+2 TX_paternal_00010325  2:14033315  0.00197039
+3 TX_paternal_00025295  3:10654019  0.00317137
+4 TX_paternal_00001727  1:70371578  0.06471960
+5 TX_paternal_00015022 2:250749626  0.07920580
 
 ## 1 TX_paternal_00002596 1:159008371 G	A
 ```{r}

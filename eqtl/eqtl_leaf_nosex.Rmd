@@ -1,5 +1,5 @@
 ---
-title: "no sex"
+title: "eQTLs significant for genotype term regarless of sex"
 author: "Meng"
 date: "2024-07-18"
 output: html_document
@@ -44,15 +44,15 @@ nosex_eqtl_sig <- nosex_eqtl_full %>% filter(pval_nominal < pval_nominal_thresho
 
 length(unique(nosex_eqtl_sig$phenotype_id)) # 10134
 length(unique(nosex_eqtl_sig$variant_id)) # 106621
+write.csv(nosex_eqtl_sig, file = paste0(data, "nosex_eqtl_sig.csv"), row.names = F, quote = F)
 ```
+
 ## MAF
 ```{r}
 # MAF
 nosex_eqtl_sig <- nosex_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
 write.csv(nosex_eqtl_sig, file = paste0(data, "nosex_eqtl_sig.csv"), row.names = F, quote = F)
-
-# unique
-sex_eqtl_sig_af <- ML_eqtl_sig %>% select(variant_id, af, maf) %>% distinct()
+nosex_eqtl_sig <- read.csv(paste0(data, "nosex_eqtl_sig.csv"))
 
 # most sigificant
 nosex_eqtl_sig_min <- nosex_eqtl_sig %>%
@@ -60,11 +60,23 @@ nosex_eqtl_sig_min <- nosex_eqtl_sig %>%
   filter(pval_nominal == min(pval_nominal)) # 10784
 
 write.table(nosex_eqtl_sig_min, file = paste0(data, "nosex_eqtl_sig_min.txt"), row.names = F, quote = F, sep = "\t")
+nosex_eqtl_sig_min <- read.table(paste0(data, "nosex_eqtl_sig_min.txt"), header = T)
+
+
+write.table(p_gi_adj_01$variant_id, file = paste0(data, "p_gi_adj_01.txt"), row.names = F, quote = F, col.names = F)
 ```
 
-
-# with interaction term
+## 
 ```{r}
+nosexi <- intersect(nosex_eqtl_sig$variant_id, i_only$variant_id) # 110
+```
 
+```{r}
+sexi <- intersect(sex_eqtl_sig$variant_id, i_only$variant_id) # 113
+```
+  
+```{r}
+# sex 116128 nosex 113056
+g <- intersect(nosex_eqtl_sig$variant_id,sex_eqtl_sig$variant_id)  #103690
 ```
 

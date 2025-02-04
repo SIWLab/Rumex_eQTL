@@ -1,0 +1,21 @@
+---
+title: "GO enrichment"
+author: "Meng"
+date: "2025-01-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(topGO)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+library(tidyr)
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
+```
+
+/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/merged_TX_noMatPARlarge_GO.csv
+```{r}
+
+```
+

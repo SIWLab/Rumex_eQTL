@@ -28,7 +28,6 @@ plink --bfile ${i} --extract ${i}_ld.prune.in \
 done
 
 
-
 # manualy remove outlier sampled identified from PCA
 for i in "ML" "L"
 do 
@@ -36,6 +35,18 @@ VCF=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_auto.SNP.${i}.filt.vcf.gz
 VCF2=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_auto.SNP.${i}.filt2.vcf.gz
 bcftools view ${VCF} -s ^5aM,7bM,27eM,53bM --threads 20 | bgzip -c > ${VCF2}
 done
+
+VCF=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_Y.SNP.M.filt.vcf.gz
+VCF2=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_Y.SNP.M.filt2.vcf.gz
+bcftools view ${VCF} -s ^5aM,7bM,27eM,53bM --threads 20 | bgzip -c > ${VCF2}
+
+# separete PAR and Y, -r Y:45000001-503837879 
+# remove filt vcf when you already have filt2 for males
+VCF=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_Y.SNP.M.filt2.vcf.gz
+VCF2=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_PAR.SNP.M.filt2.vcf.gz
+VCF3=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_Ys.SNP.M.filt2.vcf.gz
+bcftools view ${VCF} -r 7:1-45000000 --threads 20 | bgzip -c > ${VCF2}
+bcftools view ${VCF} -r 7:45000001-503837879 --threads 20 | bgzip -c > ${VCF3}
 
 
 # rerun LD pruning

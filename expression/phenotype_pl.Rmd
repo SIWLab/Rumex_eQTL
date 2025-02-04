@@ -282,6 +282,11 @@ normalized_counts_n <- normalized_counts_n %>%
 #colnames(normalized_counts_n)[4] <- "gene_id"
 write.table(normalized_counts_n, file = paste0(data,"normalized_counts_pln.bed"), row.names = FALSE, quote = F, sep = "\t")
 ```
+## get expression level difference as phenotype
+```{r}
+count <- read.table(paste0(data,"normalized_counts_pl_sept.txt"), header = T, check.names = F)
+
+```
 
 
 

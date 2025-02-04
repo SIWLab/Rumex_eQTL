@@ -1,0 +1,133 @@
+---
+title: "sex interaction"
+author: "Meng"
+date: "2024-07-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(arrow)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+library(tidyr)
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/sex/"
+```
+
+
+## permutation
+/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/sex.cis_qtl.txt
+```{r}
+sex_genes <- read.table(paste0(data, "sex.cis_qtl.txt"), header = T) # 14755
+
+hist(sex_genes$pval_beta, nclass = 20)
+qval_sex <- qvalue(sex_genes$pval_beta)
+summary(qval_sex)
+hist(qval_sex)
+```
+
+
+```{r}
+#sex_genes <- calculate_qvalues(sex_genes)
+
+#sex_egene <- sex_genes %>% filter(qval < 0.05) # 7522
+sex_egene <- sex_genes %>% filter(qval < 0.1) # 9743
+```
+Number of phenotypes tested: 14549
+Correlation between Beta-approximated and empirical p-values: 1.0000
+Proportion of significant phenotypes (1-pi0): 0.78
+QTL phenotypes @ FDR 0.05: 7522
+min p-value threshold @ FDR 0.05: 0.117321
+
+
+## get siginicant eQTLs without interaction
+
+```{r}
+sex_A1 <- read_parquet(paste0(data,"sex.cis_qtl_pairs.1.parquet"))
+sex_A2 <- read_parquet(paste0(data,"sex.cis_qtl_pairs.2.parquet"))
+sex_A3 <- read_parquet(paste0(data,"sex.cis_qtl_pairs.3.parquet"))
+sex_A4 <- read_parquet(paste0(data,"sex.cis_qtl_pairs.4.parquet"))
+sex_eqtl <- rbind(sex_A1, sex_A2, sex_A3, sex_A4) # 1368353
+sum(sex_genes$num_var) # 1368353
+
+sex_eqtl_full <- inner_join(sex_eqtl, sex_genes[,c(1,16:19)], by = "phenotype_id") #
+sex_eqtl_sig <- sex_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold) #  116128
+
+nrow(sex_egene) # 9743
+length(unique(sex_eqtl_sig$phenotype_id)) # 10344
+length(unique(sex_eqtl_sig$variant_id)) # 109449
+
+write.csv(sex_eqtl_sig, file = paste0(data, "sex_eqtl_sig.csv"), row.names = F, quote = F)
+```
+MAF
+```{r}
+# MAF
+sex_eqtl_sig <- sex_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
+write.csv(sex_eqtl_sig, file = paste0(data, "sex_eqtl_sig.csv"), row.names = F, quote = F)
+
+# unique
+sex_eqtl_sig_af <- ML_eqtl_sig %>% select(variant_id, af, maf) %>% distinct()
+
+# most sigificant
+ML_eqtl_sig_min <- ML_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_nominal == min(pval_nominal)) # 3131
+
+# random
+
+```
+
+
+## examine the eqtl with the lowest pval_gi
+A1:159008371 TX_paternal_00002596
+ref G alt A
+```{r}
+# data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/"
+normalized_counts_ln <- read.table(paste0(data,"normalized_counts_ln.bed"), header = T)
+expr <- normalized_counts_ln %>% filter(gene_id == "TX_paternal_00002596")
+geno <- read.table(paste0(data,"A1_159008371.vcf"), header = T)
+
+pheno <- expr[,c(5:153)]
+geno1 <- geno[,c(5:153)]
+eqtl <- rbind(geno1,pheno)
+eqtl <- as.data.frame(t(eqtl))
+
+eqtl <- eqtl %>% mutate(id = row.names(eqtl))
+colnames(eqtl) <- c("genotype", "phenotype", "id")
+
+eqtl$genotype <- factor(eqtl$genotype)
+levels(eqtl$genotype)
+eqtl$phenotype <- as.numeric(eqtl$phenotype)
+
+sex <- rep(NA, length(eqtl$id))
+sex[grep("M", eqtl$id)] <- "M"
+sex[grep("F", eqtl$id)] <- "F"
+eqtl <- data.frame(eqtl, sex)
+
+ggplot(eqtl, aes(x=genotype, y=phenotype, colour=sex)) + 
+  geom_boxplot(position=position_dodge2(0.85)) + 
+  geom_jitter(shape=16, position=position_jitterdodge(0.2), alpha=0.3) + 
+  theme_classic()
+
+write.table(eqtl, file = paste0(data, "A1_159008371.eqtl"), quote = F)
+```
+
+
+```{r}
+eqtl <- eqtl %>% filter(genotype == "0/0" | genotype == "0/1")
+levels(eqtl$genotype) <-c ("./.","GG", "GA","GG")
+
+p1 <- ggplot(eqtl, aes(x=sex, y=phenotype, colour=genotype)) + 
+  geom_boxplot(position=position_dodge2(0.85)) + 
+  geom_jitter(shape=16, position=position_jitterdodge(0.2), alpha=0.3) + 
+  theme_classic()+ theme(text = element_text(size = 15))
+
+p2 <- ggplot(eqtl, aes(x=genotype, y=phenotype, colour=sex)) + 
+  geom_boxplot(position=position_dodge2(0.85)) + 
+  geom_jitter(shape=16, position=position_jitterdodge(0.2), alpha=0.3) + 
+  theme_classic() + theme(text = element_text(size = 18))+ scale_colour_manual(values = c("red", "blue"))+labs(x="Genotype", y="Expression")
+p2 
+```
+
+
+

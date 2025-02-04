@@ -12,6 +12,10 @@ ML_A3 <- read_parquet(paste0("ML_", i, ".cis_qtl_pairs.3.parquet"))
 ML_A4 <- read_parquet(paste0("ML_", i, ".cis_qtl_pairs.4.parquet"))
 ML_eqtl <- rbind(ML_A1, ML_A2, ML_A3, ML_A4) 
 
+ML_eqtl_min <- ML_eqtl %>%
+    group_by(phenotype_id) %>% 
+    filter(pval_nominal == min(pval_nominal))
+
 ML_eqtl_full <- inner_join(ML_eqtl, ML[,c(1,16:19)], by = "phenotype_id") 
 ML_eqtl_sig <- ML_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold) 
 ML_eqtl_sig <- ML_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))

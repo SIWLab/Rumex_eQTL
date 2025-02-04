@@ -10,44 +10,15 @@ library(dplyr)
 library(ggplot2)
 library(patchwork)
 data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
-```
-
-need to produce files from eqtl_permutation.Rmd eg ML_eqtl_full
-```{r}
 ML_eqtl_sig <-read.csv(paste0(data, "ML_eqtl_sig_Nov.csv"))
 FL_eqtl_sig <-read.csv(paste0(data, "FL_eqtl_sig_Nov.csv"))
 MP_eqtl_sig <-read.csv(paste0(data, "MP_eqtl_sig_Nov.csv"))
-
-set.seed(13)
-ML_eqtl_sig_min <- ML_eqtl_sig %>%
-  group_by(phenotype_id) %>% 
-  filter(pval_nominal == min(pval_nominal)) %>% 
-  slice_sample(n = 1) # 2421
-
-FL_eqtl_sig_min <- FL_eqtl_sig %>%
-  group_by(phenotype_id) %>% 
-  filter(pval_nominal == min(pval_nominal)) %>% 
-  slice_sample(n = 1) # 3442
-
-MP_eqtl_sig_min <- MP_eqtl_sig %>%
-  group_by(phenotype_id) %>% 
-  filter(pval_nominal == min(pval_nominal)) %>% 
-  slice_sample(n = 1) # 1475
-
-write.csv(ML_eqtl_sig_min, file = paste0(data, "ML_eqtl_sig_min.csv"), row.names = F, quote = F)
-write.csv(FL_eqtl_sig_min, file = paste0(data, "FL_eqtl_sig_min.csv"), row.names = F, quote = F)
-write.csv(MP_eqtl_sig_min, file = paste0(data, "MP_eqtl_sig_min.csv"), row.names = F, quote = F)
-
-# write the SNP positions
-write.table(ML_eqtl_sig_min$variant_id, file = paste0(data, "ML_eqtl_sig_min.txt"), row.names = F, quote = F, col.names = F)
-write.table(MP_eqtl_sig_min$variant_id, file = paste0(data, "MP_eqtl_sig_min.txt"), row.names = F, quote = F, col.names = F)
-write.table(FL_eqtl_sig_min$variant_id, file = paste0(data, "FL_eqtl_sig_min.txt"), row.names = F, quote = F, col.names = F)
 ```
+
 
 
 # number of significant eqtl per gene
 ```{r}
-
 ml_table <- ML_eqtl_sig %>% group_by(phenotype_id) %>%
   dplyr::summarise(
     count = length(variant_id),
@@ -100,6 +71,7 @@ ml_table <- ML_eqtl_sig_filt %>% group_by(phenotype_id) %>%
 
 ggplot(ml_table, aes(count)) + geom_histogram(binwidth = 1) + theme_classic()  +theme(text = element_text(size = 12))+labs(x="Category", y="Number of eQTLs per gene")
 ```
+
 
 
 # distance to TSS and number of cis-eQTLs

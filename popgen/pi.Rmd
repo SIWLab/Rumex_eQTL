@@ -1,0 +1,60 @@
+---
+title: "nucleotide diversity"
+author: "Meng"
+date: "2025-01-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(dplyr)
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/popgen/"
+```
+
+```{r}
+pi <- read.table(paste0(data,"allsites_pi.txt"), header = T) # 119530
+pi <- pi %>% filter(no_sites >= 500) # 118882 (100), 118021 (500)
+
+ggplot(pi, aes(x = window_pos_1, y = avg_pi)) + geom_point() +
+    facet_grid(.~chromosome,scales="free_x", switch = "x", space = "free_x")
+```
+
+look at pi and tajD around interesting sites
+```{r}
+pi <- read.table(paste0(data,"syn_pi.txt"), header = T) # 1195485
+pi <- pi %>% filter(no_sites >= 50) # 20621
+
+tajd <- read.table(paste0(data,"syn.Tajima.D"), header = T) # 119392
+tajd <- tajd %>% filter(N_SNPS >= 25) # 3327
+
+quantile(pi$avg_pi, 0.95) # 0.005546033
+pi_top <- pi %>% filter(avg_pi > 0.005546033)
+
+quantile(tajd$TajimaD, 0.95) # -1.397284
+tajd_top <- tajd %>% filter(TajimaD > -1.397284)
+colnames(tajd_top)[1] <- "chromosome"
+```
+result <- window_df %>% inner_join(gff, by = "chrom") %>%
+        filter(physPos >= start & physPos <= end) 
+```{r}
+genes <- read.csv(paste0(data,"genes.csv"), header = F)
+colnames(genes) <- c("chromosome", "pos")
+
+genes_pi <- genes %>% inner_join(pi_top, by = "chromosome") %>%
+    filter(pos >= window_pos_1 & pos <= window_pos_2 )
+
+genes_tajd <- genes %>% inner_join(tajd_top, by = "chromosome") %>%
+    filter(pos >= BIN_START & pos <= BIN_START + 10000)
+```
+
+```{r}
+genesex <- read.csv(paste0(data,"genesex.csv"), header = F)
+colnames(genesex) <- c("chromosome", "pos")
+
+genesex_pi <- genesex %>% inner_join(pi_top, by = "chromosome") %>%
+    filter(pos >= window_pos_1 & pos <= window_pos_2 )
+
+genesex_tajd <- genesex %>% inner_join(tajd_top, by = "chromosome") %>%
+    filter(pos >= BIN_START & pos <= BIN_START + 10000)
+```
+

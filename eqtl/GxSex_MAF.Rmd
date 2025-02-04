@@ -1,0 +1,173 @@
+---
+title: "interaction and MAF"
+author: "Meng"
+date: "2024-07-15"
+output: html_document
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+library(arrow)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+library(tidyr)
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/sex/"
+padjust_bh <- function(p, fdr_threshold = 0.1) {
+  if (any(!is.finite(p))) {
+    stop('P values must be finite.')
+  }
+  n <- length(p)
+  i <- n:1
+  o <- order(p, decreasing = TRUE)
+  ro <- order(o)
+  adjusted_p <- pmin(1, cummin(n / i * p[o]))[ro]
+  
+  return(adjusted_p)
+}
+
+```
+# all gene-variant pairs with interaction term
+without sex as a covariate
+```{r}
+sex_interaction_A1 <- read_parquet(paste0(data,"nosex_inter.cis_qtl_pairs.1.parquet"))
+sex_interaction_A2 <- read_parquet(paste0(data,"nosex_inter.cis_qtl_pairs.2.parquet"))
+sex_interaction_A3 <- read_parquet(paste0(data,"nosex_inter.cis_qtl_pairs.3.parquet"))
+sex_interaction_A4 <- read_parquet(paste0(data,"nosex_inter.cis_qtl_pairs.4.parquet"))
+colnames(sex_interaction_A4)
+
+sex_inter <- rbind(sex_interaction_A1, sex_interaction_A2, sex_interaction_A3, sex_interaction_A4) # 1083706
+colnames(sex_inter)
+```
+
+
+
+# top association for each phenotype sex_inter_top
+## get eQTL significant for each term
+```{r}
+sex_inter_top <- read.table(paste0(data, "nosex_inter.cis_qtl_top_assoc.txt"), header = T) # 14587
+colnames(sex_inter_top)
+length(unique(sex_inter_top$phenotype_id)) 
+
+sex_inter_top$pval_gi_adj <- padjust_bh(sex_inter_top$pval_gi, fdr_threshold = 0.1)
+sex_inter_top$pval_i_adj <- padjust_bh(sex_inter_top$pval_i, fdr_threshold = 0.1)
+sex_inter_top$pval_g_adj <- padjust_bh(sex_inter_top$pval_g, fdr_threshold = 0.1)
+
+#pval_adj_bh <- sex_inter_top %>% filter(pval_adj_bh < 0.1) # 5
+
+p_gi_adj_01 <- sex_inter_top %>% filter(pval_gi_adj < 0.1) # 9572
+p_g_adj_01 <- sex_inter_top %>% filter(pval_g_adj < 0.1) # 7687
+p_i_adj_01 <- sex_inter_top %>% filter(pval_i_adj < 0.1) # 3450
+
+p_gi_adj_005 <- sex_inter_top %>% filter(pval_gi_adj < 0.05) # 1462
+p_g_adj_005 <- sex_inter_top %>% filter(pval_g_adj < 0.05) # 3245
+p_i_adj_005 <- sex_inter_top %>% filter(pval_i_adj < 0.05) # 2201
+
+write.table(p_gi_adj_01$variant_id, file = paste0(data, "p_gi_adj_01.txt"), row.names = F, quote = F, col.names = F)
+write.table(p_g_adj_01$variant_id, file = paste0(data, "p_g_adj_01.txt"), row.names = F, quote = F, col.names = F)
+write.table(p_i_adj_01$variant_id, file = paste0(data, "p_i_adj_01.txt"), row.names = F, quote = F, col.names = F)
+
+write.table(p_gi_adj_005$variant_id, file = paste0(data, "p_gi_adj_005.txt"), row.names = F, quote = F, col.names = F)
+write.table(p_g_adj_005$variant_id, file = paste0(data, "p_g_adj_005.txt"), row.names = F, quote = F, col.names = F)
+write.table(p_i_adj_005$variant_id, file = paste0(data, "p_i_adj_005.txt"), row.names = F, quote = F, col.names = F)
+
+write.table(p_gi_adj_01$phenotype_id, file = paste0(data, "p_gi_adj_01_pheno.txt"), row.names = F, quote = F, col.names = F)
+write.table(p_g_adj_01$phenotype_id, file = paste0(data, "p_g_adj_01_pheno.txt"), row.names = F, quote = F, col.names = F)
+write.table(p_i_adj_01$phenotype_id, file = paste0(data, "p_i_adj_01_pheno.txt"), row.names = F, quote = F, col.names = F)
+
+
+
+pval_adj_bh <- sex_inter_top %>% filter(pval_adj_bh < 0.1) # 5
+pval_adj_bh <- pval_adj_bh %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
+median(pval_adj_bh$maf)
+range(pval_adj_bh$maf)
+write.csv(pval_adj_bh, file = paste0(data, "sex_interaction_padj_bh01.csv"), row.names = F, quote = F)
+```
+
+
+## MAF
+G, Sex, G x Sex only, or all, 4 sets
+```{r}
+g <- p_g_adj_01 %>% select(variant_id, af, pval_g) %>% distinct() # 7551
+gi <- p_gi_adj_01 %>% select(variant_id, af, pval_gi)  %>% distinct() # 9370
+i <- p_i_adj_01 %>% select(variant_id, af, pval_i)  %>% distinct() # 3401
+
+g <- g[!duplicated(g), ]
+g_only <- g %>% anti_join(i, by = "variant_id") %>% anti_join(gi, by = "variant_id") %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af)) # 501
+i_only <- i %>% anti_join(g, by = "variant_id") %>% anti_join(gi, by = "variant_id") %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af)) # 663
+gi_only <- gi %>% anti_join(i, by = "variant_id") %>% anti_join(g, by = "variant_id") %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af)) # 1893
+all <- g %>% inner_join(i, by = "variant_id") %>% inner_join(gi, by = "variant_id") %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af)) # 2055
+```
+
+
+## write output
+```{r}
+write.csv(g_only, file = paste0(data, "g_only.csv"), row.names = F, quote = F)
+write.csv(i_only, file = paste0(data, "i_only.csv"), row.names = F, quote = F)
+write.csv(gi_only, file = paste0(data, "gi_only.csv"), row.names = F, quote = F)
+write.csv(all, file = paste0(data, "all.csv"), row.names = F, quote = F)
+
+g_only <- read.csv(paste0(data, "g_only.csv"))
+i_only <- read.csv(paste0(data, "i_only.csv"))
+```
+
+## plots
+```{r}
+p <-ggplot(g_only, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y) # 0.21
+p1 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + labs(x="MAF", y="Proportion", title="a")+ theme(text = element_text(size = 10)) + ylim(0, 0.3) + geom_vline(xintercept=0.0791667, color = "red",linetype="dashed")
+
+p <-ggplot(i_only, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y) # 0.298
+p2 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + labs(x="MAF", y="Proportion", title="b")+ theme(text = element_text(size = 10)) + ylim(0, 0.3)+ geom_vline(xintercept=0.07322325, color = "red",linetype="dashed")
+
+p <-ggplot(gi_only, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y) # 0.20
+p3 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() +  labs(x="MAF", y="Proportion", title="c")+ theme(text = element_text(size = 10)) + ylim(0, 0.3)+ geom_vline(xintercept=0.0819672, color = "red",linetype="dashed")
+
+p <-ggplot(all, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y) # 0.20
+p4 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + labs(x="MAF", y="Proportion", title="d")+ theme(text = element_text(size = 10)) + ylim(0, 0.3)+ geom_vline(xintercept=0.0869565, color = "red",linetype="dashed")
+
+p1 + p2 + p3 + p4 + plot_layout(nrow = 2)
+```
+```{r}
+p <-ggplot(g_only, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y) # 0.21
+p1 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + labs(x="MAF", y="Proportion", title="a")+ theme(text = element_text(size = 10)) + ylim(0, 0.3) + geom_vline(xintercept=0.0791667, color = "red",linetype="dashed")
+
+p <-ggplot(gi_only, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y) # 0.20
+p2 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() +  labs(x="MAF", y="Proportion", title="b")+ theme(text = element_text(size = 10)) + ylim(0, 0.3)+ geom_vline(xintercept=0.0819672, color = "red",linetype="dashed")
+
+p1 + p2
+```
+
+
+```{r}
+median(g_only$maf)
+median(i_only$maf)
+median(gi_only$maf)
+median(all$maf)
+
+
+IQR(no_interaction$maf)
+
+wilcox.test(g_only$maf, gi_only$maf)
+```
+[1] 0.0791667
+[1] 0.07322325
+[1] 0.0819672
+[1] 0.0869565

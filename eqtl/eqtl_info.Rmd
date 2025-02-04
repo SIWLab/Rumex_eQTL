@@ -14,10 +14,34 @@ data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manus
 
 need to produce files from eqtl_permutation.Rmd eg ML_eqtl_full
 ```{r}
-ML_eqtl_sig <-read.csv(paste0(data, "ML_eqtl_sig.csv"))
-FL_eqtl_sig <-read.csv(paste0(data, "FL_eqtl_sig.csv"))
-MP_eqtl_sig <-read.csv(paste0(data, "MP_eqtl_sig.csv"))
+ML_eqtl_sig <-read.csv(paste0(data, "ML_eqtl_sig_Nov.csv"))
+FL_eqtl_sig <-read.csv(paste0(data, "FL_eqtl_sig_Nov.csv"))
+MP_eqtl_sig <-read.csv(paste0(data, "MP_eqtl_sig_Nov.csv"))
 
+set.seed(13)
+ML_eqtl_sig_min <- ML_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_nominal == min(pval_nominal)) %>% 
+  slice_sample(n = 1) # 2421
+
+FL_eqtl_sig_min <- FL_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_nominal == min(pval_nominal)) %>% 
+  slice_sample(n = 1) # 3442
+
+MP_eqtl_sig_min <- MP_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_nominal == min(pval_nominal)) %>% 
+  slice_sample(n = 1) # 1475
+
+write.csv(ML_eqtl_sig_min, file = paste0(data, "ML_eqtl_sig_min.csv"), row.names = F, quote = F)
+write.csv(FL_eqtl_sig_min, file = paste0(data, "FL_eqtl_sig_min.csv"), row.names = F, quote = F)
+write.csv(MP_eqtl_sig_min, file = paste0(data, "MP_eqtl_sig_min.csv"), row.names = F, quote = F)
+
+# write the SNP positions
+write.table(ML_eqtl_sig_min$variant_id, file = paste0(data, "ML_eqtl_sig_min.txt"), row.names = F, quote = F, col.names = F)
+write.table(MP_eqtl_sig_min$variant_id, file = paste0(data, "MP_eqtl_sig_min.txt"), row.names = F, quote = F, col.names = F)
+write.table(FL_eqtl_sig_min$variant_id, file = paste0(data, "FL_eqtl_sig_min.txt"), row.names = F, quote = F, col.names = F)
 ```
 
 
@@ -50,6 +74,9 @@ mp_table$category <- "Pollen"
 write.table(ml_table, file = paste0(data, "ml_table.txt"), row.names = F, quote = F, col.names = F)
 write.table(fl_table, file = paste0(data, "fl_table.txt"), row.names = F, quote = F, col.names = F)
 write.table(mp_table, file = paste0(data, "mp_table.txt"), row.names = F, quote = F, col.names = F)
+ml_table <- read.table(paste0(data, "ml_table.txt"))
+fl_table <- read.table(paste0(data, "fl_table.txt"))
+mp_table <- read.table(paste0(data, "mp_table.txt"))
 
 
 median(ml_table$count)
@@ -57,9 +84,21 @@ median(fl_table$count)
 median(mp_table$count)
 
 tablec <- rbind(ml_table,fl_table,mp_table)
+tablec$count <- round(tablec$count, digits = 0)
+colnames(tablec)[2] <- "count"
+colnames(tablec)[5] <- "category"
 
-ggplot(tablec, aes(x=category, y=count)) + 
-  geom_boxplot() + theme_classic() + ylim(1,10)
+
+ggplot(tablec, aes(x=category, y=count)) + geom_boxplot() + theme_classic() + ylim(1,10) +theme(text = element_text(size = 12))+labs(x="Category", y="Number of eQTLs per gene")
+
+ggplot(tablec, aes(count)) + geom_histogram(binwidth = 1) + theme_classic()  +theme(text = element_text(size = 12))+labs(x="Category", y="Number of eQTLs per gene") + facet_grid(rows = vars(category))
+```
+```{r}
+ml_table <- ML_eqtl_sig_filt %>% group_by(phenotype_id) %>%
+  dplyr::summarise(
+    count = length(variant_id))
+
+ggplot(ml_table, aes(count)) + geom_histogram(binwidth = 1) + theme_classic()  +theme(text = element_text(size = 12))+labs(x="Category", y="Number of eQTLs per gene")
 ```
 
 
@@ -73,6 +112,50 @@ median(mp_table$median_tss) # 7056.5
 mean(ml_table$median_tss) # 8089.743
 mean(fl_table$median_tss) # 8251.179
 mean(mp_table$median_tss) # 8034.049
+
+```
+
+```{r}
+tablec$median_tss <- round(tablec$median_tss, digits = 0)
+tablec$mean_tss <- round(tablec$mean_tss, digits = 0)
+
+ggplot(tablec, aes(x=category, y=median_tss)) + geom_boxplot() + theme_classic() + theme(text = element_text(size = 12))+labs(x="Category", y="Distance to TSS")
+
+ggplot(tablec, aes(x=category, y=mean_tss)) + geom_boxplot() + theme_classic() 
+```
+
+keep one eqtl per gene
+```{r}
+ml_table <- ML_eqtl_sig %>% select(start_distance)
+fl_table <- FL_eqtl_sig %>% select(start_distance)
+mp_table <- MP_eqtl_sig %>% select(start_distance)
+
+
+ml_table <- ML_eqtl_sig_min %>% select(start_distance)
+fl_table <- FL_eqtl_sig_min %>% select(start_distance)
+mp_table <- MP_eqtl_sig_min %>% select(start_distance)
+
+ml_table <- ML_eqtl_sig_random %>% select(start_distance)
+fl_table <- FL_eqtl_sig_random %>% select(start_distance)
+mp_table <- MP_eqtl_sig_random %>% select(start_distance)
+
+ml_table$category <- "Male_leaf"
+fl_table$category <- "Female_leaf"
+mp_table$category <- "Pollen"
+
+tablec <- rbind(ml_table,fl_table,mp_table)
+
+nrow(tablec[tablec$start_distance > 0,]) # 4356 random, 4390 min, 30402 all
+nrow(tablec[tablec$start_distance < 0,]) # 4375, 4340, 31916
+
+tabelc1 <- tablec[tablec$start_distance > 0,]
+median(tabelc1$start_distance) # 6700
+
+tabelc2 <- tablec[tablec$start_distance < 0,]
+median(tabelc2$start_distance) # -6762
+
+
+ggplot(tablec, aes(x=category, y=start_distance)) + geom_violin()+ geom_boxplot(width=0.1) + theme_classic() + theme(text = element_text(size = 12))+labs(x="Category", y="Distance to TSS")
 
 ```
 
@@ -94,22 +177,27 @@ p1 + p2 + p3
 
 
 
+
 # eqtls that affect multiple genes in the same tissue
 ```{r}
-length(unique(FL_eqtl_sig$variant_id)) # 34176
+length(unique(FL_eqtl_sig$variant_id)) 
 FL_eqtl_multigene <- FL_eqtl_sig %>% 
      group_by(variant_id) %>%
-     filter(n()>1) # 1952
+     filter(n()>1) # 1907
 
-length(unique(ML_eqtl_sig$variant_id)) # 16722
+length(unique(ML_eqtl_sig$variant_id)) 
 ML_eqtl_multigene <- ML_eqtl_sig %>% 
      group_by(variant_id) %>%
-     filter(n()>1) # 1058
+     filter(n()>1) # 1036
 
-length(unique(MP_eqtl_sig$variant_id)) # 9616
+length(unique(MP_eqtl_sig$variant_id)) 
 MP_eqtl_multigene <- MP_eqtl_sig %>% 
      group_by(variant_id) %>%
-     filter(n()>1) # 434
+     filter(n()>1) # 406
+
+write.csv(ML_eqtl_multigene, file = paste0(data, "ML_eqtl_multigene.csv"), row.names = F, quote = F)
+write.csv(FL_eqtl_multigene, file = paste0(data, "FL_eqtl_multigene.csv"), row.names = F, quote = F)
+write.csv(MP_eqtl_multigene, file = paste0(data, "MP_eqtl_multigene.csv"), row.names = F, quote = F)
 
 p1 <- ggplot(ML_eqtl_multigene, aes(x=maf)) + geom_histogram(binwidth=0.01) + theme_classic() + ggtitle("Male leaf")
 p2 <- ggplot(FL_eqtl_multigene, aes(x=maf)) + geom_histogram(binwidth=0.01) + theme_classic() + ggtitle("Female leaf")
@@ -124,25 +212,9 @@ wilcox.test(ML_eqtl_multigene$maf, MP_eqtl_multigene$maf)
 ```
 
 
-
-# venn diagram of significant eQTLs (should be unique)
+## start distance and effect size
 ```{r}
-v1<-ML_eqtl_sig$variant_id
-v2<-FL_eqtl_sig$variant_id
-v3<-MP_eqtl_sig$variant_id
-
-write.table(v1, file = paste0(data, "ml_variant.txt"), row.names = F, quote = F, col.names = F)
-write.table(v2, file = paste0(data, "fl_variant.txt"), row.names = F, quote = F, col.names = F)
-write.table(v3, file = paste0(data, "mp_variant.txt"), row.names = F, quote = F, col.names = F)
-
-# v1 <- unique(v1) # 22643
-# 
-# venn.diagram(
-#   x = list(v1, v2, v3),
-#   category.names = c("male leaf" , "female leaf" , "pollen"),
-#   filename = 'venn_diagramm_eQTL.png',
-#   output=TRUE,
-#   # Set names
-#   cat.cex = 1,
-#   cat.fontface = "bold")
+ggplot(ml1, aes(x=abs(start_distance), y = abs(slope))) + geom_point()
+cor.test(abs(ml1$start_distance), abs(ml1$slope))
 ```
+

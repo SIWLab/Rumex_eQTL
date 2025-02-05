@@ -1,0 +1,136 @@
+---
+title: "pollen leaf read count difference"
+author: "Meng"
+date: "2025-02-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(arrow)
+library(dplyr)
+library(ggplot2)
+library(qvalue)
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
+```
+
+# get eQTL for expression difference between pollen and leaf
+## permutations
+```{r}
+pl <- read.table(paste0(data, "pl.cis_qtl.txt"), header = T) # 16218
+
+qval_pl <- qvalue(pl$pval_beta)
+summary(qval_pl)
+hist(qval_pl)
+```
+
+## extract eQenes and eQTLs
+```{r}
+pl_egene <- pl %>% filter(qval < 0.1) # 2031
+
+pl_A1 <- read_parquet(paste0(data,"pl.cis_qtl_pairs.1.parquet"))
+pl_A2 <- read_parquet(paste0(data,"pl.cis_qtl_pairs.2.parquet"))
+pl_A3 <- read_parquet(paste0(data,"pl.cis_qtl_pairs.3.parquet"))
+pl_A4 <- read_parquet(paste0(data,"pl.cis_qtl_pairs.4.parquet"))
+pl_eqtl <- rbind(pl_A1, pl_A2, pl_A3, pl_A4) # 1404801
+sum(pl$num_var) # 1404801
+```
+
+```{r}
+ggplot(pl_eqtl, aes(x=pval_nominal)) + geom_histogram(color="black", fill="white",binwidth = 0.01) + theme_classic()+ xlab("p-value")+ggtitle("")
+```
+
+```{r}
+pl_eqtl_full <- inner_join(pl_eqtl, pl_egene[,c(1,16:19)], by = "phenotype_id") # 223329
+pl_eqtl_sig <- pl_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold) # 12978
+
+length(unique(pl_eqtl_sig$variant_id)) # 12626
+length(unique(pl_eqtl_sig$phenotype_id)) # 2029
+
+pl_eqtl_sig <- pl_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
+write.csv(pl_eqtl_sig, file = paste0(data, "pl_eqtl_sig.csv"), row.names = F, quote = F)
+
+set.seed(123)
+pl_eqtl_sig_random <- pl_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  slice_sample(n = 1)  # 2029
+write.csv(pl_eqtl_sig_random, file = paste0(data, "pl_eqtl_sig_random.csv"), row.names = F, quote = F)
+
+pl_eqtl_sig_min <- pl_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_nominal == min(pval_nominal)) %>% 
+  slice_sample(n = 1) # 2029
+write.csv(pl_eqtl_sig_min, file = paste0(data, "pl_eqtl_sig_min.csv"), row.names = F, quote = F)
+```
+
+## MAF
+```{r}
+get_hist_prop <- function(data) {
+  p <- ggplot(data, aes(x = maf)) + geom_histogram(binwidth = 0.01,stat="count")
+  p_data <- ggplot_build(p)$data[[1]]
+  p_data$y_prop <- p_data$y / sum(p_data$y)
+  return(p_data)
+}
+
+pl_eqtl_sig_min_af <- pl_eqtl_sig_min %>% dplyr::select(variant_id, af, maf) %>% distinct()
+pl_eqtl_sig_random_af <- pl_eqtl_sig_random %>% dplyr::select(variant_id, af, maf) %>% distinct()
+
+p<-ggplot(pl_eqtl_sig_min_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y) # 0.111
+p1 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("a")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.13)
+
+p<-ggplot(pl_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y) # 0.111
+p2 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("b")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.13)
+p1 + p2
+```
+
+
+## distribution of effect size
+```{r}
+nrow(pl_eqtl_sig[pl_eqtl_sig$slope > 0,]) # 5481
+nrow(pl_eqtl_sig[pl_eqtl_sig$slope < 0,]) # 7497
+
+```
+
+```{r}
+ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("b")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.13)
+
+p3 <- ggplot(pl_eqtl_sig, aes(x=slope)) + geom_histogram(color="black", fill="white",binwidth = 0.01) + theme_classic()+ xlab("effect size")+ggtitle("")
+
+p4 <- ggplot(pl_eqtl_sig_min, aes(x=slope)) + geom_histogram(color="black", fill="white",binwidth = 0.01) + theme_classic()+ xlab("effect size")+ggtitle("")
+p3+p4
+```
+
+
+## cis independent
+```{r}
+
+```
+
+
+```{r}
+length(unique(pl_eqtl_sig$variant_id)) # 12626
+pl_eqtl_multigene <- pl_eqtl_sig %>% 
+     group_by(variant_id) %>%
+     filter(n()>1) %>%
+    select(variant_id, maf) # 695
+
+pl_eqtl_onegene <- pl_eqtl_sig %>% 
+     group_by(variant_id) %>%
+     filter(n()==1) %>%
+    select(variant_id, maf) # 12283
+
+```
+
+
+# check overlap with results from separate models
+```{r}
+
+```
+
+

@@ -282,10 +282,46 @@ normalized_counts_n <- normalized_counts_n %>%
 #colnames(normalized_counts_n)[4] <- "gene_id"
 write.table(normalized_counts_n, file = paste0(data,"normalized_counts_pln.bed"), row.names = FALSE, quote = F, sep = "\t")
 ```
-## get expression level difference as phenotype
+# get expression level difference as phenotype
 ```{r}
 count <- read.table(paste0(data,"normalized_counts_pl_sept.txt"), header = T, check.names = F)
+colnames(count)
+mp <- count[,c(1,2:70)]
+ml <- count[,c(1,71:139)]
+colnames(mp)[-1] <- str_sub(colnames(mp)[-1], 1, -2)
+colnames(ml)[-1] <- str_sub(colnames(ml)[-1], 1, -2)
+ml <- ml[, colnames(mp)]
 
+diff <- ml
+diff[,-1] <- ml[,-1] - mp[,-1]
+# double check
+ml[1,2] - mp[1,2]
+diff[1,2]
+
+qn <- function(x){qqnorm(x, plot.it=FALSE)$x}
+normalized_counts_n = apply(diff[,-1], 1, qn)
+normalized_counts_n <- as.data.frame(t(normalized_counts_n))
+normalized_counts_n <- cbind(diff[,1], normalized_counts_n)
+colnames(normalized_counts_n) <- colnames(diff)
+
+gff_full <- read.table(paste0(data, "gff_full.txt"), header = T)
+normalized_counts_n <- inner_join(gff_full, normalized_counts_n, by = "gene")
+
+#sort start pos for each chrom
+normalized_counts_n <- normalized_counts_n %>%
+  arrange(chrom, start) 
+
+# sort col names
+new_order <- scan(paste0(data,"pl.txt"), what = character(), sep = "\t")
+normalized_counts_n <- normalized_counts_n[, c(names(normalized_counts_n)[1:4], new_order)]
+colnames(normalized_counts_n)
+
+colnames(normalized_counts_n)[4] <- "gene_id"
+#normalized_counts_n$chrom <- factor(normalized_counts_n$chrom)
+#table(normalized_counts_n$chrom)
+normalized_counts_n_auto <- normalized_counts_n %>% filter(chrom != "PAR" & chrom != "X" & chrom != "Y") # 16411
+colnames(normalized_counts_n_auto)[1] <- "#chr"
+write.table(normalized_counts_n_auto, file = paste0(data,"normalized_counts_pl_diff.bed"), row.names = FALSE, quote = F, sep = "\t")
 ```
 
 

@@ -15,6 +15,13 @@ data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manus
 ML_eqtl_sig <- read.csv(paste0(data, "ML_eqtl_sig_Nov.csv"))
 FL_eqtl_sig <- read.csv(paste0(data, "FL_eqtl_sig_Nov.csv"))
 MP_eqtl_sig <- read.csv(paste0(data, "MP_eqtl_sig_Nov.csv"))
+
+ML <- read.table(paste0(data, "ML.cis_qtl.txt"), header = T) # 14777
+FL <- read.table(paste0(data, "FL.cis_qtl.txt"), header = T) # 14564
+MP <- read.table(paste0(data, "MP.cis_qtl.txt"), header = T) # 13785
+ML_egene <- ML %>% filter(qval < 0.1) # 2425
+FL_egene <- FL %>% filter(qval < 0.1) # 3445
+MP_egene <- MP %>% filter(qval < 0.1) # 1481
 ```
 
 
@@ -23,16 +30,14 @@ MP_eqtl_sig <- read.csv(paste0(data, "MP_eqtl_sig_Nov.csv"))
 ```{r}
 ml <- read.table(paste0(data, "ML.cis_independent_qtl.txt"), header = T) # 2792
 length(unique(ml$phenotype_id)) # 2425
+ml <- ml %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af)) # for maf ananlysis later
 
 egene <- as.data.frame(unique(ML_eqtl_sig$phenotype_id)) 
 colnames(egene) <- "phenotype_id"
 ml <- inner_join(ml, egene, by = "phenotype_id") # 2788
 length(unique(ml$phenotype_id)) # 2421
-
 ml1 <- ml %>% filter(rank == 1) # 2403
 
-
-# fine eGenes with multiple ranked eQTLs
 # filter for primary eQTLs
 ml1 <- ml %>%
   group_by(phenotype_id) %>% 
@@ -68,6 +73,10 @@ mean(abs(ml1$start_distance)) # 7922.758
 mean(abs(ml2$start_distance)) # 8697.025
 leveneTest(data = ml, abs(start_distance) ~ category)
 t.test(data = ml, abs(start_distance) ~ category, var.equal = T)
+
+median(ml1$maf) # 0.101695
+median(ml2$maf) # 0.0967742
+wilcox.test(ml1$maf, ml2$maf)
 ```
 
 Two Sample t-test
@@ -92,36 +101,168 @@ sample estimates:
   mean in group primary mean in group secondary 
                7922.758                8697.025 
 
+Wilcoxon rank sum test with continuity correction
+
+data:  ml1$maf and ml2$maf
+W = 466404, p-value = 0.1232
+alternative hypothesis: true location shift is not equal to 0
 
 # FL
 ```{r}
 fl <- read.table(paste0(data, "FL.cis_independent_qtl.txt"), header = T) # 4167
 length(unique(fl$phenotype_id)) # 3445
+fl <- fl %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af)) # for maf ananlysis later
+
 egene <- as.data.frame(unique(FL_eqtl_sig$phenotype_id)) 
 colnames(egene) <- "phenotype_id"
 fl <- inner_join(fl, egene, by = "phenotype_id") # 4164
 length(unique(fl$phenotype_id)) # 3442
-
 fl1 <- fl %>% filter(rank == 1) # 3407
-overlap <- inner_join(FL_egene, fl, by = c("phenotype_id", "variant_id")) # 3333
+
+# filter for primary eQTLs
+fl1 <- fl %>%
+  group_by(phenotype_id) %>% 
+  filter(rank == min(rank))
+# manually update the top rank for each eGene to rank = 1
+fl1$rank <- 1 # 3442
+# filter for secondary eQTLs
+fl2 <- anti_join(fl, fl1, by = c("phenotype_id", "variant_id")) # 722
+
+# most significant eQTL in each eGene
+test1 <- inner_join(FL_egene, fl1, by = c("phenotype_id", "variant_id")) %>% select(phenotype_id, variant_id, rank) # 3327
+# rank = 1 but not the most significant eQTL
+test2 <- anti_join(fl1, FL_egene, by = c("phenotype_id", "variant_id")) # 115
+
+# write output
+write.csv(fl1, file = paste0(data, "fl1.csv"), row.names = F, quote = F)
+write.csv(fl2, file = paste0(data, "fl2.csv"), row.names = F, quote = F)
 ```
-[1] "TX_paternal_00008722" "TX_paternal_00009331"
-[3] "TX_paternal_00033562"
 
 
+## compare primary and secondary eQTLs
+```{r}
+mean(abs(fl1$slope)) # 1.230636
+mean(abs(fl2$slope)) # 1.069681
 
+fl1$category <- "primary"
+fl2$category <- "secondary"
+fl <- rbind(fl1, fl2)
+leveneTest(data = fl, abs(slope) ~ category)
+t.test(data = fl, abs(slope) ~ category, var.equal = T)
+
+mean(abs(fl1$start_distance)) # 8081.14
+mean(abs(fl2$start_distance)) # 8725.489
+leveneTest(data = fl, abs(start_distance) ~ category)
+t.test(data = fl, abs(start_distance) ~ category, var.equal = T)
+
+median(fl1$maf) # 0.106061
+median(fl2$maf) # 0.1
+wilcox.test(fl1$maf, fl2$maf)
+```
+Two Sample t-test
+
+data:  abs(slope) by category
+t = 12.496, df = 4162, p-value < 2.2e-16
+alternative hypothesis: true difference in means between group primary and group secondary is not equal to 0
+95 percent confidence interval:
+ 0.1357025 0.1862069
+sample estimates:
+  mean in group primary mean in group secondary 
+               1.230636                1.069681
+               
+Two Sample t-test
+
+data:  abs(start_distance) by category
+t = -2.6222, df = 4162, p-value = 0.008769
+alternative hypothesis: true difference in means between group primary and group secondary is not equal to 0
+95 percent confidence interval:
+ -1126.1139  -162.5833
+sample estimates:
+  mean in group primary mean in group secondary 
+               8081.140                8725.489 
+
+Wilcoxon rank sum test with continuity correction
+
+data:  fl1$maf and fl2$maf
+W = 1268679, p-value = 0.3739
+alternative hypothesis: true location shift is not equal to 0
 
 # MP
 ```{r}
-mp <- read.table(paste0(data, "MP.cis_independent_qtl.txt"), header = T) # 4167
-length(unique(mp$phenotype_id)) # 3445
+mp <- read.table(paste0(data, "MP.cis_independent_qtl.txt"), header = T) # 1640
+length(unique(mp$phenotype_id)) # 1481
+mp <- mp %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af)) # for maf ananlysis later
+
 egene <- as.data.frame(unique(MP_eqtl_sig$phenotype_id)) 
 colnames(egene) <- "phenotype_id"
-mp <- inner_join(mp, egene, by = "phenotype_id") # 4164
-length(unique(mp$phenotype_id)) # 3442
+mp <- inner_join(mp, egene, by = "phenotype_id") # 1634
+length(unique(mp$phenotype_id)) # 1475
+mp1 <- mp %>% filter(rank == 1) # 1472
 
-mp1 <- mp %>% filter(rank == 1) # 3407
-overlap <- inner_join(MP_egene, mp, by = c("phenotype_id", "variant_id"))
+# filter for primary eQTLs
+mp1 <- mp %>%
+  group_by(phenotype_id) %>% 
+  filter(rank == min(rank))
+# manually update the top rank for each eGene to rank = 1
+mp1$rank <- 1 # 1475
+# filter for secondary eQTLs
+mp2 <- anti_join(mp, mp1, by = c("phenotype_id", "variant_id")) # 159
 
+# most significant eQTL in each eGene
+test1 <- inner_join(MP_egene, mp1, by = c("phenotype_id", "variant_id")) %>% select(phenotype_id, variant_id, rank) # 1448
+# rank = 1 but not the most significant eQTL
+test2 <- anti_join(mp1, MP_egene, by = c("phenotype_id", "variant_id")) # 27
+
+# write output
+write.csv(mp1, file = paste0(data, "mp1.csv"), row.names = F, quote = F)
+write.csv(mp2, file = paste0(data, "mp2.csv"), row.names = F, quote = F)
 ```
 
+
+## compare primary and secondary eQTLs
+```{r}
+mean(abs(mp1$slope)) # 1.364946
+mean(abs(mp2$slope)) # 1.179296
+
+mp1$category <- "primary"
+mp2$category <- "secondary"
+mp <- rbind(mp1, mp2)
+leveneTest(data = mp, abs(slope) ~ category)
+t.test(data = mp, abs(slope) ~ category, var.equal = F)
+
+mean(abs(mp1$start_distance)) # 7799.113
+mean(abs(mp2$start_distance)) # 8294.013
+leveneTest(data = mp, abs(start_distance) ~ category)
+t.test(data = mp, abs(start_distance) ~ category, var.equal = T)
+
+median(mp1$maf) # 0.104839
+median(mp2$maf) # 0.0964912
+wilcox.test(mp1$maf, mp2$maf)
+```
+	Welch Two Sample t-test
+
+data:  abs(slope) by category
+t = 7.7296, df = 188.12, p-value = 6.302e-13
+alternative hypothesis: true difference in means between group primary and group secondary is not equal to 0
+95 percent confidence interval:
+ 0.1382708 0.2330301
+sample estimates:
+  mean in group primary mean in group secondary 
+               1.364946                1.179296
+               
+Two Sample t-test
+
+data:  abs(start_distance) by category
+t = -0.98655, df = 1632, p-value = 0.324
+alternative hypothesis: true difference in means between group primary and group secondary is not equal to 0
+95 percent confidence interval:
+ -1478.8359   489.0358
+sample estimates:
+  mean in group primary mean in group secondary 
+               7799.113                8294.013 
+               
+Wilcoxon rank sum test with continuity correction
+
+data:  mp1$maf and mp2$maf
+W = 124145, p-value = 0.2234
+alternative hypothesis: true location shift is not equal to 0

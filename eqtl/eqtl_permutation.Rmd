@@ -9,7 +9,6 @@ output: html_document
 library(arrow)
 library(dplyr)
 library(ggplot2)
-library(patchwork)
 library(qvalue)
 data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
 ```
@@ -129,7 +128,47 @@ write.table(unique(MP_eqtl_sig$phenotype_id), file = paste0(data, "MP_egene_eqtl
 write.table(unique(FL_eqtl_sig$phenotype_id), file = paste0(data, "FL_egene_eqtl.txt"), row.names = F, quote = F, col.names = F)
 ```
 
-## keep
+## keep a randomly selected eQTL per eGene
+```{r}
+set.seed(123)
+MP_eqtl_sig_random <- MP_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  slice_sample(n = 1)  # 1475
 
+ML_eqtl_sig_random <- ML_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  slice_sample(n = 1) # 2421
+
+FL_eqtl_sig_random <- FL_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  slice_sample(n = 1)  # 3442
+
+write.csv(ML_eqtl_sig_random, file = paste0(data, "ML_eqtl_sig_random.csv"), row.names = F, quote = F)
+write.csv(FL_eqtl_sig_random, file = paste0(data, "FL_eqtl_sig_random.csv"), row.names = F, quote = F)
+write.csv(MP_eqtl_sig_random, file = paste0(data, "MP_eqtl_sig_random.csv"), row.names = F, quote = F)
+```
+
+## keep the most significant eQTL per gene
+```{r}
+set.seed(13)
+ML_eqtl_sig_min <- ML_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_nominal == min(pval_nominal)) %>% 
+  slice_sample(n = 1) # 2421
+
+FL_eqtl_sig_min <- FL_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_nominal == min(pval_nominal)) %>% 
+  slice_sample(n = 1) # 3442
+
+MP_eqtl_sig_min <- MP_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_nominal == min(pval_nominal)) %>% 
+  slice_sample(n = 1) # 1475
+
+write.csv(ML_eqtl_sig_min, file = paste0(data, "ML_eqtl_sig_min.csv"), row.names = F, quote = F)
+write.csv(FL_eqtl_sig_min, file = paste0(data, "FL_eqtl_sig_min.csv"), row.names = F, quote = F)
+write.csv(MP_eqtl_sig_min, file = paste0(data, "MP_eqtl_sig_min.csv"), row.names = F, quote = F)
+```
 
 

@@ -10,100 +10,52 @@ library(dplyr)
 library(ggplot2)
 library(patchwork)
 data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
-ML_eqtl_sig <-read.csv(paste0(data, "ML_eqtl_sig_Nov.csv"))
-FL_eqtl_sig <-read.csv(paste0(data, "FL_eqtl_sig_Nov.csv"))
-MP_eqtl_sig <-read.csv(paste0(data, "MP_eqtl_sig_Nov.csv"))
-```
+ML_eqtl_sig <- read.csv(paste0(data, "ML_eqtl_sig_Nov.csv"))
+FL_eqtl_sig <- read.csv(paste0(data, "FL_eqtl_sig_Nov.csv"))
+MP_eqtl_sig <- read.csv(paste0(data, "MP_eqtl_sig_Nov.csv"))
 
+ML_eqtl_sig_min <- read.csv(paste0(data, "ML_eqtl_sig_min.csv"))
+FL_eqtl_sig_min <- read.csv(paste0(data, "FL_eqtl_sig_min.csv"))
+MP_eqtl_sig_min <- read.csv(paste0(data, "MP_eqtl_sig_min.csv"))
+
+ML_eqtl_sig_random <- read.csv(paste0(data, "ML_eqtl_sig_random.csv"))
+FL_eqtl_sig_random <- read.csv(paste0(data, "FL_eqtl_sig_random.csv"))
+MP_eqtl_sig_random <- read.csv(paste0(data, "MP_eqtl_sig_random.csv"))
+```
 
 
 # number of significant eqtl per gene
 ```{r}
 ml_table <- ML_eqtl_sig %>% group_by(phenotype_id) %>%
   dplyr::summarise(
-    count = length(variant_id),
-    mean_tss = mean(abs(start_distance)),
-    median_tss = median(abs(start_distance)))
-
+    count = length(variant_id))
 fl_table <- FL_eqtl_sig %>% group_by(phenotype_id) %>%
   dplyr::summarise(
-    count = length(variant_id),
-    mean_tss = mean(abs(start_distance)),
-    median_tss = median(abs(start_distance)))
-
+    count = length(variant_id))
 mp_table <- MP_eqtl_sig %>% group_by(phenotype_id) %>%
   dplyr::summarise(
-    count = length(variant_id),
-    mean_tss = mean(abs(start_distance)),
-    median_tss = median(abs(start_distance)))
-
-
-ml_table$category <- "Male_leaf"
-fl_table$category <- "Female_leaf"
-mp_table$category <- "Pollen"
-
-write.table(ml_table, file = paste0(data, "ml_table.txt"), row.names = F, quote = F, col.names = F)
-write.table(fl_table, file = paste0(data, "fl_table.txt"), row.names = F, quote = F, col.names = F)
-write.table(mp_table, file = paste0(data, "mp_table.txt"), row.names = F, quote = F, col.names = F)
-ml_table <- read.table(paste0(data, "ml_table.txt"))
-fl_table <- read.table(paste0(data, "fl_table.txt"))
-mp_table <- read.table(paste0(data, "mp_table.txt"))
-
+    count = length(variant_id))
 
 median(ml_table$count)
 median(fl_table$count)
 median(mp_table$count)
-
-tablec <- rbind(ml_table,fl_table,mp_table)
-tablec$count <- round(tablec$count, digits = 0)
-colnames(tablec)[2] <- "count"
-colnames(tablec)[5] <- "category"
-
-
-ggplot(tablec, aes(x=category, y=count)) + geom_boxplot() + theme_classic() + ylim(1,10) +theme(text = element_text(size = 12))+labs(x="Category", y="Number of eQTLs per gene")
-
-ggplot(tablec, aes(count)) + geom_histogram(binwidth = 1) + theme_classic()  +theme(text = element_text(size = 12))+labs(x="Category", y="Number of eQTLs per gene") + facet_grid(rows = vars(category))
 ```
-```{r}
-ml_table <- ML_eqtl_sig_filt %>% group_by(phenotype_id) %>%
-  dplyr::summarise(
-    count = length(variant_id))
 
+
+```{r}
 ggplot(ml_table, aes(count)) + geom_histogram(binwidth = 1) + theme_classic()  +theme(text = element_text(size = 12))+labs(x="Category", y="Number of eQTLs per gene")
 ```
 
 
 
 # distance to TSS and number of cis-eQTLs
-−log(p)on y-axis and distance to TSS on x-axis. And put a harizontal line indicating the corresponing pval_nominal_threshold of the gene.
-```{r}
-median(ml_table$median_tss) # 7331
-median(fl_table$median_tss) # 7587
-median(mp_table$median_tss) # 7056.5
-
-mean(ml_table$median_tss) # 8089.743
-mean(fl_table$median_tss) # 8251.179
-mean(mp_table$median_tss) # 8034.049
-
-```
-
-```{r}
-tablec$median_tss <- round(tablec$median_tss, digits = 0)
-tablec$mean_tss <- round(tablec$mean_tss, digits = 0)
-
-ggplot(tablec, aes(x=category, y=median_tss)) + geom_boxplot() + theme_classic() + theme(text = element_text(size = 12))+labs(x="Category", y="Distance to TSS")
-
-ggplot(tablec, aes(x=category, y=mean_tss)) + geom_boxplot() + theme_classic() 
-```
-
 keep one eqtl per gene
 ```{r}
 ml_table <- ML_eqtl_sig %>% select(start_distance)
 fl_table <- FL_eqtl_sig %>% select(start_distance)
 mp_table <- MP_eqtl_sig %>% select(start_distance)
 
-
-ml_table <- ML_eqtl_sig_min %>% select(start_distance)
+ml_table <- ML_eqtl_sig_min %>% select(start_distance) 
 fl_table <- FL_eqtl_sig_min %>% select(start_distance)
 mp_table <- MP_eqtl_sig_min %>% select(start_distance)
 
@@ -111,33 +63,69 @@ ml_table <- ML_eqtl_sig_random %>% select(start_distance)
 fl_table <- FL_eqtl_sig_random %>% select(start_distance)
 mp_table <- MP_eqtl_sig_random %>% select(start_distance)
 
-ml_table$category <- "Male_leaf"
-fl_table$category <- "Female_leaf"
-mp_table$category <- "Pollen"
+ml_table$category <- "ML"
+fl_table$category <- "FL"
+mp_table$category <- "MP"
+
+table1 <- rbind(ml_table,fl_table,mp_table)
+table2 <- rbind(ml_table,fl_table,mp_table)
+table3 <- rbind(ml_table,fl_table,mp_table)
+
 
 tablec <- rbind(ml_table,fl_table,mp_table)
+nrow(tablec[tablec$start_distance > 0,]) # 3679 random, 3689 min, 29422 all
+nrow(tablec[tablec$start_distance < 0,]) # 3659 random, 3648 min, 30944 all
 
-nrow(tablec[tablec$start_distance > 0,]) # 4356 random, 4390 min, 30402 all
-nrow(tablec[tablec$start_distance < 0,]) # 4375, 4340, 31916
+test <- table2[table2$start_distance > 0,]
+median(test$start_distance) # 7067 random, 7641 all, 6700 min
+test <- table2[table2$start_distance < 0,]
+median(test$start_distance) # -6872 random, -7782 all, -6762 min
 
-tabelc1 <- tablec[tablec$start_distance > 0,]
-median(tabelc1$start_distance) # 6700
+median(abs(table1$start_distance)) # 7718
+median(abs(ml_table$start_distance)) # 7601.5
+median(abs(fl_table$start_distance)) # 7892.5
+median(abs(mp_table$start_distance)) # 7188
 
-tabelc2 <- tablec[tablec$start_distance < 0,]
-median(tabelc2$start_distance) # -6762
+
+p2 <- ggplot(table1, aes(x=category, y=start_distance)) + geom_violin()+ geom_boxplot(width=0.1) + theme_classic() + theme(text = element_text(size = 11))+labs(x="Tissue", y="Distance to TSS", title = "b")
+p3 <- ggplot(table2, aes(x=category, y=start_distance)) + geom_violin()+ geom_boxplot(width=0.1) + theme_classic() + theme(text = element_text(size = 11))+labs(x="Tissue", y="Distance to TSS", title = "c")
+p4 <- ggplot(table3, aes(x=category, y=start_distance)) + geom_violin()+ geom_boxplot(width=0.1) + theme_classic() + theme(text = element_text(size = 11))+labs(x="Tissue", y="Distance to TSS", title = "d") 
+p1 + p2 + p3 + p4
+```
+
+## all cis SNPs tested
+note: run code in eqtl_permutation.Rmd to get ML_eqtl etc.
+```{r}
+ml_table <- ML_eqtl %>% select(start_distance)
+fl_table <- FL_eqtl %>% select(start_distance)
+mp_table <- MP_eqtl %>% select(start_distance)
+ml_table$category <- "ML"
+fl_table$category <- "FL"
+mp_table$category <- "MP"
+table4 <- rbind(ml_table,fl_table,mp_table)
+
+test <- table4[table4$start_distance > 0,]
+median(test$start_distance) # 9061
+test <- table4[table4$start_distance < 0,]
+median(test$start_distance) # -9137
+
+median(abs(table4$start_distance)) # 9099
+median(abs(ml_table$start_distance)) # 8997
+median(abs(fl_table$start_distance)) # 9254
+median(abs(mp_table$start_distance)) # 8982
 
 
-ggplot(tablec, aes(x=category, y=start_distance)) + geom_violin()+ geom_boxplot(width=0.1) + theme_classic() + theme(text = element_text(size = 12))+labs(x="Category", y="Distance to TSS")
+p1 <- ggplot(table4, aes(x=category, y=start_distance)) + geom_violin()+ geom_boxplot(width=0.1) + theme_classic() + theme(text = element_text(size = 11))+labs(x="Tissue", y="Distance to TSS", title = "a")
 
 ```
 
 
-
+## look at some eGenes
+note: run code in eqtl_permutation.Rmd to get ML_eqtl_full etc.
 ```{r}
 gene1 <- ML_eqtl_full %>% filter(phenotype_id == "TX_paternal_00029650")
 gene2 <- FL_eqtl_full %>% filter(phenotype_id == "TX_paternal_00030127")
 gene3 <- MP_eqtl_full %>% filter(phenotype_id == "TX_paternal_00006330")
-
 
 p1 <- ggplot(gene1, aes(x=start_distance, y=-log(pval_nominal))) + geom_point(alpha = 0.6) + theme_classic() + geom_hline(yintercept=-log(0.0011044), color = "red") + labs(title = "a")+ theme(text = element_text(size = 10))
 p2 <- ggplot(gene2, aes(x=start_distance, y=-log(pval_nominal))) + geom_point(alpha = 0.6) + theme_classic() + geom_hline(yintercept=-log(0.00101239), color = "red") + labs(title = "b")+ theme(text = element_text(size = 10))
@@ -149,44 +137,169 @@ p1 + p2 + p3
 
 
 
-
 # eqtls that affect multiple genes in the same tissue
+## ML
 ```{r}
-length(unique(FL_eqtl_sig$variant_id)) 
-FL_eqtl_multigene <- FL_eqtl_sig %>% 
-     group_by(variant_id) %>%
-     filter(n()>1) # 1907
-
-length(unique(ML_eqtl_sig$variant_id)) 
+length(unique(ML_eqtl_sig$variant_id)) # 16124
 ML_eqtl_multigene <- ML_eqtl_sig %>% 
      group_by(variant_id) %>%
-     filter(n()>1) # 1036
+     filter(n()>1) %>%  
+    select(variant_id, maf) %>% unique() # 486
 
-length(unique(MP_eqtl_sig$variant_id)) 
+ML_eqtl_onegene <- ML_eqtl_sig %>% 
+     group_by(variant_id) %>%
+     filter(n()==1) %>%
+    select(variant_id, maf) # 15638
+
+median(ML_eqtl_multigene$maf) # 0.09482759
+median(ML_eqtl_onegene$maf) # 0.09836066
+wilcox.test(ML_eqtl_multigene$maf, ML_eqtl_onegene$maf)
+
+p1 <- ggplot(ML_eqtl_multigene, aes(x=maf)) + geom_histogram(binwidth=0.01) + theme_classic() + ggtitle("")
+p2 <- ggplot(ML_eqtl_onegene, aes(x=maf)) + geom_histogram(binwidth=0.01) + theme_classic() + ggtitle("")
+p1 + p2 
+```
+Wilcoxon rank sum test with continuity correction
+
+data:  ML_eqtl_multigene$maf and ML_eqtl_onegene$maf
+W = 3601946, p-value = 0.04998
+alternative hypothesis: true location shift is not equal to 0
+
+## FL
+```{r}
+length(unique(FL_eqtl_sig$variant_id)) # 33236
+FL_eqtl_multigene <- FL_eqtl_sig %>% 
+     group_by(variant_id) %>%
+     filter(n()>1) %>%
+    select(variant_id, maf) %>% unique() # 905
+
+FL_eqtl_onegene <- FL_eqtl_sig %>% 
+     group_by(variant_id) %>%
+     filter(n()==1) %>%
+    select(variant_id, maf) # 32331
+
+median(FL_eqtl_multigene$maf) # 0.1230769
+median(FL_eqtl_onegene$maf) # 0.109375
+wilcox.test(FL_eqtl_multigene$maf, FL_eqtl_onegene$maf)
+
+p1 <- ggplot(FL_eqtl_multigene, aes(x=maf)) + geom_histogram(binwidth=0.01) + theme_classic() + ggtitle("")
+p2 <- ggplot(FL_eqtl_onegene, aes(x=maf)) + geom_histogram(binwidth=0.01) + theme_classic() + ggtitle("")
+p1 + p2 
+```
+Wilcoxon rank sum test with continuity correction
+
+data:  FL_eqtl_multigene$maf and FL_eqtl_onegene$maf
+W = 15610093, p-value = 0.000574
+alternative hypothesis: true location shift is not equal to 0
+
+
+## MP
+```{r}
+length(unique(MP_eqtl_sig$variant_id)) # 9251
 MP_eqtl_multigene <- MP_eqtl_sig %>% 
      group_by(variant_id) %>%
-     filter(n()>1) # 406
+     filter(n()>1) %>%
+    select(variant_id, maf) %>% unique() # 201
 
+MP_eqtl_onegene <- MP_eqtl_sig %>% 
+     group_by(variant_id) %>%
+     filter(n()==1) %>%
+    select(variant_id, maf) # 9050
+
+median(MP_eqtl_multigene$maf) # 0.08928572
+median(MP_eqtl_onegene$maf) # 0.1034483
+wilcox.test(MP_eqtl_multigene$maf, MP_eqtl_onegene$maf)
+
+p1 <- ggplot(MP_eqtl_multigene, aes(x=maf)) + geom_histogram(binwidth=0.01) + theme_classic() + ggtitle("")
+p2 <- ggplot(MP_eqtl_onegene, aes(x=maf)) + geom_histogram(binwidth=0.01) + theme_classic() + ggtitle("")
+p1 + p2 
+```
+Wilcoxon rank sum test with continuity correction
+
+data:  MP_eqtl_multigene\$maf and MP_eqtl_onegene$maf
+W = 884480, p-value = 0.5037
+alternative hypothesis: true location shift is not equal to 0
+
+## write output
+```{r}
 write.csv(ML_eqtl_multigene, file = paste0(data, "ML_eqtl_multigene.csv"), row.names = F, quote = F)
 write.csv(FL_eqtl_multigene, file = paste0(data, "FL_eqtl_multigene.csv"), row.names = F, quote = F)
 write.csv(MP_eqtl_multigene, file = paste0(data, "MP_eqtl_multigene.csv"), row.names = F, quote = F)
-
-p1 <- ggplot(ML_eqtl_multigene, aes(x=maf)) + geom_histogram(binwidth=0.01) + theme_classic() + ggtitle("Male leaf")
-p2 <- ggplot(FL_eqtl_multigene, aes(x=maf)) + geom_histogram(binwidth=0.01) + theme_classic() + ggtitle("Female leaf")
-p3 <- ggplot(MP_eqtl_multigene, aes(x=maf)) + geom_histogram(binwidth=0.01) + theme_classic() + ggtitle("Male pollen")
-
-p1 + p2 + p3
 ```
 
 
+
+
+
+# start distance and effect size
 ```{r}
-wilcox.test(ML_eqtl_multigene$maf, MP_eqtl_multigene$maf)
+ggplot(mp1, aes(x=abs(start_distance), y = abs(slope))) + geom_point()
+
+#shapiro.test(abs(ML_eqtl_sig_min$start_distance))
+cor.test(abs(ML_eqtl_sig_min$start_distance), abs(ML_eqtl_sig_min$slope), method = "spearman")
+cor.test(abs(FL_eqtl_sig_min$start_distance), abs(FL_eqtl_sig_min$slope), method = "spearman")
+cor.test(abs(MP_eqtl_sig_min$start_distance), abs(MP_eqtl_sig_min$slope), method = "spearman")
+
+cor.test(abs(ML_eqtl_sig_random$start_distance), abs(ML_eqtl_sig_random$slope), method = "spearman")
+cor.test(abs(FL_eqtl_sig_random$start_distance), abs(FL_eqtl_sig_random$slope), method = "spearman")
+cor.test(abs(MP_eqtl_sig_random$start_distance), abs(MP_eqtl_sig_random$slope), method = "spearman")
 ```
+Warning: Cannot compute exact p-value with ties
+	Spearman's rank correlation rho
 
+data:  abs(ML_eqtl_sig_min\$start_distance) and abs(ML_eqtl_sig_min$slope)
+S = 2.463e+09, p-value = 0.04145
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+        rho 
+-0.04144365 
 
-## start distance and effect size
-```{r}
-ggplot(ml1, aes(x=abs(start_distance), y = abs(slope))) + geom_point()
-cor.test(abs(ml1$start_distance), abs(ml1$slope))
-```
+Warning: Cannot compute exact p-value with ties
+	Spearman's rank correlation rho
 
+data:  abs(FL_eqtl_sig_min\$start_distance) and abs(FL_eqtl_sig_min$slope)
+S = 7132385773, p-value = 0.003723
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+        rho 
+-0.04943009 
+
+Warning: Cannot compute exact p-value with ties
+	Spearman's rank correlation rho
+
+data:  abs(MP_eqtl_sig_min\$start_distance) and abs(MP_eqtl_sig_min$slope)
+S = 583736272, p-value = 0.000439
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+        rho 
+-0.09142041 
+
+Warning: Cannot compute exact p-value with ties
+	Spearman's rank correlation rho
+
+data:  abs(ML_eqtl_sig_random\$start_distance) and abs(ML_eqtl_sig_random$slope)
+S = 2523692630, p-value = 0.0009553
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+        rho 
+-0.06709581 
+
+Warning: Cannot compute exact p-value with ties
+	Spearman's rank correlation rho
+
+data:  abs(FL_eqtl_sig_random\$start_distance) and abs(FL_eqtl_sig_random$slope)
+S = 7178141620, p-value = 0.0009794
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+        rho 
+-0.05616242 
+
+Warning: Cannot compute exact p-value with ties
+	Spearman's rank correlation rho
+
+data:  abs(MP_eqtl_sig_random\$start_distance) and abs(MP_eqtl_sig_random$slope)
+S = 595140826, p-value = 1.424e-05
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+       rho 
+-0.1127437

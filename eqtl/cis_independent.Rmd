@@ -30,7 +30,6 @@ MP_egene <- MP %>% filter(qval < 0.1) # 1481
 ```{r}
 ml <- read.table(paste0(data, "ML.cis_independent_qtl.txt"), header = T) # 2792
 length(unique(ml$phenotype_id)) # 2425
-ml <- ml %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af)) # for maf ananlysis later
 
 egene <- as.data.frame(unique(ML_eqtl_sig$phenotype_id)) 
 colnames(egene) <- "phenotype_id"
@@ -55,6 +54,15 @@ test2 <- anti_join(ml1, ML_egene, by = c("phenotype_id", "variant_id")) # 82
 # write output
 write.csv(ml1, file = paste0(data, "ml1.csv"), row.names = F, quote = F)
 write.csv(ml2, file = paste0(data, "ml2.csv"), row.names = F, quote = F)
+ml1 <- read.csv(paste0(data, "ml1.csv"))
+ml2 <- read.csv(paste0(data, "ml2.csv"))
+length(unique(ml2$phenotype_id)) # 333
+
+# check the effects of primary vs secondary eQTLs
+ml1 <- ml1 %>% select(phenotype_id, variant_id, pval_nominal, slope, rank)
+ml2 <- ml2 %>% select(phenotype_id, variant_id, pval_nominal, slope, rank)
+overlap <- inner_join(ml1, ml2, by = "phenotype_id")
+overlap <- overlap %>% filter(slope.x * slope.y < 0) # 158
 ```
 
 
@@ -111,7 +119,6 @@ alternative hypothesis: true location shift is not equal to 0
 ```{r}
 fl <- read.table(paste0(data, "FL.cis_independent_qtl.txt"), header = T) # 4167
 length(unique(fl$phenotype_id)) # 3445
-fl <- fl %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af)) # for maf ananlysis later
 
 egene <- as.data.frame(unique(FL_eqtl_sig$phenotype_id)) 
 colnames(egene) <- "phenotype_id"
@@ -136,6 +143,16 @@ test2 <- anti_join(fl1, FL_egene, by = c("phenotype_id", "variant_id")) # 115
 # write output
 write.csv(fl1, file = paste0(data, "fl1.csv"), row.names = F, quote = F)
 write.csv(fl2, file = paste0(data, "fl2.csv"), row.names = F, quote = F)
+
+fl1 <- read.csv(paste0(data, "fl1.csv"))
+fl2 <- read.csv(paste0(data, "fl2.csv"))
+length(unique(fl2$phenotype_id)) # 616
+
+# check the effects of primary vs secondary eQTLs
+fl1 <- fl1 %>% select(phenotype_id, variant_id, pval_nominal, slope, rank)
+fl2 <- fl2 %>% select(phenotype_id, variant_id, pval_nominal, slope, rank)
+overlap <- inner_join(fl1, fl2, by = "phenotype_id")
+overlap <- overlap %>% filter(slope.x * slope.y < 0) # 158
 ```
 
 
@@ -191,7 +208,6 @@ alternative hypothesis: true location shift is not equal to 0
 ```{r}
 mp <- read.table(paste0(data, "MP.cis_independent_qtl.txt"), header = T) # 1640
 length(unique(mp$phenotype_id)) # 1481
-mp <- mp %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af)) # for maf ananlysis later
 
 egene <- as.data.frame(unique(MP_eqtl_sig$phenotype_id)) 
 colnames(egene) <- "phenotype_id"
@@ -216,6 +232,16 @@ test2 <- anti_join(mp1, MP_egene, by = c("phenotype_id", "variant_id")) # 27
 # write output
 write.csv(mp1, file = paste0(data, "mp1.csv"), row.names = F, quote = F)
 write.csv(mp2, file = paste0(data, "mp2.csv"), row.names = F, quote = F)
+
+mp1 <- read.csv(paste0(data, "mp1.csv"))
+mp2 <- read.csv(paste0(data, "mp2.csv"))
+length(unique(mp2$phenotype_id)) # 154
+
+# check the effects of primary vs secondary eQTLs
+mp1 <- mp1 %>% select(phenotype_id, variant_id, pval_nominal, slope, rank)
+mp2 <- mp2 %>% select(phenotype_id, variant_id, pval_nominal, slope, rank)
+overlap <- inner_join(mp1, mp2, by = "phenotype_id")
+overlap <- overlap %>% filter(slope.x * slope.y < 0) # 63
 ```
 
 

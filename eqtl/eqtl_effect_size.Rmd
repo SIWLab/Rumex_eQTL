@@ -13,112 +13,201 @@ data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manus
 ```
 
 # Effect size plots
-need to generate FL_eqtl_full from eqtl_permutation.Rmd  
-need to generate ML_eqtl_sig_min from eqtl_MAF.Rmd
 ```{r}
-FL_eqtl_full <- FL_eqtl_full %>% mutate(category = ifelse(pval_nominal < pval_nominal_threshold, "Significant", "Not_Significant"))
-ML_eqtl_full <- ML_eqtl_full %>% mutate(category = ifelse(pval_nominal < pval_nominal_threshold, "Significant", "Not_Significant"))
-MP_eqtl_full <- MP_eqtl_full %>% mutate(category = ifelse(pval_nominal < pval_nominal_threshold, "Significant", "Not_Significant"))
+ML_eqtl_sig_min <- read.csv(paste0(data, "ML_eqtl_sig_min.csv"))
+FL_eqtl_sig_min <- read.csv(paste0(data, "FL_eqtl_sig_min.csv"))
+MP_eqtl_sig_min <- read.csv(paste0(data, "MP_eqtl_sig_min.csv"))
+
+# important: need to generate FL_eqtl, FL etc from eqtl_permutation.Rmd  
+ML_eqtl_full <- inner_join(ML_eqtl, ML[,c(1,16:19)], by = "phenotype_id") # 1272993
+FL_eqtl_full <- inner_join(FL_eqtl, FL[,c(1,16:19)], by = "phenotype_id") # 1687298
+MP_eqtl_full <- inner_join(MP_eqtl, MP[,c(1,16:19)], by = "phenotype_id") # 1182102
+
+ML_eqtl_full <- ML_eqtl_full %>% mutate(category = ifelse(pval_nominal < pval_nominal_threshold & qval < 0.1, "Significant", "Not_Significant"))
+ML_eqtl_sig_min <- ML_eqtl_sig_min %>% select(phenotype_id, variant_id)
+ML_eqtl_sig_min$category2 <- "min"
+ML_eqtl_full <- left_join(ML_eqtl_full, ML_eqtl_sig_min, by = c("phenotype_id","variant_id"))
+ML_eqtl_full <- ML_eqtl_full %>% mutate(category = ifelse(!is.na(category2), category2, category)) %>% dplyr::select(phenotype_id, variant_id, slope, category)
+
+
+FL_eqtl_full <- FL_eqtl_full %>% mutate(category = ifelse(pval_nominal < pval_nominal_threshold & qval < 0.1, "Significant", "Not_Significant"))
+FL_eqtl_sig_min <- FL_eqtl_sig_min %>% select(phenotype_id, variant_id)
+FL_eqtl_sig_min$category2 <- "min"
+FL_eqtl_full <- left_join(FL_eqtl_full, FL_eqtl_sig_min, by = c("phenotype_id","variant_id"))
+FL_eqtl_full <- FL_eqtl_full %>% mutate(category = ifelse(!is.na(category2), category2, category)) %>% dplyr::select(phenotype_id, variant_id, slope, category)
+
+
+MP_eqtl_full <- MP_eqtl_full %>% mutate(category = ifelse(pval_nominal < pval_nominal_threshold & qval < 0.1, "Significant", "Not_Significant"))
+MP_eqtl_sig_min <- MP_eqtl_sig_min %>% select(phenotype_id, variant_id)
+MP_eqtl_sig_min$category2 <- "min"
+MP_eqtl_full <- left_join(MP_eqtl_full, MP_eqtl_sig_min, by = c("phenotype_id","variant_id"))
+MP_eqtl_full <- MP_eqtl_full %>% mutate(category = ifelse(!is.na(category2), category2, category)) %>% dplyr::select(phenotype_id, variant_id, slope, category)
+
 ```
 
-# separate left joins
+
 ## sex
 ```{r}
-ml <- ML_eqtl_sig_min %>% dplyr::select(phenotype_id, variant_id, slope)
-fl <- FL_eqtl_full %>% dplyr::select(phenotype_id, variant_id, slope, category)
-
-pair1 <- inner_join(ml, fl, by = c("phenotype_id","variant_id"))
-colnames(pair1)[3:5] <- c("male_leaf", "female_leaf", "sig_fl") # 1042, 1548
-pair1$sig_ml <- "Significant"
-
-ml <- ML_eqtl_full %>% dplyr::select(phenotype_id, variant_id, slope, category)
-fl <- FL_eqtl_sig_min %>% dplyr::select(phenotype_id, variant_id, slope)
-
-pair2 <- inner_join(fl, ml, by = c("phenotype_id","variant_id"))
-colnames(pair2)[3:5] <- c("female_leaf", "male_leaf", "sig_ml") # 1090, 1509
-pair2$sig_fl <- "Significant"
-
-ml_fl <- rbind(pair1, pair2) # 2132, 3057
+ml_fl <- inner_join(ML_eqtl_full, FL_eqtl_full, by = c("phenotype_id","variant_id")) # 679642
 ml_fl <- ml_fl %>%  mutate(category = case_when(
-    sig_ml == "Significant" & sig_fl != "Significant" ~ "male",
-    sig_fl == "Significant" & sig_ml != "Significant" ~ "female",
-    sig_ml == "Significant" & sig_fl == "Significant" ~ "both"
+    category.x == "min" & category.y == "min" ~ "both",
+    category.x == "min" & category.y == "Significant" ~ "male",
+    category.x == "min" & category.y == "Not_Significant" ~ "male2",
+    category.x == "Significant" & category.y == "min" ~ "female",
+    category.x == "Not_Significant" & category.y == "min" ~ "female2"
     ))
+ml_fl <- ml_fl[complete.cases(ml_fl),] # 2420
+colnames(ml_fl)[3] <- "male"
+colnames(ml_fl)[5] <- "female"
+write.csv(ml_fl, file = paste0(data, "ml_fl_effectsize.csv"), row.names = F, quote = F)
+table(ml_fl$category)
+
+ml_fl$category <- factor(ml_fl$category)
+levels(ml_fl$category) <- c("top in both", "top in FL, sig in ML", "top in FL, not sig in ML", "top in ML, sig in FL", "top in ML, not sig in FL")
+
+
+p1 <- ggplot(ml_fl, aes(x = male, y = female, color = category)) + 
+    geom_point(data = ml_fl[ml_fl$category != "both", ], size=0.8, alpha = 0.8) +
+    geom_point(data = ml_fl[ml_fl$category == "both", ], size=0.8, alpha = 0.8) +
+    theme_classic() + labs(x="Male leaf", y="Female leaf", title = "a") + 
+    theme(text = element_text(size = 11)) + 
+    scale_colour_manual(values = c("black","#B200ED", "#CBC3E3", "#FF6E00", "#FFDBBB")) + 
+    geom_vline(xintercept=0, color = "black",linetype="dashed") + 
+    geom_hline(yintercept=0, color = "black",linetype="dashed")
 ```
+
+both  female female2    male   male2 
+    132     221     884     377     806 
+    
+### 3 categories
+```{r}
+ml_fl2 <- ml_fl %>%  mutate(category = case_when(
+    category.x == "min" & category.y == "min" ~ "both",
+    category.x == "min" & category.y == "Significant" ~ "male",
+    category.x == "min" & category.y == "Not_Significant" ~ "male",
+    category.x == "Significant" & category.y == "min" ~ "female",
+    category.x == "Not_Significant" & category.y == "min" ~ "female"
+    ))
+ml_fl2 <- ml_fl2[complete.cases(ml_fl2),] # 2420
+table(ml_fl2$category)
+
+ml_fl2$category <- factor(ml_fl2$category)
+levels(ml_fl2$category)
+
+ml_fl2 <- ml_fl2 %>%
+  mutate(category = factor(category, levels = c("both", "female", "male")))
+
+    
+ggplot(ml_fl2, aes(x = slope.x, y = slope.y, color = category)) + geom_point(data = ml_fl2[ml_fl2$category != "both", ], size=0.8, alpha = 0.8)+ geom_point(data = ml_fl2[ml_fl2$category == "both", ], size=0.8, alpha = 0.8)+ theme_classic() + labs(x="Male leaf", y="Female leaf", title = "a") + theme(text = element_text(size = 11))+ scale_colour_manual(values = c("black", "#CBC3E3", "#FFDBBB"))+ geom_vline(xintercept=0, color = "black",linetype="dashed") + geom_hline(yintercept=0, color = "black",linetype="dashed")
+
+```
+
  
-# lifestage
+
+## lifestage
 ```{r}
-ml <- ML_eqtl_sig_min %>% dplyr::select(phenotype_id, variant_id, slope)
-mp <- MP_eqtl_full %>% dplyr::select(phenotype_id, variant_id, slope, category)
-pair1 <- inner_join(ml, mp, by = c("phenotype_id","variant_id"))
-colnames(pair1)[3:5] <- c("male_leaf", "pollen", "sig_mp") # 1297, 2301
-pair1$sig_ml <- "Significant"
-
-ml <- ML_eqtl_full %>% dplyr::select(phenotype_id, variant_id, slope, category)
-mp <- MP_eqtl_sig_min %>% dplyr::select(phenotype_id, variant_id, slope)
-pair2 <- inner_join(mp, ml, by = c("phenotype_id","variant_id"))
-colnames(pair2)[3:5] <- c("pollen", "male_leaf", "sig_ml") # 935, 1503
-pair2$sig_mp <- "Significant"
-
-ml_mp <- rbind(pair1, pair2) # 2232, 3804
+ml_mp <- inner_join(ML_eqtl_full, MP_eqtl_full, by = c("phenotype_id","variant_id")) # 1050294
 ml_mp <- ml_mp %>%  mutate(category = case_when(
-    sig_ml == "Significant" & sig_mp != "Significant" ~ "leaf",
-    sig_mp == "Significant" & sig_ml != "Significant" ~ "pollen",
-    sig_ml == "Significant" & sig_mp == "Significant" ~ "both"
+    category.x == "min" & category.y == "min" ~ "both",
+    category.x == "min" & category.y == "Significant" ~ "leaf",
+    category.x == "min" & category.y == "Not_Significant" ~ "leaf2",
+    category.x == "Significant" & category.y == "min" ~ "pollen",
+    category.x == "Not_Significant" & category.y == "min" ~ "pollen2"
     ))
+ml_mp <- ml_mp[complete.cases(ml_mp),] # 3077
+colnames(ml_mp)[3] <- "leaf"
+colnames(ml_mp)[5] <- "pollen"
+write.csv(ml_mp, file = paste0(data, "ml_mp_effectsize.csv"), row.names = F, quote = F)
+
+table(ml_mp$category)
+
+p2 <- ggplot(ml_mp, aes(x = leaf, y = pollen, color = category)) + 
+    geom_point(data = ml_mp[ml_mp$category != "both", ], size=0.8, alpha = 0.8) +
+    geom_point(data = ml_mp[ml_mp$category == "both", ], size=0.8, alpha = 0.8) +
+    theme_classic() + labs(x="Male leaf", y="Pollen", title = "b") + 
+    theme(text = element_text(size = 11)) + 
+    scale_colour_manual(values = c("black","#FF2400", "#FFCCCB", "#0077ec", "#ADD8E6")) + 
+    geom_vline(xintercept=0, color = "black",linetype="dashed") + 
+    geom_hline(yintercept=0, color = "black",linetype="dashed")
 ```
+ both    leaf   leaf2  pollen pollen2 
+    102      88    1736      94    1057
 
-
+## plots
 ```{r}
-cor.test(ml_fl$male_leaf, ml_fl$female_leaf, method=c("spearman")) 
-cor.test(ml_mp$male_leaf, ml_mp$pollen, method=c("spearman")) 
-```
-Warning: Cannot compute exact p-value with ties
-	Spearman's rank correlation rho
-
-data:  ml_fl$male_leaf and ml_fl$female_leaf
-S = 1208104877, p-value < 2.2e-16
-alternative hypothesis: true rho is not equal to 0
-sample estimates:
-      rho 
-0.7049329 
-
-Warning: Cannot compute exact p-value with ties
-	Spearman's rank correlation rho
-
-data:  ml_mp$male_leaf and ml_mp$pollen
-S = 5620359127, p-value < 2.2e-16
-alternative hypothesis: true rho is not equal to 0
-sample estimates:
-      rho 
-0.3315452  
-
-```{r}
-p1 <- ggplot(ml_fl, aes(x = male_leaf, y = female_leaf, color = category)) + geom_point(size=0.8)+ theme_classic() + labs(x="Male leaf", y="Female leaf", title = "a") + theme(text = element_text(size = 11))+ scale_colour_manual(values = c("black", "#CBC3E3", "#FFDBBB"))+ geom_vline(xintercept=0, color = "black",linetype="dashed") + geom_hline(yintercept=0, color = "black",linetype="dashed")
-
-p2 <- ggplot(ml_mp, aes(x = male_leaf, y = pollen, color = category)) + geom_point(size=0.8)+ theme_classic() + labs(x="Male leaf", y="Pollen", title = "b") + theme(text = element_text(size = 11))+ scale_colour_manual(values = c("black", "#FFCCCB", "#ADD8E6")) + geom_vline(xintercept=0, color = "black",linetype="dashed") + geom_hline(yintercept=0, color = "black",linetype="dashed")
-
 p1 + p2
 ```
 
-# write output
+
+
+## correlation test
 ```{r}
-write.csv(ml_fl, file = paste0(data, "effect_size_ml_fl_Nov.csv"), row.names = F, quote = F)
-write.csv(ml_mp, file = paste0(data, "effect_size_ml_mp_Nov.csv"), row.names = F, quote = F)
-ml_fl <- read.csv(paste0(data, "effect_size_ml_fl_Nov.csv"))
-ml_mp <- read.csv(paste0(data, "effect_size_ml_mp_Nov.csv"))
-
-ml_mp <- ml_mp[!duplicated(ml_mp), ] # 3804, 3695
-ml_fl <- ml_fl[!duplicated(ml_fl), ] # 3057, 2907
+cor.test(ml_fl$slope.x, ml_fl$slope.y, method="spearman") 
+cor.test(ml_mp$slope.x, ml_mp$slope.y, method="spearman") 
 ```
+Spearman's rank correlation rho
+
+data:  ml_fl\$slope.x and ml_fl$slope.y
+S = 662731574, p-value < 2.2e-16
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+      rho 
+0.7194289 
 
 
+	Spearman's rank correlation rho
+
+data:  ml_mp\$slope.x and ml_mp$slope.y
+S = 3173405028, p-value < 2.2e-16
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+      rho 
+0.3464267 
+
+
+
+# extract eqtls with discordance 
+
+## between sexes
 ```{r}
-ml_mp <- ml_mp %>% filter(category == "both")
+# ml_fl <- read.csv(paste0(data, "ml_fl_effectsize.csv"))
+# ml_mp <- read.csv(paste0(data, "ml_mp_effectsize.csv"))
 
-ml_mp1 <- ml_mp %>% filter(male_leaf < 0 & pollen > 0) # 16
-ml_mp2 <- ml_mp %>% filter(male_leaf > 0 & pollen < 0) # 16
+dis_sex <-  ml_fl %>% filter(male * female < 0) # 170
+table(dis_sex$category)
+dis_sex1 <-  ml_fl %>% filter(male > 0 & female < 0) # 87
+dis_sex2 <-  ml_fl %>% filter(male < 0 & female > 0) # 83 
 
-
+# save egenes to output
+write.csv(dis_sex, file = paste0(data, "dis_sex.csv"), row.names = F, quote = F)
+write.csv(dis_sex1, file = paste0(data, "dis_sex1.csv"), row.names = F, quote = F)
+write.csv(dis_sex2, file = paste0(data, "dis_sex2.csv"), row.names = F, quote = F)
 ```
+female2   male2 
+     84      86 
+
+## between leaf and pollen
+```{r}
+dis_pl <- ml_mp %>% filter(leaf * pollen < 0) # 974
+table(dis_pl$category)
+dis_pl1 <- ml_mp %>% filter(leaf < 0 & pollen > 0) # 518
+dis_pl2 <- ml_mp %>% filter(leaf > 0 & pollen < 0) # 456
+table(dis_pl1$category)
+table(dis_pl2$category)
+
+# save egenes to output
+write.csv(dis_pl, file = paste0(data, "dis_pl.csv"), row.names = F, quote = F)
+write.csv(dis_pl1, file = paste0(data, "dis_pl1.csv"), row.names = F, quote = F)
+write.csv(dis_pl2, file = paste0(data, "dis_pl2.csv"), row.names = F, quote = F)
+
+# manually check annotation for the 9 etqls
+```
+both    leaf   leaf2  pollen pollen2 
+      9       5     575       5     380 
+ both    leaf   leaf2  pollen pollen2 
+      5       2     263       2     246 
+
+   both    leaf   leaf2  pollen pollen2 
+      4       3     312       3     134 
+      
 

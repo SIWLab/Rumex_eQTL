@@ -50,6 +50,11 @@ bcftools query -f '%CHROM\t%POS\t%REF\t%ALT[\t%GT]\n' > A2_250749626.vcf
 bcftools view ${VCF} -r 3:10654019 | \
 bcftools query -f '%CHROM\t%POS\t%REF\t%ALT[\t%GT]\n' > A3_10654019.vcf
 
+# DE but no main effect
+VCF=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_auto.SNP.ML.filt2.vcf.gz
+bcftools view ${VCF} -r 4:34118808 | \
+bcftools query -f '%CHROM\t%POS\t%REF\t%ALT[\t%GT]\n' > A4_34118808.vcf
+
 
 # G x Lifestage
 1:255437493

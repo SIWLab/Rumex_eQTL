@@ -8,10 +8,17 @@ output: html_document
 ```{r setup, include=FALSE}
 library(arrow)
 library(dplyr)
+library(tidyr)
 library(ggplot2)
 library(qvalue)
 data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
 ```
+
+```{r}
+ML_eqtl_sig <-read.csv(paste0(data, "ML_eqtl_sig_Nov.csv"))
+MP_eqtl_sig <-read.csv(paste0(data, "MP_eqtl_sig_Nov.csv"))
+```
+
 
 # get eQTL for expression difference between pollen and leaf
 ## permutations
@@ -166,6 +173,28 @@ no_overlap <- pl_eqtl_sig %>% anti_join(ML_eqtl_sig, by = c("phenotype_id", "var
 write.table(pl_eqtl_sig[,c(1:2)], file = paste0(data, "pl_eqtl.txt"), row.names = F, quote = F, col.names = F)
 ```
 
+```{r}
+# for Venn diagram
+write.table(normalized_counts_mln[,4], file = paste0(data, "ml_gene.txt"), row.names = F, quote = F, col.names = F)
+write.table(normalized_counts_mpn[,4], file = paste0(data, "mp_gene.txt"), row.names = F, quote = F, col.names = F)
+write.table(pl_eqtl_sig[,1], file = paste0(data, "pl_gene.txt"), row.names = F, quote = F, col.names = F)
+
+# genes tested in all MP, ML and pl_diff 1450
+ml_gene <- as.data.frame(normalized_counts_mln[,4])
+mp_gene <- as.data.frame(normalized_counts_mpn[,4])
+colnames(ml_gene) <- "phenotype_id"
+colnames(mp_gene) <- "phenotype_id"
+overlap_gene <- pl_eqtl_sig %>% inner_join(ml_gene, by = "phenotype_id") %>% inner_join(mp_gene, by = "phenotype_id") %>% select(phenotype_id, variant_id) %>% distinct() # 1450 egenes, 8582 eqtls
+
+# for Venn diagram
+write.table(overlap_gene, file = paste0(data, "pl_gene_overlap.txt"), row.names = F, quote = F, col.names = F)
+
+no_overlap2 <- overlap_gene %>% anti_join(ML_eqtl_sig, by = c("phenotype_id", "variant_id")) %>% anti_join(MP_eqtl_sig, by = c("phenotype_id", "variant_id")) # 1800
+no_overlap2 <- no_overlap2 %>% inner_join(pl_eqtl_sig, by = c("phenotype_id", "variant_id"))
+# TX_paternal_00029854 4:34118808
+```
+genes only tested in pl (from venn diagram)
+TX_paternal_00004400 TX_paternal_00031744 TX_paternal_00006959 TX_paternal_00015600 TX_paternal_00028328 TX_paternal_00033344 TX_paternal_00006794 TX_paternal_00003125 TX_paternal_00002744 TX_paternal_00012841 TX_paternal_00030200
 
 
 ## overlap with eQTLs show 'G x Lifestage'
@@ -176,6 +205,9 @@ table(overlap$category)
 
 dis_pl <- dis_pl %>% filter(category == "both" | category == "leaf" | category == "pollen") # 19
 overlap <- inner_join(pl_eqtl_sig, dis_pl, by = c("phenotype_id", "variant_id")) # 19
+
+dis_pl <- dis_pl %>% filter(category == "leaf2" | category == "pollen2") # 955
+overlap <- inner_join(pl_eqtl_sig, dis_pl, by = c("phenotype_id", "variant_id")) # 460
 
 ```
 both    leaf   leaf2  pollen pollen2 
@@ -197,11 +229,45 @@ egene_overlap <- inner_join(egene, DE_tissue, by = "gene") # 1905
 
 
 # plot eQTLs for DE between ML and MP
-## TX_paternal_00028051 3:98850390
+## TX_paternal_00029854 4:34118808
 ```{r}
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/"
+normalized_counts_mln <- read.table(paste0(data,"normalized_counts_mln.bed"), header = T, check.names = F)
+normalized_counts_mpn <- read.table(paste0(data,"normalized_counts_mpn.bed"), header = T, check.names = F)
 
+expr_l <- normalized_counts_mln %>% filter(gene_id == "TX_paternal_00029854")
+expr_p <- normalized_counts_mpn %>% filter(gene_id == "TX_paternal_00029854")
+
+geno <- read.table(paste0(data,"A4_34118808.vcf"), header = T, check.names = F)
+geno <- as.data.frame(t(geno[,c(5:73)]))
+geno <- geno %>% mutate(id = row.names(geno))
+colnames(geno) <- c("genotype", "id")
+
+expr_l <- as.data.frame(t(expr_l[,c(5:79)]))
+expr_p <- as.data.frame(t(expr_p[,c(5:77)]))
+expr_l <- expr_l %>% mutate(id = row.names(expr_l))
+colnames(expr_l) <- c("leaf", "id")
+expr_p <- expr_p %>% mutate(id = row.names(expr_p))
+colnames(expr_p) <- c("pollen", "id")
+
+eqtl_lp1 <- geno %>% left_join(expr_l, by = "id") %>% left_join(expr_p, by = "id")
+eqtl_lp1$genotype <- as.factor(eqtl_lp1$genotype)
+table(eqtl_lp1$genotype)
+write.table(eqtl_lp1, file = paste0(data, "A4_34118808_TX_paternal_00029854.txt"), quote = F)
+eqtl_lp1 <- gather(eqtl_lp1, lifestage, Expression, leaf:pollen)
+
+levels(eqtl_lp1$genotype) <- c("./.","TT", "TC")
+eqtl_lp1 <- eqtl_lp1 %>% filter(genotype != "./.")
+write.table(eqtl_lp1, file = paste0(data, "A4_34118808_TX_paternal_00029854_final.txt"), quote = F)
+#eqtl_lp1 <- read.table(paste0(data, "eqtl_lp1_final.txt"))
+ggplot(eqtl_lp1, aes(x=genotype, y=Expression, colour=lifestage)) + 
+  geom_boxplot(position=position_dodge2(0.85)) + 
+  geom_jitter(shape=16, position=position_jitterdodge(0.2), alpha=0.3) + 
+  theme_classic() + theme(text = element_text(size = 12))+ scale_colour_manual(values = c("red", "blue"))+labs(x="Genotype", y="Expression")
 ```
-
+./. 0/0 0/1 
+ 12  47  10
+ 
 direction of the slope
 positive slope, negative slope, but not in discordance
 ```{r}

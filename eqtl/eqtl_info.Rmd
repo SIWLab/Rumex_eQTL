@@ -303,3 +303,71 @@ alternative hypothesis: true rho is not equal to 0
 sample estimates:
        rho 
 -0.1127437
+
+# allele frequency and effect size
+```{r}
+ggplot(MP_eqtl_sig_min, aes(x=maf, y = abs(slope))) + geom_point()
+
+cor.test(ML_eqtl_sig_min$maf, abs(ML_eqtl_sig_min$slope), method = "spearman")
+cor.test(FL_eqtl_sig_min$maf, abs(FL_eqtl_sig_min$slope), method = "spearman")
+cor.test(MP_eqtl_sig_min$maf, abs(MP_eqtl_sig_min$slope), method = "spearman")
+
+cor.test(ML_eqtl_sig_random$maf, abs(ML_eqtl_sig_random$slope), method = "spearman")
+cor.test(FL_eqtl_sig_random$maf, abs(FL_eqtl_sig_random$slope), method = "spearman")
+cor.test(MP_eqtl_sig_random$maf, abs(MP_eqtl_sig_random$slope), method = "spearman")
+```
+	Spearman's rank correlation rho
+
+data:  ML_eqtl_sig_min\$maf and abs(ML_eqtl_sig_min$slope)
+S = 3815138368, p-value < 2.2e-16
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+       rho 
+-0.6131593 
+
+Warning: Cannot compute exact p-value with ties
+	Spearman's rank correlation rho
+
+data:  FL_eqtl_sig_min\$maf and abs(FL_eqtl_sig_min$slope)
+S = 1.0895e+10, p-value < 2.2e-16
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+       rho 
+-0.6030069 
+
+Spearman's rank correlation rho
+
+data:  MP_eqtl_sig_min\$maf and abs(MP_eqtl_sig_min$slope)
+S = 887735499, p-value < 2.2e-16
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+       rho 
+-0.6598123 
+
+Spearman's rank correlation rho
+
+data:  ML_eqtl_sig_random\$maf and abs(ML_eqtl_sig_random$slope)
+S = 4055631864, p-value < 2.2e-16
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+       rho 
+-0.7148474 
+
+Warning: Cannot compute exact p-value with ties
+	Spearman's rank correlation rho
+
+data:  FL_eqtl_sig_random\$maf and abs(FL_eqtl_sig_random$slope)
+S = 1.1689e+10, p-value < 2.2e-16
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+       rho 
+-0.7198221 
+
+Spearman's rank correlation rho
+
+data:  MP_eqtl_sig_random\$maf and abs(MP_eqtl_sig_random$slope)
+S = 934559235, p-value < 2.2e-16
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+       rho 
+-0.7473593 

@@ -1,4 +1,4 @@
-setwd("/ohta2/meng.yuan/rumex/eqtl/tensorqtl/ml")
+setwd("/ohta2/meng.yuan/rumex/eqtl/tensorqtl/ML")
 args = commandArgs(trailingOnly=TRUE)
 i <- as.numeric(args[1])
 cnt <- read.table("normalized_counts_mln_auto.bed", header = T, check.names = F)

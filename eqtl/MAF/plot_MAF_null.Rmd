@@ -1,0 +1,174 @@
+---
+title: "MAF null"
+author: "Meng"
+date: "2024-11-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(arrow)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
+```
+
+# check the p value distribution of real vs permuted data
+```{r}
+ML_A1 <- read_parquet(paste0(data,"ML.cis_qtl_pairs.1.parquet"))
+ML_A2 <- read_parquet(paste0(data,"ML.cis_qtl_pairs.2.parquet"))
+ML_A3 <- read_parquet(paste0(data,"ML.cis_qtl_pairs.3.parquet"))
+ML_A4 <- read_parquet(paste0(data,"ML.cis_qtl_pairs.4.parquet"))
+ML_eqtl <- rbind(ML_A1, ML_A2, ML_A3, ML_A4) # 1272993
+
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/ml/"
+ML_A1 <- read_parquet(paste0(data,"ML_50.cis_qtl_pairs.1.parquet"))
+ML_A2 <- read_parquet(paste0(data,"ML_50.cis_qtl_pairs.2.parquet"))
+ML_A3 <- read_parquet(paste0(data,"ML_50.cis_qtl_pairs.3.parquet"))
+ML_A4 <- read_parquet(paste0(data,"ML_50.cis_qtl_pairs.4.parquet"))
+ML_eqtl_50 <- rbind(ML_A1, ML_A2, ML_A3, ML_A4) # 1272993
+
+p1 <- ggplot(ML_eqtl, aes(x=pval_nominal)) + geom_histogram(color="black", fill="white", binwidth = 0.005) + theme_classic() + xlab("p-value")+ggtitle("real")
+p2 <- ggplot(ML_eqtl_50, aes(x=pval_nominal)) + geom_histogram(color="black", fill="white", binwidth = 0.005) + theme_classic() + xlab("p-value")+ggtitle("1 permutation")
+p1 + p2 + plot_layout(nrow = 2)
+```
+
+
+
+
+# ML
+## get MAF from real data
+```{r}
+ML_A1 <- read_parquet(paste0(data,"ML.cis_qtl_pairs.1.parquet"))
+ML_A2 <- read_parquet(paste0(data,"ML.cis_qtl_pairs.2.parquet"))
+ML_A3 <- read_parquet(paste0(data,"ML.cis_qtl_pairs.3.parquet"))
+ML_A4 <- read_parquet(paste0(data,"ML.cis_qtl_pairs.4.parquet"))
+ML_eqtl <- rbind(ML_A1, ML_A2, ML_A3, ML_A4) # 1272993
+ML_eqtl_sig <- ML_eqtl %>% filter(pval_nominal <= 0.030655064) # 99992
+ML_eqtl_sig <- ML_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
+ML_eqtl_sig <- ML_eqtl_sig %>% group_by(phenotype_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count <= 10) # 28780
+
+set.seed(123)
+ML_eqtl_sig_random <- ML_eqtl_sig %>% group_by(phenotype_id) %>% slice_sample(n = 1) # 10671,8237
+ML_eqtl_sig_random_af <- ML_eqtl_sig_random %>% dplyr::select(variant_id, maf) 
+ML_eqtl_sig_random_af <- ML_eqtl_sig_random_af %>% group_by(variant_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count == 1) # 10374, 7944
+ML_eqtl_sig_random_af$maf <- round(ML_eqtl_sig_random_af$maf, digits = 3)
+
+p <- ggplot(ML_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(binwidth=0.05, , boundary = 0.05) +
+scale_x_continuous(limits = c(0.05, 0.5))
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y) 
+p_data <- p_data %>% select(x, xmin, xmax, y, y_prop)
+write.table(p_data, file = paste0(data, "ML_eqtl_random_real.txt"), row.names = FALSE, quote = FALSE, sep = "\t", col.names = T) 
+```
+
+number of real eqtls 10374
+number of fake eqtls
+
+## plot
+```{r}
+maf_real <- read.table(paste0(data, "ML_eqtl_random_real.txt"), header = T)
+maf_real <- maf_real %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
+
+maf_null <- read.table(paste0(data, "ML_MAF_null.txt"), header = F)
+colnames(maf_null) <- c("x", "xmin","xmax","y", "y_prop")
+maf_null <- maf_null %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
+
+p1 <- ggplot(maf_null, aes(x_axis, y_prop)) + 
+    geom_point(fill = NA, colour = "lightgrey", alpha = 1)+
+    geom_point(data = maf_real, color = "black", fill="black", alpha = 0.9)+ 
+    theme_classic()+ labs(x="MAF", y="Proportion", title = "a")+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),text = element_text(size = 10))
+```
+
+# FL
+## get MAF from real data
+```{r}
+FL_A1 <- read_parquet(paste0(data,"FL.cis_qtl_pairs.1.parquet"))
+FL_A2 <- read_parquet(paste0(data,"FL.cis_qtl_pairs.2.parquet"))
+FL_A3 <- read_parquet(paste0(data,"FL.cis_qtl_pairs.3.parquet"))
+FL_A4 <- read_parquet(paste0(data,"FL.cis_qtl_pairs.4.parquet"))
+FL_eqtl <- rbind(FL_A1, FL_A2, FL_A3, FL_A4) # 1272993
+FL_eqtl_sig <- FL_eqtl %>% filter(pval_nominal <= 0.048762071) # 99992
+FL_eqtl_sig <- FL_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
+FL_eqtl_sig <- FL_eqtl_sig %>% group_by(phenotype_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count <= 10) # 28780
+
+set.seed(123)
+FL_eqtl_sig_random <- FL_eqtl_sig %>% group_by(phenotype_id) %>% slice_sample(n = 1) # 10671,8237
+FL_eqtl_sig_random_af <- FL_eqtl_sig_random %>% dplyr::select(variant_id, maf) 
+FL_eqtl_sig_random_af <- FL_eqtl_sig_random_af %>% group_by(variant_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count == 1) # 10374, 7944
+FL_eqtl_sig_random_af$maf <- round(FL_eqtl_sig_random_af$maf, digits = 3)
+
+p <- ggplot(FL_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(binwidth=0.05, , boundary = 0.05) +
+scale_x_continuous(limits = c(0.05, 0.5))
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y) 
+p_data <- p_data %>% select(x, xmin, xmax, y, y_prop)
+write.table(p_data, file = paste0(data, "FL_eqtl_random_real.txt"), row.names = FALSE, quote = FALSE, sep = "\t", col.names = T) 
+```
+
+## plot
+```{r}
+maf_real <- read.table(paste0(data, "FL_eqtl_random_real.txt"), header = T)
+maf_real <- maf_real %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
+
+maf_null <- read.table(paste0(data, "FL_MAF_null.txt"), header = F)
+colnames(maf_null) <- c("x", "xmin","xmax","y", "y_prop")
+maf_null <- maf_null %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
+
+p1 <- ggplot(maf_null, aes(x_axis, y_prop)) + 
+    geom_point(fill = NA, colour = "lightgrey", alpha = 1)+
+    geom_point(data = maf_real, color = "black", fill="black", alpha = 0.9)+ 
+    theme_classic()+ labs(x="MAF", y="Proportion", title = "b")+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),text = element_text(size = 10))
+```
+
+
+# MP
+## get MAF from real data
+```{r}
+MP_A1 <- read_parquet(paste0(data,"MP.cis_qtl_pairs.1.parquet"))
+MP_A2 <- read_parquet(paste0(data,"MP.cis_qtl_pairs.2.parquet"))
+MP_A3 <- read_parquet(paste0(data,"MP.cis_qtl_pairs.3.parquet"))
+MP_A4 <- read_parquet(paste0(data,"MP.cis_qtl_pairs.4.parquet"))
+MP_eqtl <- rbind(MP_A1, MP_A2, MP_A3, MP_A4) # 1272993
+MP_eqtl_sig <- MP_eqtl %>% filter(pval_nominal <= 0.0160989562) # 99992
+MP_eqtl_sig <- MP_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
+MP_eqtl_sig <- MP_eqtl_sig %>% group_by(phenotype_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count <= 10) # 28780
+
+set.seed(123)
+MP_eqtl_sig_random <- MP_eqtl_sig %>% group_by(phenotype_id) %>% slice_sample(n = 1) # 10671,8237
+MP_eqtl_sig_random_af <- MP_eqtl_sig_random %>% dplyr::select(variant_id, maf) 
+MP_eqtl_sig_random_af <- MP_eqtl_sig_random_af %>% group_by(variant_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count == 1) # 10374, 7944
+MP_eqtl_sig_random_af$maf <- round(MP_eqtl_sig_random_af$maf, digits = 3)
+
+p <- ggplot(MP_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(binwidth=0.05, , boundary = 0.05) +
+scale_x_continuous(limits = c(0.05, 0.5))
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y) 
+p_data <- p_data %>% select(x, xmin, xmax, y, y_prop)
+write.table(p_data, file = paste0(data, "MP_eqtl_random_real.txt"), row.names = FALSE, quote = FALSE, sep = "\t", col.names = T) 
+```
+
+## plot
+```{r}
+maf_real <- read.table(paste0(data, "MP_eqtl_random_real.txt"), header = T)
+maf_real <- maf_real %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
+
+maf_null <- read.table(paste0(data, "MP_MAF_null.txt"), header = F)
+colnames(maf_null) <- c("x", "xmin","xmax","y", "y_prop")
+maf_null <- maf_null %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
+
+p1 <- ggplot(maf_null, aes(x_axis, y_prop)) + 
+    geom_point(fill = NA, colour = "lightgrey", alpha = 1)+
+    geom_point(data = maf_real, color = "black", fill="black", alpha = 0.9)+ 
+    theme_classic()+ labs(x="MAF", y="Proportion", title = "c")+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),text = element_text(size = 10))
+```
+
+# plot together
+```{r}
+p1 + p2 + p3
+```
+
+

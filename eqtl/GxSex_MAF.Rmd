@@ -13,20 +13,9 @@ library(ggplot2)
 library(patchwork)
 library(tidyr)
 data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/sex/"
-padjust_bh <- function(p, fdr_threshold = 0.1) {
-  if (any(!is.finite(p))) {
-    stop('P values must be finite.')
-  }
-  n <- length(p)
-  i <- n:1
-  o <- order(p, decreasing = TRUE)
-  ro <- order(o)
-  adjusted_p <- pmin(1, cummin(n / i * p[o]))[ro]
-  
-  return(adjusted_p)
-}
-
 ```
+
+
 # all gene-variant pairs with interaction term
 without sex as a covariate
 ```{r}
@@ -49,23 +38,23 @@ sex_inter_top <- read.table(paste0(data, "nosex_inter.cis_qtl_top_assoc.txt"), h
 colnames(sex_inter_top)
 length(unique(sex_inter_top$phenotype_id)) 
 
-sex_inter_top$pval_gi_adj <- padjust_bh(sex_inter_top$pval_gi, fdr_threshold = 0.1)
+sex_inter_top$pval_gi_adj <- p.adjust(sex_inter_top$pval_gi, "BH")
 sex_inter_top$pval_i_adj <- padjust_bh(sex_inter_top$pval_i, fdr_threshold = 0.1)
 sex_inter_top$pval_g_adj <- padjust_bh(sex_inter_top$pval_g, fdr_threshold = 0.1)
 
 #pval_adj_bh <- sex_inter_top %>% filter(pval_adj_bh < 0.1) # 5
 
-p_gi_adj_01 <- sex_inter_top %>% filter(pval_gi_adj < 0.1) # 9572
-p_g_adj_01 <- sex_inter_top %>% filter(pval_g_adj < 0.1) # 7687
-p_i_adj_01 <- sex_inter_top %>% filter(pval_i_adj < 0.1) # 3450
+# p_gi_adj_01 <- sex_inter_top %>% filter(pval_gi_adj < 0.1) # 9572
+# p_g_adj_01 <- sex_inter_top %>% filter(pval_g_adj < 0.1) # 7687
+# p_i_adj_01 <- sex_inter_top %>% filter(pval_i_adj < 0.1) # 3450
 
 p_gi_adj_005 <- sex_inter_top %>% filter(pval_gi_adj < 0.05) # 1462
 p_g_adj_005 <- sex_inter_top %>% filter(pval_g_adj < 0.05) # 3245
 p_i_adj_005 <- sex_inter_top %>% filter(pval_i_adj < 0.05) # 2201
 
-write.table(p_gi_adj_01$variant_id, file = paste0(data, "p_gi_adj_01.txt"), row.names = F, quote = F, col.names = F)
-write.table(p_g_adj_01$variant_id, file = paste0(data, "p_g_adj_01.txt"), row.names = F, quote = F, col.names = F)
-write.table(p_i_adj_01$variant_id, file = paste0(data, "p_i_adj_01.txt"), row.names = F, quote = F, col.names = F)
+# write.table(p_gi_adj_01$variant_id, file = paste0(data, "p_gi_adj_01.txt"), row.names = F, quote = F, col.names = F)
+# write.table(p_g_adj_01$variant_id, file = paste0(data, "p_g_adj_01.txt"), row.names = F, quote = F, col.names = F)
+# write.table(p_i_adj_01$variant_id, file = paste0(data, "p_i_adj_01.txt"), row.names = F, quote = F, col.names = F)
 
 write.table(p_gi_adj_005$variant_id, file = paste0(data, "p_gi_adj_005.txt"), row.names = F, quote = F, col.names = F)
 write.table(p_g_adj_005$variant_id, file = paste0(data, "p_g_adj_005.txt"), row.names = F, quote = F, col.names = F)

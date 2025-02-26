@@ -34,4 +34,4 @@ echo "Running task $i"
 export -f run_task  
 
 # Use GNU parallel to run 15 iterations at the same time
-seq 1 $iterations | parallel -j 15 run_task
+seq 1 $iterations | parallel -j 15 run_task --tmpdir /ohta2/meng.yuan/tmp/

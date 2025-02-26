@@ -11,6 +11,10 @@ vi get_MAF_null.R
 # run permutations 1000 times
 sh ml_permute.sh 1000
 
+
+# mv ML_*_random.cnt cnt/
+# mv ML_*_eqtl_random_fake.txt fake/
+
 # merge results from all permutations
 cat ./fake/ML_*_eqtl_random_fake.txt > ML_MAF_null.txt
 cat ./cnt/ML_*_random.cnt > ML_fake_cnt.txt
@@ -31,6 +35,8 @@ vi get_MAF_null.R
 
 # run permutations 1000 times
 sh fl_permute.sh 1000
+
+
 
 # merge results from all permutations
 cat ./fake/FL_*_eqtl_random_fake.txt > FL_MAF_null.txt

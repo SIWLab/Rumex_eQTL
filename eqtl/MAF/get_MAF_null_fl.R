@@ -13,6 +13,7 @@ FL_eqtl <- rbind(FL_A1, FL_A2, FL_A3, FL_A4)
 
 FL_eqtl_sig <- FL_eqtl %>% filter(pval_nominal <= 0.030655064) 
 FL_eqtl_sig <- FL_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
+FL_eqtl_sig <- FL_eqtl_sig %>% group_by(phenotype_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count <= 10) 
 
 # random
 set.seed(123)

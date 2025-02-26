@@ -88,15 +88,15 @@ FL_A1 <- read_parquet(paste0(data,"FL.cis_qtl_pairs.1.parquet"))
 FL_A2 <- read_parquet(paste0(data,"FL.cis_qtl_pairs.2.parquet"))
 FL_A3 <- read_parquet(paste0(data,"FL.cis_qtl_pairs.3.parquet"))
 FL_A4 <- read_parquet(paste0(data,"FL.cis_qtl_pairs.4.parquet"))
-FL_eqtl <- rbind(FL_A1, FL_A2, FL_A3, FL_A4) # 1272993
-FL_eqtl_sig <- FL_eqtl %>% filter(pval_nominal <= 0.048762071) # 99992
+FL_eqtl <- rbind(FL_A1, FL_A2, FL_A3, FL_A4) # 1687298
+FL_eqtl_sig <- FL_eqtl %>% filter(pval_nominal <= 0.048762071) # 195994
 FL_eqtl_sig <- FL_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
-FL_eqtl_sig <- FL_eqtl_sig %>% group_by(phenotype_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count <= 10) # 28780
+FL_eqtl_sig <- FL_eqtl_sig %>% group_by(phenotype_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count <= 10) # 32281
 
 set.seed(123)
-FL_eqtl_sig_random <- FL_eqtl_sig %>% group_by(phenotype_id) %>% slice_sample(n = 1) # 10671,8237
+FL_eqtl_sig_random <- FL_eqtl_sig %>% group_by(phenotype_id) %>% slice_sample(n = 1) # 7935
 FL_eqtl_sig_random_af <- FL_eqtl_sig_random %>% dplyr::select(variant_id, maf) 
-FL_eqtl_sig_random_af <- FL_eqtl_sig_random_af %>% group_by(variant_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count == 1) # 10374, 7944
+FL_eqtl_sig_random_af <- FL_eqtl_sig_random_af %>% group_by(variant_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count == 1) # 7611
 FL_eqtl_sig_random_af$maf <- round(FL_eqtl_sig_random_af$maf, digits = 3)
 
 p <- ggplot(FL_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(binwidth=0.05, , boundary = 0.05) +
@@ -116,7 +116,7 @@ maf_null <- read.table(paste0(data, "FL_MAF_null.txt"), header = F)
 colnames(maf_null) <- c("x", "xmin","xmax","y", "y_prop")
 maf_null <- maf_null %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
 
-p1 <- ggplot(maf_null, aes(x_axis, y_prop)) + 
+p2 <- ggplot(maf_null, aes(x_axis, y_prop)) + 
     geom_point(fill = NA, colour = "lightgrey", alpha = 1)+
     geom_point(data = maf_real, color = "black", fill="black", alpha = 0.9)+ 
     theme_classic()+ labs(x="MAF", y="Proportion", title = "b")+
@@ -131,15 +131,15 @@ MP_A1 <- read_parquet(paste0(data,"MP.cis_qtl_pairs.1.parquet"))
 MP_A2 <- read_parquet(paste0(data,"MP.cis_qtl_pairs.2.parquet"))
 MP_A3 <- read_parquet(paste0(data,"MP.cis_qtl_pairs.3.parquet"))
 MP_A4 <- read_parquet(paste0(data,"MP.cis_qtl_pairs.4.parquet"))
-MP_eqtl <- rbind(MP_A1, MP_A2, MP_A3, MP_A4) # 1272993
-MP_eqtl_sig <- MP_eqtl %>% filter(pval_nominal <= 0.0160989562) # 99992
+MP_eqtl <- rbind(MP_A1, MP_A2, MP_A3, MP_A4) # 1182101
+MP_eqtl_sig <- MP_eqtl %>% filter(pval_nominal <= 0.0160989562) # 51665
 MP_eqtl_sig <- MP_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
-MP_eqtl_sig <- MP_eqtl_sig %>% group_by(phenotype_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count <= 10) # 28780
+MP_eqtl_sig <- MP_eqtl_sig %>% group_by(phenotype_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count <= 10) # 18699
 
 set.seed(123)
-MP_eqtl_sig_random <- MP_eqtl_sig %>% group_by(phenotype_id) %>% slice_sample(n = 1) # 10671,8237
+MP_eqtl_sig_random <- MP_eqtl_sig %>% group_by(phenotype_id) %>% slice_sample(n = 1) # 6436
 MP_eqtl_sig_random_af <- MP_eqtl_sig_random %>% dplyr::select(variant_id, maf) 
-MP_eqtl_sig_random_af <- MP_eqtl_sig_random_af %>% group_by(variant_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count == 1) # 10374, 7944
+MP_eqtl_sig_random_af <- MP_eqtl_sig_random_af %>% group_by(variant_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count == 1) # 6192
 MP_eqtl_sig_random_af$maf <- round(MP_eqtl_sig_random_af$maf, digits = 3)
 
 p <- ggplot(MP_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(binwidth=0.05, , boundary = 0.05) +
@@ -159,7 +159,7 @@ maf_null <- read.table(paste0(data, "MP_MAF_null.txt"), header = F)
 colnames(maf_null) <- c("x", "xmin","xmax","y", "y_prop")
 maf_null <- maf_null %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
 
-p1 <- ggplot(maf_null, aes(x_axis, y_prop)) + 
+p3 <- ggplot(maf_null, aes(x_axis, y_prop)) + 
     geom_point(fill = NA, colour = "lightgrey", alpha = 1)+
     geom_point(data = maf_real, color = "black", fill="black", alpha = 0.9)+ 
     theme_classic()+ labs(x="MAF", y="Proportion", title = "c")+

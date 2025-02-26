@@ -305,9 +305,16 @@ sample estimates:
 -0.1127437
 
 # allele frequency and effect size
+method='lm', formula= y~x
 ```{r}
-ggplot(MP_eqtl_sig_min, aes(x=maf, y = abs(slope))) + geom_point()
+p1 <- ggplot(ML_eqtl_sig_min, aes(x=maf, y = abs(slope))) + geom_point(size=0.8, alpha = 0.7) + geom_smooth() + theme_classic() + labs(x="MAF", y="Effect size", title = "a")
+p2 <- ggplot(FL_eqtl_sig_min, aes(x=maf, y = abs(slope))) + geom_point(size=0.8, alpha = 0.7) + geom_smooth() + theme_classic() + labs(x="MAF", y="Effect size", title = "b")
+p3 <- ggplot(MP_eqtl_sig_min, aes(x=maf, y = abs(slope))) + geom_point(size=0.8, alpha = 0.7) + geom_smooth() + theme_classic() + labs(x="MAF", y="Effect size", title = "c")
+p1 + p2 + p3
+```
 
+
+```{r}
 cor.test(ML_eqtl_sig_min$maf, abs(ML_eqtl_sig_min$slope), method = "spearman")
 cor.test(FL_eqtl_sig_min$maf, abs(FL_eqtl_sig_min$slope), method = "spearman")
 cor.test(MP_eqtl_sig_min$maf, abs(MP_eqtl_sig_min$slope), method = "spearman")

@@ -10,6 +10,9 @@ library(dplyr)
 library(ggplot2)
 library(patchwork)
 data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
+```
+
+```{r}
 ML_eqtl_sig <- read.csv(paste0(data, "ML_eqtl_sig_Nov.csv"))
 FL_eqtl_sig <- read.csv(paste0(data, "FL_eqtl_sig_Nov.csv"))
 MP_eqtl_sig <- read.csv(paste0(data, "MP_eqtl_sig_Nov.csv"))
@@ -305,11 +308,19 @@ sample estimates:
 -0.1127437
 
 # allele frequency and effect size
-method='lm', formula= y~x
+
 ```{r}
-p1 <- ggplot(ML_eqtl_sig_min, aes(x=maf, y = abs(slope))) + geom_point(size=0.8, alpha = 0.7) + geom_smooth() + theme_classic() + labs(x="MAF", y="Effect size", title = "a")
-p2 <- ggplot(FL_eqtl_sig_min, aes(x=maf, y = abs(slope))) + geom_point(size=0.8, alpha = 0.7) + geom_smooth() + theme_classic() + labs(x="MAF", y="Effect size", title = "b")
-p3 <- ggplot(MP_eqtl_sig_min, aes(x=maf, y = abs(slope))) + geom_point(size=0.8, alpha = 0.7) + geom_smooth() + theme_classic() + labs(x="MAF", y="Effect size", title = "c")
+p1 <- ggplot(ML_eqtl_sig_min, aes(x=maf, y = abs(slope))) + geom_point(size=0.9, alpha = 0.5, colour = "#6495ED") + geom_smooth(method='lm', formula= y~x, colour = "black") + theme_classic() + labs(x="MAF", y="Effect size", title = "a")
+p2 <- ggplot(FL_eqtl_sig_min, aes(x=maf, y = abs(slope))) + geom_point(size=0.9, alpha = 0.5, colour = "#6495ED") + geom_smooth(method='lm', formula= y~x, colour = "black") + theme_classic() + labs(x="MAF", y="Effect size", title = "b")
+p3 <- ggplot(MP_eqtl_sig_min, aes(x=maf, y = abs(slope))) + geom_point(size=0.9, alpha = 0.5, colour = "#6495ED") + geom_smooth(method='lm', formula= y~x, colour = "black") + theme_classic() + labs(x="MAF", y="Effect size", title = "c")
+p1 + p2 + p3
+```
+
+
+```{r}
+p1 <- ggplot(ML_eqtl_sig_min, aes(x=maf, y = abs(slope))) + geom_point(size=0.9, alpha = 0.5, colour = "#6495ED") + geom_smooth(colour = "black") + theme_classic() + labs(x="MAF", y="Effect size", title = "a")
+p2 <- ggplot(FL_eqtl_sig_min, aes(x=maf, y = abs(slope))) + geom_point(size=0.9, alpha = 0.5, colour = "#6495ED") + geom_smooth(colour = "black") + theme_classic() + labs(x="MAF", y="Effect size", title = "b")
+p3 <- ggplot(MP_eqtl_sig_min, aes(x=maf, y = abs(slope))) + geom_point(size=0.9, alpha = 0.5, colour = "#6495ED") + geom_smooth(colour = "black") + theme_classic() + labs(x="MAF", y="Effect size", title = "c")
 p1 + p2 + p3
 ```
 

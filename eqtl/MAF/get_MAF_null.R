@@ -15,6 +15,7 @@ ML_eqtl <- rbind(ML_A1, ML_A2, ML_A3, ML_A4)
 ML_eqtl_sig <- ML_eqtl %>% filter(pval_nominal <= 0.030655064) 
 ML_eqtl_sig <- ML_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
 ML_eqtl_sig <- ML_eqtl_sig %>% group_by(phenotype_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count <= 10) 
+write.table(nrow(ML_eqtl_sig), file=paste0("ML_", i, "_random.cnt1"), row.names = FALSE, quote = FALSE,col.names = F)
 
 # random
 set.seed(123)
@@ -22,7 +23,7 @@ ML_eqtl_sig_random <- ML_eqtl_sig %>% group_by(phenotype_id) %>% slice_sample(n 
 ML_eqtl_sig_random_af <- ML_eqtl_sig_random %>% dplyr::select(variant_id, maf) 
 ML_eqtl_sig_random_af <- ML_eqtl_sig_random_af %>% group_by(variant_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count == 1) 
 ML_eqtl_sig_random_af$maf <- round(ML_eqtl_sig_random_af$maf, digits = 3)
-write.table(nrow(ML_eqtl_sig_random_af), file=paste0("ML_", i, "_random.cnt"), row.names = FALSE, quote = FALSE,col.names = F)
+write.table(nrow(ML_eqtl_sig_random_af), file=paste0("ML_", i, "_random.cnt2"), row.names = FALSE, quote = FALSE,col.names = F)
 
 
 p <- ggplot(ML_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(binwidth=0.05, , boundary = 0.05) +

@@ -49,9 +49,9 @@ ML_eqtl_sig <- ML_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
 ML_eqtl_sig <- ML_eqtl_sig %>% group_by(phenotype_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count <= 10) # 28780
 
 set.seed(123)
-ML_eqtl_sig_random <- ML_eqtl_sig %>% group_by(phenotype_id) %>% slice_sample(n = 1) # 10671,8237
+ML_eqtl_sig_random <- ML_eqtl_sig %>% group_by(phenotype_id) %>% slice_sample(n = 1) # 8237
 ML_eqtl_sig_random_af <- ML_eqtl_sig_random %>% dplyr::select(variant_id, maf) 
-ML_eqtl_sig_random_af <- ML_eqtl_sig_random_af %>% group_by(variant_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count == 1) # 10374, 7944
+ML_eqtl_sig_random_af <- ML_eqtl_sig_random_af %>% group_by(variant_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count == 1) # 7944
 ML_eqtl_sig_random_af$maf <- round(ML_eqtl_sig_random_af$maf, digits = 3)
 
 p <- ggplot(ML_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(binwidth=0.05, , boundary = 0.05) +
@@ -61,9 +61,6 @@ p_data$y_prop <- p_data$y/sum(p_data$y)
 p_data <- p_data %>% select(x, xmin, xmax, y, y_prop)
 write.table(p_data, file = paste0(data, "ML_eqtl_random_real.txt"), row.names = FALSE, quote = FALSE, sep = "\t", col.names = T) 
 ```
-
-number of real eqtls 10374
-number of fake eqtls
 
 ## plot
 ```{r}
@@ -160,7 +157,7 @@ colnames(maf_null) <- c("x", "xmin","xmax","y", "y_prop")
 maf_null <- maf_null %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
 
 p3 <- ggplot(maf_null, aes(x_axis, y_prop)) + 
-    geom_point(fill = NA, colour = "lightgrey", alpha = 1)+
+    geom_point(fill = NA, colour = "darkgrey", alpha = 1)+
     geom_point(data = maf_real, color = "black", fill="black", alpha = 0.9)+ 
     theme_classic()+ labs(x="MAF", y="Proportion", title = "c")+
     theme(axis.text.x = element_text(angle = 45, hjust = 1),text = element_text(size = 10))

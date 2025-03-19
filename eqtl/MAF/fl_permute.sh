@@ -26,7 +26,7 @@ rm normalized_counts_fln_auto_${i}.bed.gz*
 rm FL_${i}.cis_qtl_pairs.*.parquet
 rm FL_${i}.tensorQTL.cis_nominal.log
 
-mv FL_${i}_random.cnt cnt/
+mv FL_${i}_random.cnt* cnt/
 mv FL_${i}_eqtl_random_fake.txt fake/
 echo "Running task $i"
 }

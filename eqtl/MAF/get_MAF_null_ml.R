@@ -5,7 +5,6 @@ setwd("/ohta2/meng.yuan/rumex/eqtl/tensorqtl/ML")
 args = commandArgs(trailingOnly=TRUE)
 i <- as.numeric(args[1])
 
-#ML <- read.table("ML.cis_qtl.txt", header = T) 
 ML_A1 <- read_parquet(paste0("ML_", i, ".cis_qtl_pairs.1.parquet"))
 ML_A2 <- read_parquet(paste0("ML_", i, ".cis_qtl_pairs.2.parquet"))
 ML_A3 <- read_parquet(paste0("ML_", i, ".cis_qtl_pairs.3.parquet"))
@@ -18,7 +17,7 @@ ML_eqtl_sig <- ML_eqtl_sig %>% group_by(phenotype_id) %>% mutate(count = n()) %>
 write.table(nrow(ML_eqtl_sig), file=paste0("ML_", i, "_random.cnt1"), row.names = FALSE, quote = FALSE,col.names = F)
 
 # random
-set.seed(123)
+set.seed(1 + i)
 ML_eqtl_sig_random <- ML_eqtl_sig %>% group_by(phenotype_id) %>% slice_sample(n = 1) 
 ML_eqtl_sig_random_af <- ML_eqtl_sig_random %>% dplyr::select(variant_id, maf) 
 ML_eqtl_sig_random_af <- ML_eqtl_sig_random_af %>% group_by(variant_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count == 1) 

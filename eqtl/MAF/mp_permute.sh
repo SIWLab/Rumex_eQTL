@@ -26,7 +26,7 @@ rm normalized_counts_mpn_auto_${i}.bed.gz*
 rm MP_${i}.cis_qtl_pairs.*.parquet
 rm MP_${i}.tensorQTL.cis_nominal.log
 
-mv MP_${i}_random.cnt cnt/
+mv MP_${i}_random.cnt* cnt/
 mv MP_${i}_eqtl_random_fake.txt fake/
 echo "Running task $i"
 }
@@ -34,4 +34,4 @@ echo "Running task $i"
 export -f run_task  
 
 # Use GNU parallel to run 15 iterations at the same time
-seq 1 $iterations | parallel -j 15 run_task
+seq 1 $iterations | parallel --tmpdir /ohta2/meng.yuan/tmp/ --joblog parallel_log.txt -j 15 run_task 

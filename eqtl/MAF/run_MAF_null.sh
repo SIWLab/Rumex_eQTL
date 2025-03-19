@@ -37,10 +37,14 @@ vi get_MAF_null.R
 sh fl_permute.sh 1000
 
 
-
 # merge results from all permutations
 cat ./fake/FL_*_eqtl_random_fake.txt > FL_MAF_null.txt
 cat ./cnt/FL_*_random.cnt > FL_fake_cnt.txt
+
+cat ./fake/FL_*_eqtl_random_fake.txt > FL_MAF_null_mar19.txt
+cat ./cnt/FL_*_random.cnt1 > FL_fake_cnt1.txt
+cat ./cnt/FL_*_random.cnt2 > FL_fake_cnt2.txt
+
 
 # rm intermediate files
 rm -rf fake

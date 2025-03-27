@@ -157,6 +157,9 @@ pl_eqtl_onegene <- pl_eqtl_sig %>%
      group_by(variant_id) %>%
      filter(n()==1) %>%
     select(variant_id, maf) # 12283
+
+pl_eqtl_multigene <- left_join(pl_eqtl_multigene, pl_eqtl_sig, by = c("variant_id", "maf")) # 695
+length(unique(pl_eqtl_multigene$phenotype_id)) # 137
 ```
 
 
@@ -214,6 +217,7 @@ both    leaf   leaf2  pollen pollen2
       9       5     184       5     276 2
 
 
+
 # overlap between eGenes and DE genes from deseq2
 ```{r}
 DE_tissue <- read.table("/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/DE_tissue_full.txt", header = T)
@@ -223,10 +227,17 @@ egene <- as.data.frame(unique(pl_eqtl_sig$phenotype_id)) # 2029
 colnames(egene) <- "gene" 
 egene_overlap <- inner_join(egene, DE_tissue, by = "gene") # 1874
 
-DE_tissue <- DE_tissue %>% filter(padj<0.1) # 200061
-egene_overlap <- inner_join(egene, DE_tissue, by = "gene") # 1905
+# DE_tissue <- DE_tissue %>% filter(padj<0.1) # 200061
+# egene_overlap <- inner_join(egene, DE_tissue, by = "gene") # 1905
+ggplot(egene_overlap, aes(abs(log2FoldChange))) + geom_histogram(binwidth = 0.5,color="black", fill="white") + theme_classic() 
+ggsave(paste0(data,"logFC_distribution.pdf"), width = 7, height = 3, units = "in")
 ```
-
+```{r}
+median(abs(egene_overlap$log2FoldChange)) #2.326629
+summary(abs(egene_overlap$log2FoldChange))
+```
+ Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ 0.1785  1.3646  2.3266  3.2108  3.7690 28.2721 
 
 # plot eQTLs for DE between ML and MP
 ## TX_paternal_00029854 4:34118808
@@ -268,10 +279,4 @@ ggplot(eqtl_lp1, aes(x=genotype, y=Expression, colour=lifestage)) +
 ./. 0/0 0/1 
  12  47  10
  
-direction of the slope
-positive slope, negative slope, but not in discordance
-```{r}
-
-```
-
 

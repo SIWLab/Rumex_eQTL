@@ -110,21 +110,21 @@ p_data <- ggplot_build(p)$data[[1]]
 p_data$y_prop <- p_data$y/sum(p_data$y) # 0.117
 
 p1 <- ggplot(p_data, aes(x=x, y=y_prop)) +
-  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("a")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.13)+ geom_vline(xintercept=0.1016949, color = "red",linetype="dashed")
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("a")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.13) + expand_limits(x=0.5) + geom_vline(xintercept=0.1016949, color = "red",linetype="dashed")
 
 p<-ggplot(FL_eqtl_sig_min_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
 p_data <- ggplot_build(p)$data[[1]]
 p_data$y_prop <- p_data$y/sum(p_data$y) # 0.128
 
 p2 <- ggplot(p_data, aes(x=x, y=y_prop)) +
-  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("b")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.13)+ geom_vline(xintercept=0.1048387, color = "red",linetype="dashed")
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("b")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.13) + expand_limits(x=0.5) + geom_vline(xintercept=0.1048387, color = "red",linetype="dashed")
 
 p<-ggplot(MP_eqtl_sig_min_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
 p_data <- ggplot_build(p)$data[[1]]
 p_data$y_prop <- p_data$y/sum(p_data$y) # 0.128
 
 p3 <- ggplot(p_data, aes(x=x, y=y_prop)) +
-  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("c")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.13)+ geom_vline(xintercept=0.1044776, color = "red",linetype="dashed")
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("c")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.13) + expand_limits(x=0.5) + geom_vline(xintercept=0.1044776, color = "red",linetype="dashed")
 ```
 
 
@@ -178,21 +178,21 @@ p_data <- ggplot_build(p)$data[[1]]
 p_data$y_prop <- p_data$y/sum(p_data$y) # 0.127
 
 p4 <- ggplot(p_data, aes(x=x, y=y_prop)) +
-  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("d")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10))+ ylim(0, 0.15)+ geom_vline(xintercept=0.09649123, color = "red",linetype="dashed")
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("d")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10))+ ylim(0, 0.15) + expand_limits(x=0.5) + geom_vline(xintercept=0.09649123, color = "red",linetype="dashed")
 
 p<-ggplot(FL_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
 p_data <- ggplot_build(p)$data[[1]]
 p_data$y_prop <- p_data$y/sum(p_data$y) # 0.146
 
 p5 <- ggplot(p_data, aes(x=x, y=y_prop)) +
-  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("e")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10))+ ylim(0, 0.15)+ geom_vline(xintercept=0.09836066, color = "red",linetype="dashed")
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("e")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10))+ ylim(0, 0.15) + expand_limits(x=0.5) + geom_vline(xintercept=0.09836066, color = "red",linetype="dashed")
 
 p<-ggplot(MP_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
 p_data <- ggplot_build(p)$data[[1]]
 p_data$y_prop <- p_data$y/sum(p_data$y) # 0.126
 
 p6 <- ggplot(p_data, aes(x=x, y=y_prop)) +
-  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("f")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.15)+ geom_vline(xintercept=0.09821428, color = "red",linetype="dashed")
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("f")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.15) + expand_limits(x=0.5) + geom_vline(xintercept=0.09821428, color = "red",linetype="dashed")
 ```
 
 
@@ -200,10 +200,8 @@ p6 <- ggplot(p_data, aes(x=x, y=y_prop)) +
 p 4-6 goes to supplementary
 ```{r}
 p1 + p2 + p3 + p4 + p5 + p6 + plot_layout(nrow = 2)
+ggsave(paste0(data, "Fig3_mar27.pdf"))
 ```
-
-
-
 
 
 # MAF for eqtls in one or two tissues
@@ -239,6 +237,7 @@ p2 <- ggplot(p_data, aes(x=x, y=y_prop)) +
   geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("b")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.13)+ geom_vline(xintercept=0.1016949, color = "red",linetype="dashed")
 
 p1 + p2
+ggsave(paste0(data,"MAF_n1_n2.pdf"))
 ```
 
 ```{r}
@@ -247,4 +246,11 @@ median(tissue_n2$maf)
 
 wilcox.test(tissue_n1$maf, tissue_n2$maf)
 ```
+[1] 0.09836065
+[1] 0.1101695
 
+	Wilcoxon rank sum test with continuity correction
+
+data:  tissue_n1\$maf and tissue_n2$maf
+W = 18316388, p-value = 0.0005705
+alternative hypothesis: true location shift is not equal to 0

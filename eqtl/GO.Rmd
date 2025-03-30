@@ -6,18 +6,241 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-library(topGO)
 library(dplyr)
-library(ggplot2)
-library(patchwork)
-library(tidyr)
+library(topGO)
+library(stringr)
+library(tibble)
 data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
 ```
 
-/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/merged_TX_noMatPARlarge_GO.csv
-
-# eGene off diagonal in effect size plots
 ```{r}
+# functions to swiftly run topGO with minimal fuss
+# many thanks to Damian Hernandez & Bianca Sacchi for the original functions this was based on
 
+## create list from df go mappings
+gene2go_builder <- function(GO_table) {  
+    GO_list <- GO_table %>% group_by(ID) %>%
+      summarise(Ontology_term = list(unique(Ontology_term))) %>%
+      deframe()
+  
+    return(GO_list)
+  }
+
+## create topGO object
+go_data <- function(GO_list,interesting_genes, ontology_category = "BP", node_size = 10) {
+     # all the genes
+    gene_names <- names(GO_list)
+    # genes of interest
+    test_list <- gene_names[gene_names %in% interesting_genes]
+    # code genes as 0 and 1s based on presence in test list
+    gene_list <- factor(as.integer(gene_names %in% test_list))
+    # gene names
+    names(gene_list) <- gene_names
+    # godata
+    GOdata <- new(
+        "topGOdata",
+        ontology = ontology_category, #the ontology type you want to use "BP", "CC", or "MF"
+        allGenes = gene_list, #named vector of all the genes with whether or not it is in the cluster as a binary factor
+        nodeSize = node_size, #this will remove gene ontologies with fewer than that number of genes
+        annot = annFUN.gene2GO, #function to call database used to extract gene-to-GO mappings
+        gene2GO = GO_list
+    ) #the database that has the mappings
+
+    return(GOdata)
+}
+
+### function to create GO data object from 
+basic_go <- function(GO_df, interesting_genes, ontology_category, node_size) {
+    GO_list <- gene2go_builder(GO_df)
+
+    # run topGO, molecular function
+    GOdata <- go_data(GO_list, interesting_genes, ontology_category, node_size)
+
+    return(GOdata)
+    # get results
+}
+
+fisher_test <- function(GOdata) {
+    resultFisher <- runTest(
+        GOdata,
+        algorithm = "weight01",
+        statistic = "fisher"
+    )
+    return(resultFisher)
+}
+
+result_table <- function(result, GOdata) {
+    # Print lengths for debugging
+    #print(length(result))
+    #print(length(resultFisher@score))
+
+    allRes <- GenTable(
+        GOdata,
+        fisher_pval = result,
+        topNodes = 20
+    )
+
+    allRes$fisher_pval <- as.numeric(allRes$fisher_pval)
+
+    return(allRes)
+}
+
+# get_topGO_genes <- function(result_table, GOdata) {
+# 
+#     fisher.go <- dplyr::filter(result_table, fisher_pval < 0.05)$GO.ID
+#     fisher.ann.genes <- genesInTerm(GOdata, whichGO=fisher.go)
+# 
+#     return(fisher.ann.genes)
+# 
+# }
+```
+
+write.table(unique(ML_eqtl_sig$phenotype_id), file = paste0(data, "ML_egene_eqtl.txt"), row.names = F, quote = F, col.names = F)
+write.table(unique(MP_eqtl_sig$phenotype_id), file = paste0(data, "MP_egene_eqtl.txt"), row.names = F, quote = F, col.names = F)
+write.table(unique(FL_eqtl_sig$phenotype_id), file = paste0(data, "FL_egene_eqtl.txt"), row.names = F, quote = F, col.names = F)
+# eGenes in male leaf, female leaf, pollen
+```{r}
+# ML
+ML_egene <- read.table(paste0(data, "ML_egene_eqtl.txt")) # 2421
+interesting_genes <- unique(ML_egene$V1) 
+expressed <- read.table("/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/normalized_counts_mln_auto.bed", header = T) # 14949
+expressed <- as.data.frame(expressed$gene_id)
+colnames(expressed) <- "ID"
+GO_table <- read.csv(paste0(data, "GO_terms_orthos_merged_tx_anno.csv")) # 23558
+GO_table <- inner_join(expressed, GO_table, by = "ID") # 14712
+
+GOdata <- basic_go(GO_table, interesting_genes, ontology_category, node_size)
+resultFisher <- fisher_test(GOdata)
+results <- result_table(resultFisher, GOdata)
+# results <- results %>% filter(fisher_pval < 0.05)
+write.csv(results, file=paste0(data, "GO_ML_egene.csv"),row.names = FALSE, quote=FALSE )
+
+# MP
+MP_egene <- read.table(paste0(data, "MP_egene_eqtl.txt")) # 1475
+interesting_genes <- unique(MP_egene$V1) 
+expressed <- read.table("/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/normalized_counts_mpn_auto.bed", header = T) # 13923
+expressed <- as.data.frame(expressed$gene_id)
+colnames(expressed) <- "ID"
+GO_table <- read.csv(paste0(data, "GO_terms_orthos_merged_tx_anno.csv")) # 23558
+GO_table <- inner_join(expressed, GO_table, by = "ID") # 13867
+
+GOdata <- basic_go(GO_table, interesting_genes, ontology_category, node_size)
+resultFisher <- fisher_test(GOdata)
+results <- result_table(resultFisher, GOdata)
+# results <- results %>% filter(fisher_pval < 0.05)
+write.csv(results, file=paste0(data, "GO_MP_egene.csv"),row.names = FALSE, quote=FALSE )
+
+# FL
+FL_egene <- read.table(paste0(data, "FL_egene_eqtl.txt")) # 3442
+interesting_genes <- unique(FL_egene$V1) 
+expressed <- read.table("/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/normalized_counts_fln_auto.bed", header = T) # 14634
+expressed <- as.data.frame(expressed$gene_id)
+colnames(expressed) <- "ID"
+GO_table <- read.csv(paste0(data, "GO_terms_orthos_merged_tx_anno.csv")) # 23558
+GO_table <- inner_join(expressed, GO_table, by = "ID") # 14454
+
+GOdata <- basic_go(GO_table, interesting_genes, ontology_category, node_size)
+resultFisher <- fisher_test(GOdata)
+results <- result_table(resultFisher, GOdata)
+#results <- results %>% filter(fisher_pval < 0.05)
+write.csv(results, file=paste0(data, "GO_FL_egene.csv"),row.names = FALSE, quote=FALSE )
+
+# overlap
+interesting_genes <- ML_egene %>% inner_join(FL_egene, by = "V1") %>% inner_join(MP_egene, by = "V1") # 304
+interesting_genes <- unique(interesting_genes$V1) 
+expressed1 <- read.table("/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/normalized_counts_mln_auto.bed", header = T)
+expressed2 <- read.table("/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/normalized_counts_fln_auto.bed", header = T)
+expressed3 <- read.table("/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/normalized_counts_mpn_auto.bed", header = T) 
+
+expressed <- expressed1 %>% full_join(expressed2, by = "gene_id") %>% full_join(expressed3, by = "gene_id") # 16442
+expressed <- as.data.frame(expressed$gene_id)
+colnames(expressed) <- "ID"
+GO_table <- read.csv(paste0(data, "GO_terms_orthos_merged_tx_anno.csv")) # 23558
+GO_table <- inner_join(expressed, GO_table, by = "ID") # 15675
+
+GOdata <- basic_go(GO_table, interesting_genes, ontology_category, node_size)
+resultFisher <- fisher_test(GOdata)
+results <- result_table(resultFisher, GOdata)
+#results <- results %>% filter(fisher_pval < 0.05)
+write.csv(results, file=paste0(data, "GO_shared_egene.csv"),row.names = FALSE, quote=FALSE )
+
+```
+
+
+# eGenes from discordant eqtls between life-stages
+```{r}
+dis_pl <- read.csv(paste0(data, "dis_pl.csv")) # 974
+interesting_genes <- unique(dis_pl$phenotype_id) # 922
+
+# filter for expressed genes
+expressed <- read.table("/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/normalized_counts_pl_diff.bed", header = T) # 16411
+expressed <- as.data.frame(expressed$gene_id)
+colnames(expressed) <- "ID"
+GO_table <- read.csv(paste0(data, "GO_terms_orthos_merged_tx_anno.csv")) # 23558
+GO_table <- inner_join(expressed, GO_table, by = "ID") # 15663
+
+GOdata <- basic_go(GO_table, interesting_genes, ontology_category, node_size)
+resultFisher <- fisher_test(GOdata)
+results <- result_table(resultFisher, GOdata)
+results <- results %>% filter(fisher_pval < 0.05)
+write.csv(results, file=paste0(data, "GO_lifestage_discordant.csv"),row.names = FALSE, quote=FALSE )
+```
+
+
+# eGenes from discordant eqtls between sexes
+```{r}
+dis_sex <- read.csv(paste0(data, "dis_sex.csv")) # 170
+interesting_genes <- unique(dis_sex$phenotype_id) # 168
+
+# filter for expressed genes
+expressed <- read.table("//Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/normalized_counts_ln_auto.bed", header = T) # 14992
+expressed <- as.data.frame(expressed$gene_id)
+colnames(expressed) <- "ID"
+GO_table <- read.csv(paste0(data, "GO_terms_orthos_merged_tx_anno.csv")) # 23558
+GO_table <- inner_join(expressed, GO_table, by = "ID") # 14736
+
+GOdata <- basic_go(GO_table, interesting_genes, ontology_category, node_size)
+resultFisher <- fisher_test(GOdata)
+results <- result_table(resultFisher, GOdata)
+#results <- results %>% filter(fisher_pval < 0.05)
+write.csv(results, file=paste0(data, "GO_sex_discordant.csv"),row.names = FALSE, quote=FALSE )
+```
+
+# eGenes from eqtls for leaf-pollen differential expression
+```{r}
+pl_eqtl_sig <- read.csv(paste0(data, "pl_eqtl_sig.csv")) # 12978
+interesting_genes <- unique(pl_eqtl_sig$phenotype_id) # 2029
+
+# filter for expressed genes
+expressed <- read.table("/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/normalized_counts_pl_diff.bed", header = T) # 16411
+expressed <- as.data.frame(expressed$gene_id)
+colnames(expressed) <- "ID"
+GO_table <- read.csv(paste0(data, "GO_terms_orthos_merged_tx_anno.csv")) # 23558
+GO_table <- inner_join(expressed, GO_table, by = "ID") # 15663
+
+GOdata <- basic_go(GO_table, interesting_genes, ontology_category, node_size)
+resultFisher <- fisher_test(GOdata)
+results <- result_table(resultFisher, GOdata)
+results <- results %>% filter(fisher_pval < 0.05)
+write.csv(results, file=paste0(data, "GO_diff_pl.csv"),row.names = FALSE, quote=FALSE )
+```
+
+# eGenes for Genotype × Sex (5 genes)
+```{r}
+pval_adj_bh <- read.csv(paste0(data, "sex_interaction_padj_bh01.csv")) # 5
+interesting_genes <- unique(pval_adj_bh$phenotype_id) # 5
+
+# filter for expressed genes
+expressed <- read.table("//Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/normalized_counts_ln_auto.bed", header = T) # 14992
+expressed <- as.data.frame(expressed$gene_id)
+colnames(expressed) <- "ID"
+GO_table <- read.csv(paste0(data, "GO_terms_orthos_merged_tx_anno.csv")) # 23558
+GO_table <- inner_join(expressed, GO_table, by = "ID") # 14736
+
+GOdata <- basic_go(GO_table, interesting_genes, ontology_category, node_size)
+resultFisher <- fisher_test(GOdata)
+results <- result_table(resultFisher, GOdata)
+#results <- results %>% filter(fisher_pval < 0.05)
+write.csv(results, file=paste0(data, "GO_Gxsex.csv"),row.names = FALSE, quote=FALSE )
 ```
 

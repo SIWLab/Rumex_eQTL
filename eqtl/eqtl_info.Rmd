@@ -318,10 +318,14 @@ p1 + p2 + p3
 
 
 ```{r}
-p1 <- ggplot(ML_eqtl_sig_min, aes(x=maf, y = abs(slope))) + geom_point(size=0.9, alpha = 0.5, colour = "#6495ED") + geom_smooth(colour = "black") + theme_classic() + labs(x="MAF", y="Effect size", title = "a")
-p2 <- ggplot(FL_eqtl_sig_min, aes(x=maf, y = abs(slope))) + geom_point(size=0.9, alpha = 0.5, colour = "#6495ED") + geom_smooth(colour = "black") + theme_classic() + labs(x="MAF", y="Effect size", title = "b")
-p3 <- ggplot(MP_eqtl_sig_min, aes(x=maf, y = abs(slope))) + geom_point(size=0.9, alpha = 0.5, colour = "#6495ED") + geom_smooth(colour = "black") + theme_classic() + labs(x="MAF", y="Effect size", title = "c")
-p1 + p2 + p3
+p4 <- ggplot(ML_eqtl_sig_min, aes(x=maf, y = abs(slope))) + geom_point(size=0.9, alpha = 0.5, colour = "#6495ED") + geom_smooth(colour = "black") + theme_classic() + labs(x="MAF", y="Effect size", title = "d")
+p5 <- ggplot(FL_eqtl_sig_min, aes(x=maf, y = abs(slope))) + geom_point(size=0.9, alpha = 0.5, colour = "#6495ED") + geom_smooth(colour = "black") + theme_classic() + labs(x="MAF", y="Effect size", title = "e")
+p6 <- ggplot(MP_eqtl_sig_min, aes(x=maf, y = abs(slope))) + geom_point(size=0.9, alpha = 0.5, colour = "#6495ED") + geom_smooth(colour = "black") + theme_classic() + labs(x="MAF", y="Effect size", title = "f")
+p4 + p5 + p6
+```
+```{r}
+p1 + p2 + p3 + p4 + p5 + p6 + plot_layout(nrow = 2)
+ggsave(paste0(data, "FigS3.pdf"))
 ```
 
 

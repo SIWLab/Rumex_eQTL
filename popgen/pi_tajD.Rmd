@@ -1,0 +1,186 @@
+---
+title: "nucleotide diversity"
+author: "Meng"
+date: "2025-01-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+library(car)
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/popgen/"
+data2 <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
+```
+
+
+# pi and tajD data
+```{r}
+# pi <- read.table(paste0(data,"syn_pi.txt"), header = T) # 119485
+# pi <- pi %>% filter(no_sites >= 50) # 20621
+
+pi <- read.table(paste0(data,"syn.genewise_pi.txt"), header = T) # 27520
+pi <- pi %>% filter(no_sites >= 50) # 22093
+
+
+tajd <- read.table(paste0(data,"syn.Tajima.D"), header = T) # 119392
+tajd <- tajd %>% filter(N_SNPS >= 10) # 3327, 11739
+
+colnames(tajd)[1] <- "chrom"
+colnames(pi)[2] <- "chrom"
+tajd$chrom <- as.character(tajd$chrom)
+pi$chrom <- as.character(pi$chrom)
+
+quantile(pi$avg_pi, 0.95) # 0.005546033
+pi_top <- pi %>% filter(avg_pi > 0.005546033)
+
+quantile(tajd$TajimaD, 0.95) # -1.40034
+tajd_top <- tajd %>% filter(TajimaD > -1.40034)
+```
+
+```{r}
+p1 <- ggplot(pi, aes(x = window_pos_1, y = avg_pi)) + geom_point(alpha = 0.3) + facet_grid(. ~ chrom, scales = "free_x", switch = "x", space = "free_x") + theme_classic()
+p2 <- ggplot(tajd, aes(x = BIN_START, y = TajimaD)) + geom_point(alpha = 0.3) + facet_grid(. ~ chrom, scales = "free_x", switch = "x", space = "free_x") + theme_classic()
+
+p1 / p2
+ggsave(paste0(data,"pi_tajD.pdf"))
+```
+
+
+# Categories of eQTLs
+## specific vs shared
+```{r}
+ML_egene <-read.table(paste0(data2, "ML_egene_eqtl.txt"))
+MP_egene <-read.table(paste0(data2, "MP_egene_eqtl.txt"))
+FL_egene <-read.table(paste0(data2, "FL_egene_eqtl.txt"))
+colnames(ML_egene) <- "gene"
+colnames(MP_egene) <- "gene"
+colnames(FL_egene) <- "gene"
+
+gff <- read.table("/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/merged_TX_noMatPARlarge_txanno_genes.gtf")
+gff <- gff[,c(13,1,4,5)]
+colnames(gff) <- c("gene","chrom", "window_pos_1", "window_pos_2")
+gff$chrom <- str_sub(gff$chrom, 2)
+
+# life-stage specific vs shared
+l_specific <- ML_egene %>% anti_join(MP_egene, by = "gene") # 1994
+p_specific <- MP_egene %>% anti_join(ML_egene, by = "gene") # 1048
+pl_shared <- inner_join(ML_egene, MP_egene, by = "gene") # 427
+
+l_specific_pi <- l_specific %>% inner_join(gff, by = "gene") %>% 
+    inner_join(pi, by = c("chrom", "window_pos_1", "window_pos_2")) # 1749
+p_specific_pi <- p_specific %>% inner_join(gff, by = "gene") %>% 
+    inner_join(pi, by = c("chrom", "window_pos_1", "window_pos_2")) # 925
+pl_shared_pi <- pl_shared %>% inner_join(gff, by = "gene") %>% 
+    inner_join(pi, by = c("chrom", "window_pos_1", "window_pos_2")) # 352
+
+mean(l_specific_pi$avg_pi)
+mean(p_specific_pi$avg_pi)
+mean(pl_shared_pi$avg_pi)
+l_specific_pi$Category <- "Leaf-specific"
+p_specific_pi$Category <- "Pollen-specific"
+pl_shared_pi$Category <- "Shared"
+
+# pi1 <- rbind(l_specific_pi, pl_shared_pi)
+# leveneTest(data = pi1, avg_pi ~ Category)
+# t.test(data = pi1, avg_pi ~ Category, var.equal = T)
+# pi2 <- rbind(p_specific_pi, pl_shared_pi)
+# leveneTest(data = pi2, avg_pi ~ Category)
+# t.test(data = pi2, avg_pi ~ Category, var.equal = T)
+
+pi_all <- rbind(l_specific_pi, p_specific_pi, pl_shared_pi)
+leveneTest(data = pi_all, avg_pi ~ Category)
+
+group_by(pi_all, Category) %>%
+  summarise(
+    count = n(),
+    mean = mean(avg_pi, na.rm = TRUE),
+    sd = sd(avg_pi, na.rm = TRUE)
+  )
+
+aov <- aov(avg_pi ~ Category, data = pi_all)
+summary(aov)
+TukeyHSD(aov)
+```
+[1] 0.002143057
+[1] 0.002242397
+[1] 0.002280058
+
+Df  Sum Sq   Mean Sq F value Pr(>F)
+Category       2 0.00001 4.624e-06   0.356  0.701
+Residuals   3023 0.03930 1.300e-05 
+
+```{r}
+ggplot(pi_all, aes(x = Category, y = avg_pi)) + geom_boxplot()
+```
+
+
+```{r}
+# sex specific vs shared
+f_specific <- FL_egene %>% anti_join(ML_egene, by = "gene") # 2072
+m_specific <- ML_egene %>% anti_join(FL_egene, by = "gene") # 1051
+sex_shared <- inner_join(ML_egene, FL_egene, by = "gene") # 1370
+
+f_specific_pi <- f_specific %>% inner_join(gff, by = "gene") %>% 
+    inner_join(pi, by = c("chrom", "window_pos_1", "window_pos_2")) # 1889
+m_specific_pi <- m_specific %>% inner_join(gff, by = "gene") %>% 
+    inner_join(pi, by = c("chrom", "window_pos_1", "window_pos_2")) # 957
+sex_shared_pi <- sex_shared %>% inner_join(gff, by = "gene") %>% 
+    inner_join(pi, by = c("chrom", "window_pos_1", "window_pos_2")) # 1144
+
+mean(f_specific_pi$avg_pi)
+mean(m_specific_pi$avg_pi)
+mean(sex_shared_pi$avg_pi)
+
+m_specific_pi$Category <- "Male-specific"
+f_specific_pi$Category <- "Female-specific"
+sex_shared_pi$Category <- "Shared"
+sex_pi <- rbind(m_specific_pi, f_specific_pi, sex_shared_pi)
+
+group_by(pi_all, Category) %>%
+  summarise(
+    count = n(),
+    mean = mean(avg_pi, na.rm = TRUE),
+    sd = sd(avg_pi, na.rm = TRUE)
+  )
+
+leveneTest(data = sex_pi, avg_pi ~ Category) # p = 7.706e-06
+aov <- aov(avg_pi ~ Category, data = pi_all)
+summary(aov)
+```
+[1] 0.001881269
+[1] 0.001990252
+[1] 0.002313038
+              Df  Sum Sq   Mean Sq F value Pr(>F)
+Category       2 0.00001 4.624e-06   0.356  0.701
+Residuals   3023 0.03930 1.300e-05 
+
+
+box plot of pi and tajD for 3 categories
+```{r}
+ggplot(sex_pi, aes(x = Category, y = avg_pi)) + geom_boxplot()
+```
+
+
+## concordant vs discordant
+```{r}
+# concordant
+pl_concordant <- ml_mp %>% filter(slope.x * slope.y > 0) # 1621
+pl_discordant <- ml_mp %>% filter(slope.x * slope.y < 0) # 75
+
+# sex_concordant <- ml_fl %>% filter(slope.x * slope.y > 0) # 5516
+# sex_discordant <- ml_fl %>% filter(slope.x * slope.y < 0) # 0
+# discordant between sexes
+# dis_sex <- read.csv(paste0(data, "dis_sex.csv")) # 170
+# discordant between life-stages
+# dis_pl <- read.csv(paste0(data, "dis_pl.csv")) # 974
+```
+
+
+
+## eQTLs for Genotype × Sex interaction (5 eqtls)
+```{r}
+pval_adj_bh <- read.csv(paste0(data, "sex_interaction_padj_bh01.csv")) # 5
+
+```

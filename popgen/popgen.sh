@@ -36,13 +36,13 @@ tabix eqtl_mpileup_auto.syn.L.vcf.gz
 
 # pixy
 conda activate pixy
-vcf=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_auto.allsites.L.vcf.gz
-pixy --stats pi \
---vcf ${vcf} \
---populations pop.txt \
---window_size 10000 \
---n_cores 25 \
---output_prefix allsites
+# vcf=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_auto.allsites.L.vcf.gz
+# pixy --stats pi \
+# --vcf ${vcf} \
+# --populations pop.txt \
+# --window_size 10000 \
+# --n_cores 25 \
+# --output_prefix allsites
 
 
 vcf=/ohta2/meng.yuan/rumex/eqtl/pixy/eqtl_mpileup_auto.syn.L.vcf.gz
@@ -54,15 +54,35 @@ pixy --stats pi \
 --output_prefix syn
 
 
+cut -f 1,2,3 merged_TX_noMatPARlarge_txanno_gene_full.bed > merged_TX_noMatPARlarge_txanno_gene.bed
+file=merged_TX_noMatPARlarge_txanno_gene.bed
+sed -i 's/A1/1/g' ${file}
+sed -i 's/A2/2/g' ${file}
+sed -i 's/A3/3/g' ${file}
+sed -i 's/A4/4/g' ${file}
+
+# gene by gene stats
+vcf=/ohta2/meng.yuan/rumex/eqtl/pixy/eqtl_mpileup_auto.syn.L.vcf.gz
+bed=merged_TX_noMatPARlarge_txanno_gene.bed
+pixy --stats pi \
+--vcf ${vcf} \
+--populations pop.txt \
+--n_cores 25 \
+--bed_file ${bed} \
+--output_prefix syn.genewise
+
+
+
 
 # tajD use vcftools
-# random downsample to 80%?
-vcf=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_auto.allsites.L.vcf.gz
-vcftools --gzvcf ${vcf} --TajimaD 10000 --out allSites
+# vcf=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_auto.allsites.L.vcf.gz
+# vcftools --gzvcf ${vcf} --TajimaD 10000 --out allSites
 
-
-# need to increase window size
 vcf=/ohta2/meng.yuan/rumex/eqtl/pixy/eqtl_mpileup_auto.syn.L.vcf.gz
 vcftools --gzvcf ${vcf} --TajimaD 10000 --out syn
+
+
+# gene by gene stats
+
 
 

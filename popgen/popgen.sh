@@ -1,7 +1,5 @@
-# total pi and tajD
+# calculate pi and tajD
 # use 4 fold site only
-# downsampled all sites to 320 chromosomes per site for both pi and tajD
-# 500 bp windows
 
 # pixy
 # use 4 fold site only
@@ -72,8 +70,6 @@ pixy --stats pi \
 --output_prefix syn.genewise
 
 
-
-
 # tajD use vcftools
 # vcf=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_auto.allsites.L.vcf.gz
 # vcftools --gzvcf ${vcf} --TajimaD 10000 --out allSites
@@ -83,6 +79,18 @@ vcftools --gzvcf ${vcf} --TajimaD 10000 --out syn
 
 
 # gene by gene stats
+cd /ohta2/meng.yuan/rumex/eqtl/pixy
+vcf=/ohta2/meng.yuan/rumex/eqtl/pixy/eqtl_mpileup_auto.syn.L.vcf.gz
+bed=merged_TX_noMatPARlarge_txanno_gene.bed
+python3 /ohta1/meng.yuan/apps/genomics_general/VCF_processing/parseVCFs.py \
+-i ${vcf} --ploidyMismatchToMissing --threads 30 | \
+bgzip > eqtl_mpileup_auto.syn.L.geno.gz
+
+
+python3 /ohta1/meng.yuan/apps/genomics_general/popgenWindows.py \
+--windType predefined --windCoords ${bed} -g eqtl_mpileup_auto.syn.L.geno.gz \
+-o syn.genewise_tajd.csv.gz -f phased -T 30 -p pop \
+--popsFile pop.txt --analysis popFreq --writeFailedWindows
 
 
 

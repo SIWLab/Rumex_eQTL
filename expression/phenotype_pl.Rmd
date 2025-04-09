@@ -284,7 +284,7 @@ write.table(normalized_counts_n, file = paste0(data,"normalized_counts_pln.bed")
 ```
 # get expression level difference as phenotype
 ```{r}
-count <- read.table(paste0(data,"normalized_counts_pl_sept.txt"), header = T, check.names = F)
+count <- read.table(paste0(data,"normalized_counts_pl_sept.txt"), header = T, check.names = F) # 21337
 colnames(count)
 mp <- count[,c(1,2:70)]
 ml <- count[,c(1,71:139)]
@@ -324,5 +324,42 @@ colnames(normalized_counts_n_auto)[1] <- "#chr"
 write.table(normalized_counts_n_auto, file = paste0(data,"normalized_counts_pl_diff.bed"), row.names = FALSE, quote = F, sep = "\t")
 ```
 
+## use the absolute value of the difference
+```{r}
+diff[,-1] <- abs(diff[,-1])
+qn <- function(x){qqnorm(x, plot.it=FALSE)$x}
+normalized_counts_n = apply(diff[,-1], 1, qn)
+normalized_counts_n <- as.data.frame(t(normalized_counts_n))
+normalized_counts_n <- cbind(diff[,1], normalized_counts_n)
+colnames(normalized_counts_n) <- colnames(diff)
+
+gff_full <- read.table(paste0(data, "gff_full.txt"), header = T)
+normalized_counts_n <- inner_join(gff_full, normalized_counts_n, by = "gene")
+
+#sort start pos for each chrom
+normalized_counts_n <- normalized_counts_n %>%
+  arrange(chrom, start) 
+
+# sort col names
+new_order <- scan(paste0(data,"pl.txt"), what = character(), sep = "\t")
+normalized_counts_n <- normalized_counts_n[, c(names(normalized_counts_n)[1:4], new_order)]
+colnames(normalized_counts_n)
+
+colnames(normalized_counts_n)[4] <- "gene_id"
+#normalized_counts_n$chrom <- factor(normalized_counts_n$chrom)
+#table(normalized_counts_n$chrom)
+normalized_counts_n_auto <- normalized_counts_n %>% filter(chrom != "PAR" & chrom != "X" & chrom != "Y") # 16411
+colnames(normalized_counts_n_auto)[1] <- "#chr"
+write.table(normalized_counts_n_auto, file = paste0(data,"normalized_counts_pl_diff_abs.bed"), row.names = FALSE, quote = F, sep = "\t")
+
+```
+
+
+## separate the positive and negative differences
+only keep the ones where all samples are positive or negative, count how many
+```{r}
+diff_1 <- diff[apply(diff[, -1], 1, function(row) all(row > 0)), ] # 5334
+diff_2 <- diff[apply(diff[, -1], 1, function(row) all(row < 0)), ] # 3138
+```
 
 

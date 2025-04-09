@@ -23,7 +23,8 @@ MP_eqtl_sig <-read.csv(paste0(data, "MP_eqtl_sig_Nov.csv"))
 # get eQTL for expression difference between pollen and leaf
 ## permutations
 ```{r}
-pl <- read.table(paste0(data, "pl.cis_qtl.txt"), header = T) # 16218
+# pl <- read.table(paste0(data, "pl.cis_qtl.txt"), header = T) # 16218
+pl <- read.table(paste0(data, "pl_abs.cis_qtl.txt"), header = T) # 16218
 
 qval_pl <- qvalue(pl$pval_beta)
 summary(qval_pl)
@@ -32,12 +33,12 @@ hist(qval_pl)
 
 ## extract eQenes and eQTLs
 ```{r}
-pl_egene <- pl %>% filter(qval < 0.1) # 2031
+pl_egene <- pl %>% filter(qval < 0.1) # 2031, 1566
 
-pl_A1 <- read_parquet(paste0(data,"pl.cis_qtl_pairs.1.parquet"))
-pl_A2 <- read_parquet(paste0(data,"pl.cis_qtl_pairs.2.parquet"))
-pl_A3 <- read_parquet(paste0(data,"pl.cis_qtl_pairs.3.parquet"))
-pl_A4 <- read_parquet(paste0(data,"pl.cis_qtl_pairs.4.parquet"))
+pl_A1 <- read_parquet(paste0(data,"pl_abs.cis_qtl_pairs.1.parquet"))
+pl_A2 <- read_parquet(paste0(data,"pl_abs.cis_qtl_pairs.2.parquet"))
+pl_A3 <- read_parquet(paste0(data,"pl_abs.cis_qtl_pairs.3.parquet"))
+pl_A4 <- read_parquet(paste0(data,"pl_abs.cis_qtl_pairs.4.parquet"))
 pl_eqtl <- rbind(pl_A1, pl_A2, pl_A3, pl_A4) # 1404801
 sum(pl$num_var) # 1404801
 ```
@@ -47,8 +48,8 @@ ggplot(pl_eqtl, aes(x=pval_nominal)) + geom_histogram(color="black", fill="white
 ```
 
 ```{r}
-pl_eqtl_full <- inner_join(pl_eqtl, pl_egene[,c(1,16:19)], by = "phenotype_id") # 223329
-pl_eqtl_sig <- pl_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold) # 12978
+pl_eqtl_full <- inner_join(pl_eqtl, pl_egene[,c(1,16:19)], by = "phenotype_id") # 223329, 173054, 176402
+pl_eqtl_sig <- pl_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold) # 12978, 9754, 9873
 
 length(unique(pl_eqtl_sig$variant_id)) # 12626
 length(unique(pl_eqtl_sig$phenotype_id)) # 2029
@@ -66,9 +67,10 @@ write.csv(pl_eqtl_sig_random, file = paste0(data, "pl_eqtl_sig_random.csv"), row
 pl_eqtl_sig_min <- pl_eqtl_sig %>%
   group_by(phenotype_id) %>% 
   filter(pval_nominal == min(pval_nominal)) %>% 
-  slice_sample(n = 1) # 2029
+  slice_sample(n = 1) # 2029, 1540, 1564
 write.csv(pl_eqtl_sig_min, file = paste0(data, "pl_eqtl_sig_min.csv"), row.names = F, quote = F)
 ```
+
 
 ## MAF
 ```{r}
@@ -100,8 +102,11 @@ p1 + p2
 ## distribution of effect size
 
 ```{r}
-nrow(pl_eqtl_sig[pl_eqtl_sig$slope > 0,]) # 5481
-nrow(pl_eqtl_sig[pl_eqtl_sig$slope < 0,]) # 7497
+nrow(pl_eqtl_sig[pl_eqtl_sig$slope > 0,]) # 5481, 6087, 6173
+nrow(pl_eqtl_sig[pl_eqtl_sig$slope < 0,]) # 7497, 3667, 3700
+
+nrow(pl_eqtl_sig_min[pl_eqtl_sig_min$slope > 0,]) # 921
+nrow(pl_eqtl_sig_min[pl_eqtl_sig_min$slope < 0,]) # 643
 ```
 
 ```{r}
@@ -112,6 +117,7 @@ p3 <- ggplot(pl_eqtl_sig, aes(x=slope)) + geom_histogram(color="black", fill="wh
 
 p4 <- ggplot(pl_eqtl_sig_min, aes(x=slope)) + geom_histogram(color="black", fill="white",binwidth = 0.01) + theme_classic()+ xlab("effect size")+ggtitle("")
 p3+p4
+ggsave(paste0(data,"pl_eqtl_beta.pdf"), width = 7, height = 3, units = "in")
 ```
 
 
@@ -223,15 +229,62 @@ both    leaf   leaf2  pollen pollen2
 DE_tissue <- read.table("/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/DE_tissue_full.txt", header = T)
 head(DE_tissue) 
 DE_tissue <- DE_tissue %>% filter(padj<0.05) # 19822
-egene <- as.data.frame(unique(pl_eqtl_sig$phenotype_id)) # 2029
+egene <- as.data.frame(unique(pl_eqtl_sig$phenotype_id)) # 2029, 1540
 colnames(egene) <- "gene" 
-egene_overlap <- inner_join(egene, DE_tissue, by = "gene") # 1874
+egene_overlap <- inner_join(egene, DE_tissue, by = "gene") # 1874, 1442
 
 # DE_tissue <- DE_tissue %>% filter(padj<0.1) # 200061
 # egene_overlap <- inner_join(egene, DE_tissue, by = "gene") # 1905
-ggplot(egene_overlap, aes(abs(log2FoldChange))) + geom_histogram(binwidth = 0.5,color="black", fill="white") + theme_classic() 
-ggsave(paste0(data,"logFC_distribution.pdf"), width = 7, height = 3, units = "in")
+
+p1 <- ggplot(DE_tissue, aes(abs(log2FoldChange))) + geom_histogram(binwidth = 0.5,color="black", fill="white") + theme_classic() + ggtitle("a")
+
+p2 <- ggplot(egene_overlap, aes(abs(log2FoldChange))) + geom_histogram(binwidth = 0.5,color="black", fill="white") + theme_classic() + ggtitle("b")
+
+p1 + p2
+ggsave(paste0(data,"logFC_distribution_both.pdf"), width = 7, height = 3, units = "in")
+
 ```
+
+
+```{r}
+DE_tissue <- DE_tissue %>% mutate(bias = case_when(
+    abs(log2FoldChange) <= 1 ~ "FC1",
+    abs(log2FoldChange) > 1 & abs(log2FoldChange) <= 2 ~ "FC2",
+    abs(log2FoldChange) > 2 & abs(log2FoldChange) <= 3 ~ "FC3",
+    abs(log2FoldChange) > 3 & abs(log2FoldChange)  ~ "FC4"
+))
+t1 <- as.data.frame(table(DE_tissue$bias))
+
+egene_overlap <- egene_overlap %>% mutate(bias = case_when(
+    abs(log2FoldChange) <= 1 ~ "FC1",
+    abs(log2FoldChange) > 1 & abs(log2FoldChange) <= 2 ~ "FC2",
+    abs(log2FoldChange) > 2 & abs(log2FoldChange) <= 3 ~ "FC3",
+    abs(log2FoldChange) > 3 & abs(log2FoldChange)  ~ "FC4"
+))
+t2 <- as.data.frame(table(egene_overlap$bias))
+
+colnames(t1) <- c("bias","all")
+colnames(t2) <- c("bias","egene")
+t <- inner_join(t1, t2, by = "bias")
+rownames(t) <- t[,1]
+t <- t[,-1]
+chi <- chisq.test(t)
+chi$residuals
+mosaicplot(t,shade = TRUE)
+ggsave(paste0(data,"mosaicplot_residuals.pdf"), width = 7, height = 3, units = "in")
+
+```
+Pearson's Chi-squared test
+
+data:  t
+X-squared = 44.288, df = 3, p-value = 1.311e-09
+
+         all     egene
+FC1  1.3029392 -4.830758
+FC2  0.5011011 -1.857875
+FC3 -0.4703268  1.743777
+FC4 -0.9129066  3.384679
+
 ```{r}
 median(abs(egene_overlap$log2FoldChange)) #2.326629
 summary(abs(egene_overlap$log2FoldChange))

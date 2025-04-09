@@ -93,11 +93,10 @@ result_table <- function(result, GOdata) {
 #     return(fisher.ann.genes)
 # 
 # }
+ontology_category <- "BP"
+node_size <- 10
 ```
 
-write.table(unique(ML_eqtl_sig$phenotype_id), file = paste0(data, "ML_egene_eqtl.txt"), row.names = F, quote = F, col.names = F)
-write.table(unique(MP_eqtl_sig$phenotype_id), file = paste0(data, "MP_egene_eqtl.txt"), row.names = F, quote = F, col.names = F)
-write.table(unique(FL_eqtl_sig$phenotype_id), file = paste0(data, "FL_egene_eqtl.txt"), row.names = F, quote = F, col.names = F)
 # eGenes in male leaf, female leaf, pollen
 ```{r}
 # ML
@@ -208,8 +207,8 @@ write.csv(results, file=paste0(data, "GO_sex_discordant.csv"),row.names = FALSE,
 
 # eGenes from eqtls for leaf-pollen differential expression
 ```{r}
-pl_eqtl_sig <- read.csv(paste0(data, "pl_eqtl_sig.csv")) # 12978
-interesting_genes <- unique(pl_eqtl_sig$phenotype_id) # 2029
+pl_eqtl_sig <- read.csv(paste0(data, "pl_eqtl_sig.csv")) # 9873
+interesting_genes <- unique(pl_eqtl_sig$phenotype_id) # 1564
 
 # filter for expressed genes
 expressed <- read.table("/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/normalized_counts_pl_diff.bed", header = T) # 16411
@@ -221,8 +220,8 @@ GO_table <- inner_join(expressed, GO_table, by = "ID") # 15663
 GOdata <- basic_go(GO_table, interesting_genes, ontology_category, node_size)
 resultFisher <- fisher_test(GOdata)
 results <- result_table(resultFisher, GOdata)
-results <- results %>% filter(fisher_pval < 0.05)
-write.csv(results, file=paste0(data, "GO_diff_pl.csv"),row.names = FALSE, quote=FALSE )
+# results <- results %>% filter(fisher_pval < 0.05)
+write.csv(results, file=paste0(data, "GO_diff_pl_abs.csv"),row.names = FALSE, quote=FALSE )
 ```
 
 # eGenes for Genotype × Sex (5 genes)

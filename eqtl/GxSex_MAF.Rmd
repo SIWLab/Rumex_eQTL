@@ -15,9 +15,58 @@ library(tidyr)
 data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/sex/"
 ```
 
+# Model only testing for G without interaction term
+
+```{r}
+nosex_genes <- read.table(paste0(data, "nosex.cis_qtl.txt"), header = T) # 14755
+hist(nosex_genes$pval_beta, nclass = 20)
+# qval_nosex <- qvalue(nosex_genes$pval_beta)
+# summary(qval_nosex)
+# hist(qval_nosex)
+nosex_egene <- nosex_genes %>% filter(qval < 0.1) # 9530
+
+# eQTLs significant for genotype term regarless of sex
+nosex_A1 <- read_parquet(paste0(data,"nosex.cis_qtl_pairs.1.parquet"))
+nosex_A2 <- read_parquet(paste0(data,"nosex.cis_qtl_pairs.2.parquet"))
+nosex_A3 <- read_parquet(paste0(data,"nosex.cis_qtl_pairs.3.parquet"))
+nosex_A4 <- read_parquet(paste0(data,"nosex.cis_qtl_pairs.4.parquet"))
+nosex_eqtl <- rbind(nosex_A1, nosex_A2, nosex_A3, nosex_A4) # 1368353
+sum(nosex_genes$num_var) # 1368353
+ 
+nosex_eqtl_full <- inner_join(nosex_eqtl, nosex_egene[,c(1,16:19)], by = "phenotype_id") # 986055
+nosex_eqtl_sig <- nosex_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold) #  112225
+length(unique(nosex_eqtl_sig$phenotype_id)) # 9518
+length(unique(nosex_eqtl_sig$variant_id)) # 105849
+write.csv(nosex_eqtl_sig, file = paste0(data, "nosex_eqtl_sig.csv"), row.names = F, quote = F)
+
+set.seed(13) 
+nosex_eqtl_sig_min <- nosex_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_nominal == min(pval_nominal)) %>%
+  slice_sample(n = 1) # 9518
+write.csv(nosex_eqtl_sig_min, file = paste0(data, "nosex_eqtl_sig_min.csv"), row.names = F, quote = F) 
+```
+
+# Model only testing for G without interaction term
+Sex as a covariate
+```{r}
+sex_genes <- read.table(paste0(data, "sex.cis_qtl.txt"), header = T) # 14755
+sex_egene <- sex_genes %>% filter(qval < 0.1) # 9743
+sex_A1 <- read_parquet(paste0(data,"sex.cis_qtl_pairs.1.parquet"))
+sex_A2 <- read_parquet(paste0(data,"sex.cis_qtl_pairs.2.parquet"))
+sex_A3 <- read_parquet(paste0(data,"sex.cis_qtl_pairs.3.parquet"))
+sex_A4 <- read_parquet(paste0(data,"sex.cis_qtl_pairs.4.parquet"))
+sex_eqtl <- rbind(sex_A1, sex_A2, sex_A3, sex_A4) # 1368353
+sum(sex_genes$num_var) # 1368353
+sex_eqtl_full <- inner_join(sex_eqtl, sex_egene[,c(1,16:19)], by = "phenotype_id") # 1003758
+sex_eqtl_sig <- sex_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold) #  115294
+length(unique(sex_eqtl_sig$phenotype_id)) # 9734
+length(unique(sex_eqtl_sig$variant_id)) # 108680
+ 
+```
+
 
 # all gene-variant pairs with interaction term
-without sex as a covariate
 ```{r}
 sex_interaction_A1 <- read_parquet(paste0(data,"nosex_inter.cis_qtl_pairs.1.parquet"))
 sex_interaction_A2 <- read_parquet(paste0(data,"nosex_inter.cis_qtl_pairs.2.parquet"))
@@ -58,10 +107,6 @@ write.table(p_gi_adj_01$variant_id, file = paste0(data, "p_gi_adj_01.txt"), row.
 write.table(p_g_adj_01$variant_id, file = paste0(data, "p_g_adj_01.txt"), row.names = F, quote = F, col.names = F)
 write.table(p_i_adj_01$variant_id, file = paste0(data, "p_i_adj_01.txt"), row.names = F, quote = F, col.names = F)
 
-# write.table(p_gi_adj_005$variant_id, file = paste0(data, "p_gi_adj_005.txt"), row.names = F, quote = F, col.names = F)
-# write.table(p_g_adj_005$variant_id, file = paste0(data, "p_g_adj_005.txt"), row.names = F, quote = F, col.names = F)
-# write.table(p_i_adj_005$variant_id, file = paste0(data, "p_i_adj_005.txt"), row.names = F, quote = F, col.names = F)
-
 write.table(p_gi_adj_01$phenotype_id, file = paste0(data, "p_gi_adj_01_pheno.txt"), row.names = F, quote = F, col.names = F)
 write.table(p_g_adj_01$phenotype_id, file = paste0(data, "p_g_adj_01_pheno.txt"), row.names = F, quote = F, col.names = F)
 write.table(p_i_adj_01$phenotype_id, file = paste0(data, "p_i_adj_01_pheno.txt"), row.names = F, quote = F, col.names = F)
@@ -74,7 +119,51 @@ range(pval_adj_bh$maf)
 write.csv(pval_adj_bh, file = paste0(data, "sex_interaction_padj_bh01.csv"), row.names = F, quote = F)
 ```
 
+```{r}
+overlap <- inner_join(nosex_eqtl_sig_min, sex_inter_top, by = c("phenotype_id", "variant_id")) # 494
+overlap2 <- inner_join(nosex_eqtl_sig, sex_inter_top, by = c("phenotype_id", "variant_id")) # 1408
+overlap3 <- inner_join(nosex_eqtl_sig, g_min, by = c("phenotype_id", "variant_id")) # 3046
+
+overlap0 <- inner_join(nosex_eqtl_sig, sex_eqtl_sig, by = c("phenotype_id", "variant_id")) # 109044
+overlap4 <- inner_join(sex_eqtl_sig, sex_inter_top, by = c("phenotype_id", "variant_id")) # 1454
+
+```
+
+
 # MAF
+extract a larger set to compare MAFs
+```{r}
+# keep the lowest p value of each term for each gene
+set.seed(13)
+g_min <- sex_inter %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_g == min(pval_g)) %>% 
+  slice_sample(n = 1) # 14587
+
+i_min <- sex_inter %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_i == min(pval_i)) %>% 
+  slice_sample(n = 1) # 14587
+
+g_min$pval_g_adj <- p.adjust(g_min$pval_g, "fdr")
+i_min$pval_i_adj <- p.adjust(i_min$pval_i, "fdr")
+
+p_gi_adj_01 <- sex_inter_top %>% filter(pval_gi_adj < 0.1) # 9572
+p_g_adj_01 <- g_min %>% filter(pval_g_adj < 0.1) # 10884
+p_i_adj_01 <- i_min %>% filter(pval_i_adj < 0.1) # 7168
+
+# new venn diagram
+write.table(p_gi_adj_01$phenotype_id, file = paste0(data, "p_gi_adj_01_pheno_mar.txt"), row.names = F, quote = F, col.names = F)
+write.table(p_g_adj_01$phenotype_id, file = paste0(data, "p_g_adj_01_pheno_mar.txt"), row.names = F, quote = F, col.names = F)
+write.table(p_i_adj_01$phenotype_id, file = paste0(data, "p_i_adj_01_pheno_mar.txt"), row.names = F, quote = F, col.names = F)
+
+g <- p_g_adj_01 %>% select(variant_id, af) %>% distinct() # 10884
+gi <- p_gi_adj_01 %>% select(variant_id, af)  %>% distinct() # 9370
+i <- p_i_adj_01 %>% select(variant_id, af)  %>% distinct() # 7168
+
+```
+
+
 G, Sex, G x Sex only, or all, 4 sets
 ```{r}
 g <- p_g_adj_01 %>% select(variant_id, maf) %>% distinct() # 7551
@@ -150,3 +239,14 @@ Wilcoxon rank sum test with continuity correction
 data:  g_only\$maf and gi_only$maf
 W = 472680, p-value = 0.9122
 alternative hypothesis: true location shift is not equal to 0
+
+```{r}
+set.seed(13)
+sex_inter_min <- sex_inter %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_gi == min(pval_gi)) %>% 
+  slice_sample(n = 1) # 2421
+
+test <- inner_join(sex_inter_min, sex_inter_top, by = c("phenotype_id", "variant_id"))
+```
+

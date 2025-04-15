@@ -51,8 +51,8 @@ ggplot(pl_eqtl, aes(x=pval_nominal)) + geom_histogram(color="black", fill="white
 pl_eqtl_full <- inner_join(pl_eqtl, pl_egene[,c(1,16:19)], by = "phenotype_id") # 223329, 173054, 176402
 pl_eqtl_sig <- pl_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold) # 12978, 9754, 9873
 
-length(unique(pl_eqtl_sig$variant_id)) # 12626
-length(unique(pl_eqtl_sig$phenotype_id)) # 2029
+length(unique(pl_eqtl_sig$variant_id)) # 9639
+length(unique(pl_eqtl_sig$phenotype_id)) # 1564
 
 pl_eqtl_sig <- pl_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
 write.csv(pl_eqtl_sig, file = paste0(data, "pl_eqtl_sig.csv"), row.names = F, quote = F)
@@ -61,13 +61,13 @@ pl_eqtl_sig <- read.csv(paste0(data, "pl_eqtl_sig.csv"))
 set.seed(123)
 pl_eqtl_sig_random <- pl_eqtl_sig %>%
   group_by(phenotype_id) %>% 
-  slice_sample(n = 1)  # 2029
+  slice_sample(n = 1)  # 1564
 write.csv(pl_eqtl_sig_random, file = paste0(data, "pl_eqtl_sig_random.csv"), row.names = F, quote = F)
 
 pl_eqtl_sig_min <- pl_eqtl_sig %>%
   group_by(phenotype_id) %>% 
   filter(pval_nominal == min(pval_nominal)) %>% 
-  slice_sample(n = 1) # 2029, 1540, 1564
+  slice_sample(n = 1) # 1564
 write.csv(pl_eqtl_sig_min, file = paste0(data, "pl_eqtl_sig_min.csv"), row.names = F, quote = F)
 ```
 
@@ -107,6 +107,9 @@ nrow(pl_eqtl_sig[pl_eqtl_sig$slope < 0,]) # 7497, 3667, 3700
 
 nrow(pl_eqtl_sig_min[pl_eqtl_sig_min$slope > 0,]) # 921
 nrow(pl_eqtl_sig_min[pl_eqtl_sig_min$slope < 0,]) # 643
+
+nrow(pl_eqtl_sig_random[pl_eqtl_sig_random$slope > 0,]) # 931
+nrow(pl_eqtl_sig_random[pl_eqtl_sig_random$slope < 0,]) # 633
 ```
 
 ```{r}
@@ -124,58 +127,58 @@ ggsave(paste0(data,"pl_eqtl_beta.pdf"), width = 7, height = 3, units = "in")
 
 
 ## cis independent
-2029 eGenes
+1566 eGenes
 ```{r}
-pl_independent <- read.table(paste0(data, "pl.cis_independent_qtl.txt"), header = T) # 2218
-length(unique(pl_independent$phenotype_id)) # 2029
+pl_independent <- read.table(paste0(data, "pl_abs.cis_independent_qtl.txt"), header = T) # 1707
+egene <- as.data.frame(unique(pl_eqtl_sig$phenotype_id))
+colnames(egene) <- "phenotype_id"
+pl_independent <- left_join(egene, pl_independent, by = "phenotype_id") # 1705
+length(unique(pl_independent$phenotype_id)) # 1564
 
-pl1 <- pl_independent %>% filter(rank == 1) # 2020
+pl1 <- pl_independent %>% filter(rank == 1) # 1559
 
 # filter for primary eQTLs
 pl1 <- pl_independent %>%
   group_by(phenotype_id) %>% 
-  filter(rank == min(rank)) # 2029
+  filter(rank == min(rank)) # 1564
 
 # manually update the top rank for each eGene to rank = 1
-pl1$rank <- 1 # 2029
+pl1$rank <- 1 
 # filter for secondary eQTLs
-pl2 <- anti_join(pl_independent, pl1, by = c("phenotype_id", "variant_id")) # 188
+pl2 <- anti_join(pl_independent, pl1, by = c("phenotype_id", "variant_id")) # 141
 length(pl2$phenotype_id)
 
-pl1 <- pl1 %>% select(phenotype_id, variant_id, pval_nominal, slope, rank)
-pl2 <- pl2 %>% select(phenotype_id, variant_id, pval_nominal, slope, rank)
+pl1 <- pl1 %>% dplyr::select(phenotype_id, variant_id, pval_nominal, slope, rank)
+pl2 <- pl2 %>% dplyr::select(phenotype_id, variant_id, pval_nominal, slope, rank)
 test <- inner_join(pl1, pl2, by = "phenotype_id")
-test1 <- test %>% filter(slope.x * slope.y < 0) #72
-# rank = 1 but not the most significant eQTL
-# test <- anti_join(pl1, pl_egene, by = c("phenotype_id", "variant_id")) # 30
-
+test1 <- test %>% filter(slope.x * slope.y < 0) # 54
 ```
 
 ## eqtls affecting multiple genes
 ```{r}
-length(unique(pl_eqtl_sig$variant_id)) # 12626
+length(unique(pl_eqtl_sig$variant_id)) # 9639
 pl_eqtl_multigene <- pl_eqtl_sig %>% 
      group_by(variant_id) %>%
      filter(n()>1) %>%
-    select(variant_id, maf) %>% unique() # 343
+    dplyr::select(variant_id, maf) %>% unique() # 231
 
 pl_eqtl_onegene <- pl_eqtl_sig %>% 
      group_by(variant_id) %>%
      filter(n()==1) %>%
-    select(variant_id, maf) # 12283
+    dplyr::select(variant_id, maf) # 9408
 
-pl_eqtl_multigene <- left_join(pl_eqtl_multigene, pl_eqtl_sig, by = c("variant_id", "maf")) # 695
-length(unique(pl_eqtl_multigene$phenotype_id)) # 137
+pl_eqtl_multigene <- left_join(pl_eqtl_multigene, pl_eqtl_sig, by = c("variant_id", "maf")) # 465
+length(unique(pl_eqtl_multigene$phenotype_id)) # 101
 ```
 
 
 # check overlap with results from separate models
 ## overlap with eQTLs in ML, MP
 ```{r}
-ml_overlap <- inner_join(pl_eqtl_sig, ML_eqtl_sig, by = c("phenotype_id", "variant_id")) # 4986
-mp_overlap <- inner_join(pl_eqtl_sig, MP_eqtl_sig, by = c("phenotype_id", "variant_id")) # 6153
+ml_overlap <- inner_join(pl_eqtl_sig, ML_eqtl_sig, by = c("phenotype_id", "variant_id")) # 4535
+mp_overlap <- inner_join(pl_eqtl_sig, MP_eqtl_sig, by = c("phenotype_id", "variant_id")) # 4964
 
-no_overlap <- pl_eqtl_sig %>% anti_join(ML_eqtl_sig, by = c("phenotype_id", "variant_id")) %>% anti_join(MP_eqtl_sig, by = c("phenotype_id", "variant_id")) # 2534
+no_overlap <- pl_eqtl_sig %>% anti_join(ML_eqtl_sig, by = c("phenotype_id", "variant_id")) %>% anti_join(MP_eqtl_sig, by = c("phenotype_id", "variant_id")) # 1142
 # TX_paternal_00028051 3:98850390
 
 # for Venn diagram
@@ -183,30 +186,63 @@ write.table(pl_eqtl_sig[,c(1:2)], file = paste0(data, "pl_eqtl.txt"), row.names 
 ```
 
 ```{r}
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/"
+normalized_counts_mln <- read.table(paste0(data,"normalized_counts_mln.bed"), header = T, check.names = F)
+normalized_counts_mpn <- read.table(paste0(data,"normalized_counts_mpn.bed"), header = T, check.names = F)
+
 # for Venn diagram
 write.table(normalized_counts_mln[,4], file = paste0(data, "ml_gene.txt"), row.names = F, quote = F, col.names = F)
 write.table(normalized_counts_mpn[,4], file = paste0(data, "mp_gene.txt"), row.names = F, quote = F, col.names = F)
 write.table(pl_eqtl_sig[,1], file = paste0(data, "pl_gene.txt"), row.names = F, quote = F, col.names = F)
 
-# genes tested in all MP, ML and pl_diff 1450
+# genes tested in all MP, ML and pl_diff 1051
 ml_gene <- as.data.frame(normalized_counts_mln[,4])
 mp_gene <- as.data.frame(normalized_counts_mpn[,4])
 colnames(ml_gene) <- "phenotype_id"
 colnames(mp_gene) <- "phenotype_id"
-overlap_gene <- pl_eqtl_sig %>% inner_join(ml_gene, by = "phenotype_id") %>% inner_join(mp_gene, by = "phenotype_id") %>% select(phenotype_id, variant_id) %>% distinct() # 1450 egenes, 8582 eqtls
+overlap_gene <- pl_eqtl_sig %>% inner_join(ml_gene, by = "phenotype_id") %>% inner_join(mp_gene, by = "phenotype_id") %>% dplyr::select(phenotype_id, variant_id) %>% distinct() # 5946 eqtls
+length(unique(overlap_gene$phenotype_id)) # 1051
 
 # for Venn diagram
 write.table(overlap_gene, file = paste0(data, "pl_gene_overlap.txt"), row.names = F, quote = F, col.names = F)
 
-no_overlap2 <- overlap_gene %>% anti_join(ML_eqtl_sig, by = c("phenotype_id", "variant_id")) %>% anti_join(MP_eqtl_sig, by = c("phenotype_id", "variant_id")) # 1800
-no_overlap2 <- no_overlap2 %>% inner_join(pl_eqtl_sig, by = c("phenotype_id", "variant_id"))
-# TX_paternal_00029854 4:34118808
+no_overlap2 <- overlap_gene %>% anti_join(ML_eqtl_sig, by = c("phenotype_id", "variant_id")) %>% anti_join(MP_eqtl_sig, by = c("phenotype_id", "variant_id")) # 919
+5946 - 919
+
+# check signs of beta of shared eqtls
+pl <- pl_eqtl_sig %>% dplyr::select(phenotype_id, variant_id, slope)
+ml <- ML_eqtl_sig %>% dplyr::select(phenotype_id, variant_id, slope)
+mp <- MP_eqtl_sig %>% dplyr::select(phenotype_id, variant_id, slope)
+colnames(pl)[3] <- "pl"
+colnames(ml)[3] <- "ml"
+colnames(mp)[3] <- "mp"
+
+overlap_eqtl <- pl %>% inner_join(ml, by = c("phenotype_id", "variant_id")) %>% inner_join(mp, by = c("phenotype_id", "variant_id")) # 768
+
+# different degree
+sum(overlap_eqtl$pl > 0 & overlap_eqtl$ml > 0 & overlap_eqtl$mp > 0) # 422
+sum(overlap_eqtl$pl > 0 & overlap_eqtl$ml < 0 & overlap_eqtl$mp < 0) # 109
+sum(overlap_eqtl$pl > 0 & overlap_eqtl$ml > 0 & overlap_eqtl$mp < 0) # 0
+sum(overlap_eqtl$pl > 0 & overlap_eqtl$ml < 0 & overlap_eqtl$mp > 0) # 22
+
+sum(overlap_eqtl$pl < 0 & overlap_eqtl$ml > 0 & overlap_eqtl$mp > 0) # 1
+sum(overlap_eqtl$pl < 0 & overlap_eqtl$ml < 0 & overlap_eqtl$mp < 0) # 204
+sum(overlap_eqtl$pl < 0 & overlap_eqtl$ml > 0 & overlap_eqtl$mp < 0) # 10
+sum(overlap_eqtl$pl < 0 & overlap_eqtl$ml < 0 & overlap_eqtl$mp > 0) # 0
+
+# pl and leaf same sign
+422+204+0+0
+
+# pl and pollen same sign
+422+204+22+10
+
+# leaf and pollen same sign
+422+109+1+204 # 736s
 ```
-genes only tested in pl (from venn diagram)
-TX_paternal_00004400 TX_paternal_00031744 TX_paternal_00006959 TX_paternal_00015600 TX_paternal_00028328 TX_paternal_00033344 TX_paternal_00006794 TX_paternal_00003125 TX_paternal_00002744 TX_paternal_00012841 TX_paternal_00030200
 
 
 ## overlap with eQTLs show 'G x Lifestage'
+redo using the flipped results
 ```{r}
 dis_pl <- read.csv(paste0(data, "dis_pl.csv")) # 974
 overlap <- inner_join(pl_eqtl_sig, dis_pl, by = c("phenotype_id", "variant_id")) # 479
@@ -229,9 +265,9 @@ both    leaf   leaf2  pollen pollen2
 DE_tissue <- read.table("/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/DE_tissue_full.txt", header = T)
 head(DE_tissue) 
 DE_tissue <- DE_tissue %>% filter(padj<0.05) # 19822
-egene <- as.data.frame(unique(pl_eqtl_sig$phenotype_id)) # 2029, 1540
+egene <- as.data.frame(unique(pl_eqtl_sig$phenotype_id)) # 1564
 colnames(egene) <- "gene" 
-egene_overlap <- inner_join(egene, DE_tissue, by = "gene") # 1874, 1442
+egene_overlap <- inner_join(egene, DE_tissue, by = "gene") # 1464
 
 # DE_tissue <- DE_tissue %>% filter(padj<0.1) # 200061
 # egene_overlap <- inner_join(egene, DE_tissue, by = "gene") # 1905
@@ -277,28 +313,23 @@ ggsave(paste0(data,"mosaicplot_residuals.pdf"), width = 7, height = 3, units = "
 Pearson's Chi-squared test
 
 data:  t
-X-squared = 44.288, df = 3, p-value = 1.311e-09
-
-         all     egene
-FC1  1.3029392 -4.830758
-FC2  0.5011011 -1.857875
-FC3 -0.4703268  1.743777
-FC4 -0.9129066  3.384679
+X-squared = 44.871, df = 3, p-value = 9.858e-10
+           all     egene
+FC1  1.3442574 -4.946359
+FC2  0.4706882 -1.731955
+FC3 -0.4691880  1.726434
+FC4 -0.9150820  3.367156
 
 ```{r}
-median(abs(egene_overlap$log2FoldChange)) #2.326629
+median(abs(egene_overlap$log2FoldChange)) # 2.607984
 summary(abs(egene_overlap$log2FoldChange))
 ```
  Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
- 0.1785  1.3646  2.3266  3.2108  3.7690 28.2721 
-
+ 0.1234  1.6093  2.6080  3.4807  4.0159 28.2721 
+ 
 # plot eQTLs for DE between ML and MP
 ## TX_paternal_00029854 4:34118808
 ```{r}
-data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/"
-normalized_counts_mln <- read.table(paste0(data,"normalized_counts_mln.bed"), header = T, check.names = F)
-normalized_counts_mpn <- read.table(paste0(data,"normalized_counts_mpn.bed"), header = T, check.names = F)
-
 expr_l <- normalized_counts_mln %>% filter(gene_id == "TX_paternal_00029854")
 expr_p <- normalized_counts_mpn %>% filter(gene_id == "TX_paternal_00029854")
 

@@ -91,3 +91,111 @@ python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
   # * checking phenotypes: 1566/1566
   # * computing independent QTLs
   #   processing phenotype 1566/1566
+
+# do the same allele flipping in ML and MP as well
+# male leaf
+plink_prefix_path=/ohta2/meng.yuan/rumex/eqtl/plink/ML_flipped2
+expression_bed=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/normalized_counts_mln_auto.bed.gz
+prefix=ML_flipped
+covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_ML.txt
+
+# cis-QTL mapping: permutations
+python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
+    --covariates ${covariates_file} \
+    --mode cis --window 20000 --fdr 0.1
+#   * 69 samples
+#   * 14949 phenotypes
+#   * 6 covariates
+#   * 3288995 variants
+#   * cis-window: ±20,000
+#   * checking phenotypes: 14949/14949
+#     ** dropping 172 phenotypes without variants in cis-window
+#   * computing permutations
+#     processing phenotype 14777/14777
+#   Time elapsed: 9.48 min
+# done.
+#   * writing output
+# Computing q-values
+#   * Number of phenotypes tested: 14777
+#   * Correlation between Beta-approximated and empirical p-values: 1.0000
+#   * Proportion of significant phenotypes (1-pi0): 0.48
+#   * QTL phenotypes @ FDR 0.10: 2427
+#   * min p-value threshold @ FDR 0.1: 0.0316567    
+
+# cis-QTL mapping: summary statistics for all variant-phenotype pairs
+python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
+    --covariates ${covariates_file} \
+    --mode cis_nominal --window 20000
+  # * 69 samples
+  # * 14949 phenotypes
+  # * 6 covariates
+  # * 3288995 variants
+  # * cis-window: ±20,000
+  # * checking phenotypes: 14949/14949
+  #   ** dropping 172 phenotypes without variants in cis-window
+  # * Computing associations
+  #   Mapping chromosome 1
+  #   processing phenotype 5024/14777    time elapsed: 0.90 min
+  #   * writing output
+  #   Mapping chromosome 2
+  #   processing phenotype 9733/14777    time elapsed: 1.55 min
+  #   * writing output
+  #   Mapping chromosome 3
+  #   processing phenotype 12445/14777    time elapsed: 1.92 min
+  #   * writing output
+  #   Mapping chromosome 4
+  #   processing phenotype 14777/14777
+    
+# pollen 
+# genotype files are the same for male leaf and pollen
+plink_prefix_path=/ohta2/meng.yuan/rumex/eqtl/plink/ML_flipped2
+expression_bed=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/normalized_counts_mpn_auto.bed.gz
+prefix=MP_flipped
+covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_ML.txt
+
+# cis-QTL mapping: permutations
+python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
+    --covariates ${covariates_file} \
+    --mode cis --window 20000 --fdr 0.1
+#   * 69 samples
+#   * 13923 phenotypes
+#   * 6 covariates
+#   * 3288995 variants
+#   * cis-window: ±20,000
+#   * checking phenotypes: 13923/13923
+#     ** dropping 138 phenotypes without variants in cis-window
+#   * computing permutations
+#     processing phenotype 13785/13785
+#   Time elapsed: 8.84 min
+# done.
+#   * writing output
+# Computing q-values
+#   * Number of phenotypes tested: 13785
+#   * Correlation between Beta-approximated and empirical p-values: 1.0000
+#   * Proportion of significant phenotypes (1-pi0): 0.35
+#   * QTL phenotypes @ FDR 0.10: 1480
+#   * min p-value threshold @ FDR 0.1: 0.0165735
+
+# cis-QTL mapping: summary statistics for all variant-phenotype pairs
+python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
+    --covariates ${covariates_file} \
+    --mode cis_nominal --window 20000
+  # * 69 samples
+  # * 13923 phenotypes
+  # * 6 covariates
+  # * 3288995 variants
+  # * cis-window: ±20,000
+  # * checking phenotypes: 13923/13923
+  #   ** dropping 138 phenotypes without variants in cis-window
+  # * Computing associations
+  #   Mapping chromosome 1
+  #   processing phenotype 4616/13785    time elapsed: 0.84 min
+  #   * writing output
+  #   Mapping chromosome 2
+  #   processing phenotype 9049/13785    time elapsed: 1.41 min
+  #   * writing output
+  #   Mapping chromosome 3
+  #   processing phenotype 11586/13785    time elapsed: 1.74 min
+  #   * writing output
+  #   Mapping chromosome 4
+  #   processing phenotype 13785/13785

@@ -33,16 +33,15 @@ colnames(pi)[2:4] <- c("chrom", "start", "end")
 tajd$chrom <- as.character(tajd$chrom)
 pi$chrom <- as.character(pi$chrom)
 
-
-quantile(pi$avg_pi, 0.95) # 0.005546033
-pi_top <- pi %>% filter(avg_pi > 0.005546033)
-quantile(tajd$TajimaD, 0.95) # -1.40034
-tajd_top <- tajd %>% filter(TajimaD > -1.40034)
+quantile(pi$avg_pi, 0.95) # 0.005616218
+pi_top <- pi %>% filter(avg_pi > 0.005616218)
+quantile(tajd$TajD_pop, 0.95) # -0.8739 
+tajd_top <- tajd %>% filter(TajD_pop > -0.8739)
 ```
 
 ```{r}
-p1 <- ggplot(pi, aes(x = window_pos_1, y = avg_pi)) + geom_point(alpha = 0.3) + facet_grid(. ~ chrom, scales = "free_x", switch = "x", space = "free_x") + theme_classic()
-p2 <- ggplot(tajd, aes(x = BIN_START, y = TajimaD)) + geom_point(alpha = 0.3) + facet_grid(. ~ chrom, scales = "free_x", switch = "x", space = "free_x") + theme_classic()
+p1 <- ggplot(pi, aes(x = start, y = avg_pi)) + geom_point(alpha = 0.3) + facet_grid(. ~ chrom, scales = "free_x", switch = "x", space = "free_x") + theme_classic()
+p2 <- ggplot(tajd, aes(x = start, y = TajD_pop)) + geom_point(alpha = 0.3) + facet_grid(. ~ chrom, scales = "free_x", switch = "x", space = "free_x") + theme_classic()
 
 p1 / p2
 ggsave(paste0(data,"pi_tajD.pdf"))
@@ -50,12 +49,24 @@ ggsave(paste0(data,"pi_tajD.pdf"))
 
 
 # Categories of eQTLs
-## specific vs shared
-### life-stage
 ```{r}
-ML_egene <-read.table(paste0(data2, "ML_egene_eqtl.txt"))
-MP_egene <-read.table(paste0(data2, "MP_egene_eqtl.txt"))
-FL_egene <-read.table(paste0(data2, "FL_egene_eqtl.txt"))
+ML_eqtl_multigene <- read.csv(paste0(data2, "ML_eqtl_multigene.csv"))
+FL_eqtl_multigene <- read.csv(paste0(data2, "FL_eqtl_multigene.csv"))
+MP_eqtl_multigene <- read.csv(paste0(data2, "MP_eqtl_multigene.csv"))
+ML_eqtl_sig <-read.csv(paste0(data2, "ML_eqtl_sig_Nov.csv"))
+FL_eqtl_sig <-read.csv(paste0(data2, "FL_eqtl_sig_Nov.csv"))
+MP_eqtl_sig <-read.csv(paste0(data2, "MP_eqtl_sig_Nov.csv"))
+
+ML_egene <- ML_eqtl_sig %>% 
+    anti_join(ML_eqtl_multigene, by = c("variant_id","maf")) %>% 
+    dplyr::select(phenotype_id) %>% distinct() # 2359
+FL_egene <- FL_eqtl_sig %>% 
+    anti_join(FL_eqtl_multigene, by = c("variant_id","maf")) %>% 
+    dplyr::select(phenotype_id) %>% distinct() # 3351
+MP_egene <- MP_eqtl_sig %>% 
+    anti_join(MP_eqtl_multigene, by = c("variant_id","maf")) %>% 
+    dplyr::select(phenotype_id) %>% distinct() # 1428
+
 colnames(ML_egene) <- "gene"
 colnames(MP_egene) <- "gene"
 colnames(FL_egene) <- "gene"
@@ -64,25 +75,29 @@ gff <- read.table("/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofTor
 gff <- gff[,c(13,1,4,5)]
 colnames(gff) <- c("gene","chrom", "start", "end")
 gff$chrom <- str_sub(gff$chrom, 2)
+```
 
+## specific vs shared
+### life-stage
+```{r}
 # life-stage specific vs shared
-l_specific <- ML_egene %>% anti_join(MP_egene, by = "gene") # 1994
-p_specific <- MP_egene %>% anti_join(ML_egene, by = "gene") # 1048
-pl_shared <- inner_join(ML_egene, MP_egene, by = "gene") # 427
+l_specific <- ML_egene %>% anti_join(MP_egene, by = "gene") # 1958
+p_specific <- MP_egene %>% anti_join(ML_egene, by = "gene") # 1027
+pl_shared <- inner_join(ML_egene, MP_egene, by = "gene") # 401
 
 l_specific_pi <- l_specific %>% inner_join(gff, by = "gene") %>% 
-    inner_join(pi, by = c("chrom", "start", "end")) # 1749
+    inner_join(pi, by = c("chrom", "start", "end")) # 1720
 p_specific_pi <- p_specific %>% inner_join(gff, by = "gene") %>% 
-    inner_join(pi, by = c("chrom", "start", "end")) # 925
+    inner_join(pi, by = c("chrom", "start", "end")) # 906
 pl_shared_pi <- pl_shared %>% inner_join(gff, by = "gene") %>% 
-    inner_join(pi, by = c("chrom", "start", "end")) # 352
+    inner_join(pi, by = c("chrom", "start", "end")) # 331
 
 l_specific_pi$Category <- "Leaf-specific"
 p_specific_pi$Category <- "Pollen-specific"
 pl_shared_pi$Category <- "Shared"
 
 pi_all <- rbind(l_specific_pi, p_specific_pi, pl_shared_pi)
-leveneTest(data = pi_all, avg_pi ~ Category) # 0.364
+leveneTest(data = pi_all, avg_pi ~ Category) # p = 0.3329
 
 group_by(pi_all, Category) %>%
   summarise(
@@ -92,17 +107,17 @@ group_by(pi_all, Category) %>%
   )
 
 aov <- aov(avg_pi ~ Category, data = pi_all)
-summary(aov) # 0.701
+summary(aov) # p = 0.611
 TukeyHSD(aov)
 ```
 Category count mean sd
-Leaf-specific	1749	0.002143057	0.003051649	
-Pollen-specific	925	0.002242397	0.004536414	
-Shared	352	0.002280058	0.003380427
+Leaf-specific	1720	0.002151170	0.003071373	
+Pollen-specific	906	0.002263338	0.004579506	
+Shared	331	0.002327930	0.003458641
 
 Df  Sum Sq   Mean Sq F value Pr(>F)
-Category       2 0.00001 4.624e-06   0.356  0.701
-Residuals   3023 0.03930 1.300e-05 
+Category       2 0.00001 6.535e-06   0.493  0.611
+Residuals   2954 0.03914 1.325e-05
 
 Tukey multiple comparisons of means
     95% family-wise confidence level
@@ -111,29 +126,24 @@ Fit: aov(formula = avg_pi ~ Category, data = pi_all)
 
 $Category
                                       diff           lwr          upr     p adj
-Pollen-specific-Leaf-specific 9.934031e-05 -0.0002444019 0.0004430825 0.7765345
-Shared-Leaf-specific          1.370010e-04 -0.0003569282 0.0006309301 0.7921597
-Shared-Pollen-specific        3.766065e-05 -0.0004918457 0.0005671670 0.9847832
+Pollen-specific-Leaf-specific 0.0001121679 -0.0002382306 0.0004625664 0.7332663
+Shared-Leaf-specific          0.0001767601 -0.0003355676 0.0006890877 0.6974597
+Shared-Pollen-specific        0.0000645922 -0.0004836216 0.0006128060 0.9587966
 
 ```{r}
-gff <- read.table("/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/merged_TX_noMatPARlarge_txanno_genes.gtf")
-gff <- gff[,c(13,1,4,5)]
-colnames(gff) <- c("gene","chrom", "start", "end")
-gff$chrom <- str_sub(gff$chrom, 2)
-
 l_specific_tajd <- l_specific %>% inner_join(gff, by = "gene") %>% 
-    inner_join(tajd, by = c("chrom", "start", "end")) # 655
+    inner_join(tajd, by = c("chrom", "start", "end")) # 648
 p_specific_tajd <- p_specific %>% inner_join(gff, by = "gene") %>% 
-    inner_join(tajd, by = c("chrom", "start", "end")) # 340
+    inner_join(tajd, by = c("chrom", "start", "end")) # 337
 pl_shared_tajd <- pl_shared %>% inner_join(gff, by = "gene") %>% 
-    inner_join(tajd, by = c("chrom", "start", "end")) # 119
+    inner_join(tajd, by = c("chrom", "start", "end")) # 117
 
 l_specific_tajd$Category <- "Leaf-specific"
 p_specific_tajd$Category <- "Pollen-specific"
 pl_shared_tajd$Category <- "Shared"
 
 tajd_all <- rbind(l_specific_tajd, p_specific_tajd, pl_shared_tajd)
-leveneTest(data = tajd_all, TajD_pop ~ Category) # p = 0.3527
+leveneTest(data = tajd_all, TajD_pop ~ Category) # p = 0.3629
 
 group_by(tajd_all, Category) %>%
   summarise(
@@ -143,33 +153,29 @@ group_by(tajd_all, Category) %>%
   )
 
 aov <- aov(TajD_pop ~ Category, data = tajd_all)
-summary(aov) # p = 0.769
+summary(aov) # p = 0.728
 TukeyHSD(aov)
 ```
-Levene's Test for Homogeneity of Variance (center = median)
-        Df F value Pr(>F)
-group    2  1.0431 0.3527
-      1111    
-      
+  
 Category count mean sd
-Leaf-specific	655	-1.183879	0.3186621	
-Pollen-specific	340	-1.172744	0.3029627	
-Shared	119	-1.195571	0.3571017	      
-      
-Df Sum Sq Mean Sq F value Pr(>F)
-Category       2   0.05 0.02664   0.263  0.769
-Residuals   1111 112.57 0.10133 
+Leaf-specific	648	-1.185021	0.3195210	
+Pollen-specific	337	-1.174075	0.3036394	
+Shared	117	-1.200361	0.3582510	
 
-Tukey multiple comparisons of means
+Df Sum Sq Mean Sq F value Pr(>F)
+Category       2   0.06 0.03233   0.317  0.728
+Residuals   1099 111.92 0.10184 
+
+ Tukey multiple comparisons of means
     95% family-wise confidence level
 
 Fit: aov(formula = TajD_pop ~ Category, data = tajd_all)
 
 $Category
                                      diff         lwr        upr     p adj
-Pollen-specific-Leaf-specific  0.01113451 -0.03879979 0.06106880 0.8599554
-Shared-Leaf-specific          -0.01169280 -0.08613580 0.06275019 0.9278465
-Shared-Pollen-specific        -0.02282731 -0.10239576 0.05674114 0.7790886
+Pollen-specific-Leaf-specific  0.01094622 -0.03935331 0.06124576 0.8661353
+Shared-Leaf-specific          -0.01533939 -0.09057069 0.05989192 0.8814656
+Shared-Pollen-specific        -0.02628561 -0.10665087 0.05407965 0.7229894
 
 ```{r}
 p1 <- ggplot(pi_all, aes(x = Category, y = avg_pi)) + geom_boxplot()
@@ -181,16 +187,16 @@ ggsave(paste0(data,"lifestage_pi_tajd.pdf"), width = 7, height = 3, units = "in"
 ### sex
 ```{r}
 # sex specific vs shared
-f_specific <- FL_egene %>% anti_join(ML_egene, by = "gene") # 2072
-m_specific <- ML_egene %>% anti_join(FL_egene, by = "gene") # 1051
-sex_shared <- inner_join(ML_egene, FL_egene, by = "gene") # 1370
+f_specific <- FL_egene %>% anti_join(ML_egene, by = "gene") # 2037
+m_specific <- ML_egene %>% anti_join(FL_egene, by = "gene") # 1045
+sex_shared <- inner_join(ML_egene, FL_egene, by = "gene") # 1314
 
 f_specific_pi <- f_specific %>% inner_join(gff, by = "gene") %>% 
-    inner_join(pi, by = c("chrom", "start", "end")) # 1889
+    inner_join(pi, by = c("chrom", "start", "end")) # 1856
 m_specific_pi <- m_specific %>% inner_join(gff, by = "gene") %>% 
-    inner_join(pi, by = c("chrom", "start", "end")) # 957
+    inner_join(pi, by = c("chrom", "start", "end")) # 950
 sex_shared_pi <- sex_shared %>% inner_join(gff, by = "gene") %>% 
-    inner_join(pi, by = c("chrom", "start", "end")) # 1144
+    inner_join(pi, by = c("chrom", "start", "end")) # 1101
 
 m_specific_pi$Category <- "Male-specific"
 f_specific_pi$Category <- "Female-specific"
@@ -204,44 +210,40 @@ group_by(sex_pi, Category) %>%
     sd = sd(avg_pi, na.rm = TRUE)
   )
 
-leveneTest(data = sex_pi, avg_pi ~ Category) # p = 7.706e-06
+leveneTest(data = sex_pi, avg_pi ~ Category) # p = 3.938e-06
 aov <- aov(avg_pi ~ Category, data = sex_pi)
-summary(aov) # p = 0.000257
+summary(aov) # p = 0.000144
 TukeyHSD(aov)
 ```
 Category count mean sd 
-Female-specific	1889	0.001881269	0.002545503	
-Male-specific	957	0.001990252	0.002605078	
-Shared	1144	0.002313038	0.003468735	
-
-              Df  Sum Sq   Mean Sq F value Pr(>F)
-Category       2 0.00001 4.624e-06   0.356  0.701
-Residuals   3023 0.03930 1.300e-05 
+Female-specific	1856	0.001883272	0.002549293	
+Male-specific	950	0.001994788	0.002613055	
+Shared	1101	0.002339245	0.003520300
 
 Df  Sum Sq   Mean Sq F value   Pr(>F)    
-Category       2 0.00013 6.747e-05   8.284 0.000257 ***
-Residuals   3987 0.03247 8.140e-06                     
+Category       2 0.00015 7.306e-05   8.867 0.000144 ***
+Residuals   3904 0.03217 8.240e-06                     
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
-Tukey multiple comparisons of means
+  Tukey multiple comparisons of means
     95% family-wise confidence level
 
 Fit: aov(formula = avg_pi ~ Category, data = sex_pi)
 
 $Category
                                       diff           lwr          upr     p adj
-Male-specific-Female-specific 0.0001089830 -1.565112e-04 0.0003744771 0.6007208
-Shared-Female-specific        0.0004317691  1.810909e-04 0.0006824474 0.0001622
-Shared-Male-specific          0.0003227862  2.966075e-05 0.0006159116 0.0266630
+Male-specific-Female-specific 0.0001115159 -1.569641e-04 0.0003799958 0.5934704
+Shared-Female-specific        0.0004559726  1.999597e-04 0.0007119855 0.0000899
+Shared-Male-specific          0.0003444567  4.643621e-05 0.0006424773 0.0185388
 
 ```{r}
 f_specific_tajd <- f_specific %>% inner_join(gff, by = "gene") %>% 
-    inner_join(tajd, by = c("chrom", "start", "end")) # 690
+    inner_join(tajd, by = c("chrom", "start", "end")) # 681
 m_specific_tajd <- m_specific %>% inner_join(gff, by = "gene") %>% 
-    inner_join(tajd, by = c("chrom", "start", "end")) # 360
+    inner_join(tajd, by = c("chrom", "start", "end")) # 358
 sex_shared_tajd <- sex_shared %>% inner_join(gff, by = "gene") %>% 
-    inner_join(tajd, by = c("chrom", "start", "end")) # 414
+    inner_join(tajd, by = c("chrom", "start", "end")) # 407
 
 m_specific_tajd$Category <- "Male-specific"
 f_specific_tajd$Category <- "Female-specific"
@@ -255,20 +257,20 @@ group_by(sex_tajd, Category) %>%
     sd = sd(TajD_pop, na.rm = TRUE)
   )
 
-leveneTest(data = sex_tajd, TajD_pop ~ Category) # p = 0.7933
+leveneTest(data = sex_tajd, TajD_pop ~ Category) # p = 0.7606
 aov <- aov(TajD_pop ~ Category, data = sex_tajd)
-summary(aov) # p = 0.799
+summary(aov) # p = 0.779
 TukeyHSD(aov)
 ```
 
 Category count mean sd 
-Female-specific	690	-1.174386	0.3214620	
-Male-specific	360	-1.185023	0.3214939	
-Shared	414	-1.186245	0.3277562	
+Female-specific	681	-1.175353	0.3222666	
+Male-specific	358	-1.186529	0.3217574	
+Shared	407	-1.188105	0.3292248	
 
-              Df Sum Sq Mean Sq F value Pr(>F)
-Category       2   0.05 0.02339   0.224  0.799
-Residuals   1461 152.67 0.10450 
+Df Sum Sq Mean Sq F value Pr(>F)
+Category       2   0.05 0.02624    0.25  0.779
+Residuals   1443 151.59 0.10505
 
 Tukey multiple comparisons of means
     95% family-wise confidence level
@@ -277,10 +279,11 @@ Fit: aov(formula = TajD_pop ~ Category, data = sex_tajd)
 
 $Category
                                       diff         lwr        upr     p adj
-Male-specific-Female-specific -0.010636268 -0.05994441 0.03867187 0.8683912
-Shared-Female-specific        -0.011858696 -0.05900630 0.03528890 0.8254600
-Shared-Male-specific          -0.001222428 -0.05587604 0.05343118 0.9984830
-      
+Male-specific-Female-specific -0.011175761 -0.06081696 0.03846544 0.8575270
+Shared-Female-specific        -0.012751904 -0.06039426 0.03489045 0.8047726
+Shared-Male-specific          -0.001576143 -0.05667487 0.05352258 0.9975199
+
+
 box plot of pi and tajD for 3 categories
 ```{r}
 p1 <- ggplot(sex_pi, aes(x = Category, y = avg_pi)) + geom_boxplot()
@@ -290,29 +293,83 @@ ggsave(paste0(data,"sex_pi_tajd.pdf"), width = 7, height = 3, units = "in")
 ```
 
 
-## concordant vs discordant between life stages
+## eGenes in ML/MP vs differential expression between ML & MP
 ```{r}
-# concordant
-pl_concordant <- ml_mp %>% filter(slope.x * slope.y > 0) # 1621
-pl_discordant <- ml_mp %>% filter(slope.x * slope.y < 0) # 75
+egene_all <- full_join(ML_egene, MP_egene, by = "gene") # 3386
+pl_eqtl_sig <- read.csv(paste0(data2, "pl_eqtl_sig.csv"))
+pl_egene <- as.data.frame(unique(pl_eqtl_sig$phenotype_id)) # 1564
+colnames(pl_egene) <- "gene"
 
-# 
-# sex_discordant <- ml_fl %>% filter(slope.x * slope.y < 0) # 0
-# discordant between sexes
-# dis_sex <- read.csv(paste0(data, "dis_sex.csv")) # 170
-# discordant between life-stages
-# dis_pl <- read.csv(paste0(data, "dis_pl.csv")) # 974
+pl_not <- anti_join(egene_all, pl_egene, by = "gene") # 2063
+
+pl_egene_pi <- pl_egene %>% inner_join(gff, by = "gene") %>% 
+    inner_join(pi, by = c("chrom", "start", "end")) # 1306
+pl_egene_tajd <- pl_egene %>% inner_join(gff, by = "gene") %>% 
+    inner_join(tajd, by = c("chrom", "start", "end")) # 485
+
+pl_not_pi <- pl_not %>% inner_join(gff, by = "gene") %>% 
+    inner_join(pi, by = c("chrom", "start", "end")) # 1870
+pl_not_tajd <- pl_not %>% inner_join(gff, by = "gene") %>% 
+    inner_join(tajd, by = c("chrom", "start", "end")) # 694
+
+pl_egene_pi$Category <- "DE"
+pl_not_pi$Category <- "noDE"
+pl_egene_tajd$Category <- "DE"
+pl_not_tajd$Category <- "noDE"
+
+pl_pi <- rbind(pl_egene_pi, pl_not_pi)    
+pl_tajd <- rbind(pl_egene_tajd, pl_not_tajd)    
+
+group_by(pl_tajd, Category) %>%
+  summarise(
+    count = n(),
+    mean = mean(TajD_pop, na.rm = TRUE),
+    sd = sd(TajD_pop, na.rm = TRUE)
+  )
+
+leveneTest(data = pl_tajd, TajD_pop ~ Category) # p = 0.5094
+t.test(TajD_pop ~ Category, data = pl_tajd, var.equal = T)
+
+group_by(pl_pi, Category) %>%
+  summarise(
+    count = n(),
+    mean = mean(avg_pi, na.rm = TRUE),
+    sd = sd(avg_pi, na.rm = TRUE)
+  )
+
+leveneTest(data = pl_pi, avg_pi ~ Category) # p = 4.687e-06 ***
+t.test(avg_pi ~ Category, data = pl_pi, var.equal = F)
+
 ```
+tajd
+DE	485	-1.175649	0.3153314	
+noDE	694	-1.186834	0.3202336
 
-check concordant for pi and tajD outliers
-```{r}
-sex_concordant <- ml_fl %>% filter(slope.x * slope.y > 0) # 5516
+Two Sample t-test
 
-# m_specific_pi <- m_specific %>% inner_join(pi, by = "chrom") %>%
-#     filter(pos >= window_pos_1 & pos <= window_pos_2 ) # 5180
+data:  TajD_pop by Category
+t = 0.59387, df = 1177, p-value = 0.5527
+alternative hypothesis: true difference in means between group DE and group noDE is not equal to 0
+95 percent confidence interval:
+ -0.02576699  0.04813703
+sample estimates:
+  mean in group DE mean in group noDE 
+         -1.175649          -1.186834
+         
+pi 
+DE	1306	0.002499847	0.004570933	
+noDE	1870	0.001961369	0.002642290	
 
-```
+Welch Two Sample t-test
 
+data:  avg_pi by Category
+t = 3.8334, df = 1912.5, p-value = 0.0001305
+alternative hypothesis: true difference in means between group DE and group noDE is not equal to 0
+95 percent confidence interval:
+ 0.0002629898 0.0008139671
+sample estimates:
+  mean in group DE mean in group noDE 
+       0.002499847        0.001961369 
 
 ## eQTLs for Genotype × Sex interaction (5 eqtls)
 ```{r}

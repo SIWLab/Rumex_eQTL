@@ -24,21 +24,21 @@ FL_eqtl_sig <- FL_eqtl_sig %>% group_by(phenotype_id) %>% mutate(count = n()) %>
 cnt2 <- nrow(FL_eqtl_sig)
 
 # identify eqtls affecting multiple genes
-FL_eqtl_multigene <- FL_eqtl_sig %>% group_by(variant_id) %>% filter(n()>1) %>% select(variant_id) %>% unique()
+FL_eqtl_multigene <- FL_eqtl_sig %>% group_by(variant_id) %>% filter(n()>1) %>% select(variant_id) %>% distinct()()
 
 # select a random eqtl per gene
 set.seed(1 + i) 
 FL_eqtl_sig_random <- FL_eqtl_sig %>% group_by(phenotype_id) %>% slice_sample(n = 1) 
 
 # remove eqtls affecting multiple genes 
-FL_eqtl_sig_random <- FL_eqtl_sig_random %>% anti_join(FL_eqtl_multigene, by = c("variant_id")) %>% dplyr::select(variant_id, af)
+FL_eqtl_sig_random <- FL_eqtl_sig_random %>% anti_join(FL_eqtl_multigene, by = c("variant_id")) %>% select(variant_id, af)
 
 # get MAF
 FL_eqtl_sig_random <- FL_eqtl_sig_random %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
 FL_eqtl_sig_random$maf <- round(FL_eqtl_sig_random$maf, digits = 3)
 cnt3 <- nrow(FL_eqtl_sig_random)
 
-p <- ggplot(FL_eqtl_sig_random, aes(x=maf)) + geom_histogram(binwidth=0.05, , boundary = 0.05) + scale_x_continuous(limits = c(0.05, 0.5))
+p <- ggplot(FL_eqtl_sig_random, aes(x=maf)) + geom_histogram(binwidth=0.05, boundary = 0.05) + scale_x_continuous(limits = c(0.05, 0.5))
 p_data <- ggplot_build(p)$data[[1]]
 p_data$y_prop <- p_data$y/sum(p_data$y) 
 p_data <- p_data %>% select(x, xmin, xmax, y, y_prop)

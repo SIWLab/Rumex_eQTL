@@ -24,7 +24,7 @@ FL_eqtl_sig <- FL_eqtl_sig %>% group_by(phenotype_id) %>% mutate(count = n()) %>
 cnt2 <- nrow(FL_eqtl_sig)
 
 # identify eqtls affecting multiple genes
-FL_eqtl_multigene <- FL_eqtl_sig %>% group_by(variant_id) %>% filter(n()>1) %>% select(variant_id) %>% distinct()()
+FL_eqtl_multigene <- FL_eqtl_sig %>% group_by(variant_id) %>% filter(n()>1) %>% select(variant_id) %>% distinct()
 
 # select a random eqtl per gene
 set.seed(1 + i) 

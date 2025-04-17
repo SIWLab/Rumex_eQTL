@@ -1,0 +1,95 @@
+---
+title: "shared and specific eqtls between tissues"
+author: "Meng"
+date: "2025-04-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
+```
+
+# shared vs specific eqtls between ML and MP
+
+```{r}
+ML_eqtl_sig <-read.csv(paste0(data, "ML_eqtl_sig_Nov.csv"))
+MP_eqtl_sig <-read.csv(paste0(data, "MP_eqtl_sig_Nov.csv"))
+ML_eqtl_sig <- ML_eqtl_sig %>% group_by(phenotype_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count <= 10) 
+MP_eqtl_sig <- MP_eqtl_sig %>% group_by(phenotype_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count <= 10) 
+
+ML_eqtl_sig <- ML_eqtl_sig %>% dplyr::select(phenotype_id, variant_id, maf)
+MP_eqtl_sig <- MP_eqtl_sig %>% dplyr::select(phenotype_id, variant_id, maf)
+
+tissue_n2 <- inner_join(ML_eqtl_sig, MP_eqtl_sig, by = c("phenotype_id", "variant_id", "maf"))
+tissue_n1 <- bind_rows(anti_join(ML_eqtl_sig, MP_eqtl_sig, by = c("phenotype_id", "variant_id", "maf")), anti_join(MP_eqtl_sig, ML_eqtl_sig, by = c("phenotype_id", "variant_id", "maf")))
+
+# remove eqtls affecting multiple genes 
+tissue_n2 <- tissue_n2 %>% anti_join(ML_eqtl_multigene, by = c("variant_id")) %>% anti_join(MP_eqtl_multigene, by = c("variant_id")) # 530
+tissue_n1 <- tissue_n1 %>% anti_join(ML_eqtl_multigene, by = c("variant_id")) %>% anti_join(MP_eqtl_multigene, by = c("variant_id"))# 7917
+
+set.seed(13) 
+tissue_n2_random <- tissue_n2 %>% group_by(phenotype_id) %>% slice_sample(n = 1) # 242, 182
+set.seed(13) 
+tissue_n1_random <- tissue_n1 %>% group_by(phenotype_id) %>% slice_sample(n = 1) # 3429, 2806
+
+# plots
+p<-ggplot(tissue_n1_random, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y)
+p1 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("a")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.15) + expand_limits(x=0.5)+ geom_vline(xintercept=0.09322034, color = "red",linetype="dashed")
+
+p<-ggplot(tissue_n2_random, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y) 
+p2 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("b")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.15) + expand_limits(x=0.5) + geom_vline(xintercept=0.1478373, color = "red",linetype="dashed")
+
+p1 + p2
+ggsave(paste0(data,"MAF_n1_n2.pdf"))
+```
+
+
+
+```{r}
+get_hist_prop <- function(data, binwidth = 0.05, boundary = 0.05, x_limits = c(0.05, 0.5)) {
+p <- ggplot(data, aes(x = maf)) + geom_histogram(binwidth = binwidth, boundary = boundary) + scale_x_continuous(limits = x_limits)
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y / sum(p_data$y)
+p_data <- p_data %>% dplyr::select(x, xmin, xmax, y, y_prop)
+return(p_data)}
+
+tissue_n1_random$maf <- round(tissue_n1_random$maf, digits = 3)
+tissue_n2_random$maf <- round(tissue_n2_random$maf, digits = 3)
+
+p_data1 <- get_hist_prop(tissue_n1_random)
+p_data2 <- get_hist_prop(tissue_n2_random)
+
+p_data1 <- p_data1 %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
+p_data2 <- p_data2 %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
+
+p2 <- ggplot(p_data1, aes(x_axis, y_prop)) + 
+    geom_point(fill = "red", colour = "red", alpha = 1)+
+    geom_point(data = p_data2, color = "black", fill="black", alpha = 0.9)+ 
+    theme_classic()+ labs(x="MAF", y="Proportion", title = "b")+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),text = element_text(size = 10))
+```
+
+
+```{r}
+median(tissue_n1_random$maf)
+median(tissue_n2_random$maf)
+
+wilcox.test(tissue_n1_random$maf, tissue_n2_random$maf)
+```
+[1] 0.09322034
+[1] 0.1478373
+
+	Wilcoxon rank sum test with continuity correction
+
+data:  tissue_n1_random$maf and tissue_n2_random$maf
+W = 187916, p-value = 2.249e-09
+alternative hypothesis: true location shift is not equal to 0

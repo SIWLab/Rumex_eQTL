@@ -187,7 +187,7 @@ p_data$y_prop <- p_data$y/sum(p_data$y) # 0.146
 p5 <- ggplot(p_data, aes(x=x, y=y_prop)) +
   geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("e")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10))+ ylim(0, 0.15) + expand_limits(x=0.5) + geom_vline(xintercept=0.09836066, color = "red",linetype="dashed")
 
-p<-ggplot(MP_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p<-ggplot(MP_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(binwidth=0.01)
 p_data <- ggplot_build(p)$data[[1]]
 p_data$y_prop <- p_data$y/sum(p_data$y) # 0.126
 
@@ -202,55 +202,3 @@ p 4-6 goes to supplementary
 p1 + p2 + p3 + p4 + p5 + p6 + plot_layout(nrow = 2)
 ggsave(paste0(data, "Fig3_mar27.pdf"))
 ```
-
-
-# MAF for eqtls in one or two tissues
-```{r}
-ML_eqtl_sig <-read.csv(paste0(data, "ML_eqtl_sig_Nov.csv"))
-MP_eqtl_sig <-read.csv(paste0(data, "MP_eqtl_sig_Nov.csv"))
-
-merged <- bind_rows(ML_eqtl_sig[,1:2] %>% mutate(source = "ML"),
-                       MP_eqtl_sig[,1:2] %>% mutate(source = "MP")) %>%
-  group_by(phenotype_id, variant_id) %>%
-  summarise(count = n(), .groups = "drop")
-
-tissue_n1 <- merged %>% filter(count == 1)
-tissue_n2 <- merged %>% filter(count == 2)
-
-all <- rbind(ML_eqtl_sig, MP_eqtl_sig)
-all <- all %>% select(phenotype_id, variant_id, maf) %>% distinct()
-
-tissue_n1 <- tissue_n1 %>% left_join(all, by = c("phenotype_id", "variant_id")) # 22738
-tissue_n2 <- tissue_n2 %>% left_join(all, by = c("phenotype_id", "variant_id")) # 1696
-
-# plots
-p<-ggplot(tissue_n1, aes(x=maf)) + geom_histogram(binwidth=0.01) 
-p_data <- ggplot_build(p)$data[[1]]
-p_data$y_prop <- p_data$y/sum(p_data$y) # 0.116
-p1 <- ggplot(p_data, aes(x=x, y=y_prop)) +
-  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("a")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.13)+ geom_vline(xintercept=0.1016949, color = "red",linetype="dashed")
-
-p<-ggplot(tissue_n2, aes(x=maf)) + geom_histogram(binwidth=0.01) 
-p_data <- ggplot_build(p)$data[[1]]
-p_data$y_prop <- p_data$y/sum(p_data$y) # 0.125
-p2 <- ggplot(p_data, aes(x=x, y=y_prop)) +
-  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("b")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.13)+ geom_vline(xintercept=0.1016949, color = "red",linetype="dashed")
-
-p1 + p2
-ggsave(paste0(data,"MAF_n1_n2.pdf"))
-```
-
-```{r}
-median(tissue_n1$maf)
-median(tissue_n2$maf)
-
-wilcox.test(tissue_n1$maf, tissue_n2$maf)
-```
-[1] 0.09836065
-[1] 0.1101695
-
-	Wilcoxon rank sum test with continuity correction
-
-data:  tissue_n1\$maf and tissue_n2$maf
-W = 18316388, p-value = 0.0005705
-alternative hypothesis: true location shift is not equal to 0

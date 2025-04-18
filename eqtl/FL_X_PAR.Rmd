@@ -14,7 +14,7 @@ data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manus
 ```
 
 
-# PAR, X
+# eQTL mapping on PAR, X in FL
 ```{r}
 FL_PAR <- read.table(paste0(data, "FL_PAR.cis_qtl.txt"), header = T) # 1090
 FL_X <- read.table(paste0(data, "FL_X.cis_qtl.txt"), header = T) # 1870
@@ -26,10 +26,9 @@ hist(FL_X$pval_beta, nclass = 20)
 # qval_FL <- qvalue(FL_X$pval_beta)
 # summary(qval_ML)
 # p1 <- hist(qval_ML)
-
 ```
 
-
+## identify eQTLs
 ```{r}
 FL_PAR <- FL_PAR %>% filter(qval < 0.1) # 111
 FL_X <- FL_X %>% filter(qval < 0.1) # 1294
@@ -43,6 +42,11 @@ FL_X_eqtl <- read_parquet(paste0(data,"FL_X.cis_qtl_pairs.5.parquet"))
 FL_X_eqtl_full <- inner_join(FL_X_eqtl, FL_X[,c(1,16:19)], by = "phenotype_id") # 184718
 FL_X_eqtl_sig <- FL_X_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold) # 16112
 FL_X_eqtl_sig <-FL_X_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
+
+write.csv(FL_X_eqtl_sig , file = paste0(data, "FL_X_eqtl_sig.csv"), row.names = F, quote = F)
+write.csv(FL_PAR_eqtl_sig, file = paste0(data, "FL_PAR_eqtl_sig.csv"), row.names = F, quote = F)
+FL_X_eqtl_sig <- read.csv(paste0(data, "FL_X_eqtl_sig.csv"))
+FL_PAR_eqtl_sig <- read.csv(paste0(data, "FL_PAR_eqtl_sig.csv"))
 
 # multigene vs onegene
 FL_PAR_eqtl_multigene <- FL_PAR_eqtl_sig %>% 
@@ -64,54 +68,71 @@ FL_X_eqtl_onegene <- FL_X_eqtl_sig %>%
     dplyr::select(variant_id, maf) # 15027
 ```
 
-
+## select eQTLs
 ```{r}
+# remove genes with more than 10 eqtls
+FL_X_eqtl_sig <- FL_X_eqtl_sig %>% group_by(phenotype_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count <= 10) # 3229
+FL_PAR_eqtl_sig <- FL_PAR_eqtl_sig %>% group_by(phenotype_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count <= 10) # 211
+
 set.seed(13)
 FL_X_sig_min <- FL_X_eqtl_sig %>%
   group_by(phenotype_id) %>% 
   filter(pval_nominal == min(pval_nominal)) %>% 
-  slice_sample(n = 1) # 1294
-
+  slice_sample(n = 1) # 890
+set.seed(13)
 FL_X_sig_random <- FL_X_eqtl_sig %>%
   group_by(phenotype_id) %>% 
-  slice_sample(n = 1)  # 1294
-
+  slice_sample(n = 1)  # 890
+set.seed(13)
 FL_PAR_sig_min <- FL_PAR_eqtl_sig %>%
   group_by(phenotype_id) %>% 
   filter(pval_nominal == min(pval_nominal)) %>% 
-  slice_sample(n = 1) # 111
-
+  slice_sample(n = 1) # 91
+set.seed(13)
 FL_PAR_sig_random <- FL_PAR_eqtl_sig %>%
   group_by(phenotype_id) %>% 
-  slice_sample(n = 1)  # 111
+  slice_sample(n = 1)  # 91
 
 FL_X_sig_random_af <- FL_X_sig_random %>% 
     anti_join(FL_X_eqtl_multigene, by = c("variant_id","maf")) %>%
-    dplyr::select(variant_id, maf) # 1193
+    dplyr::select(variant_id, maf) # 817
 FL_X_sig_min_af <- FL_X_sig_min %>% 
     anti_join(FL_X_eqtl_multigene, by = c("variant_id","maf")) %>%
-    dplyr::select(variant_id, maf) # 1187
+    dplyr::select(variant_id, maf) # 815
 
 FL_PAR_sig_random_af <- FL_PAR_sig_random %>% 
     anti_join(FL_PAR_eqtl_multigene, by = c("variant_id","maf")) %>%
-    dplyr::select(variant_id, maf) # 103
+    dplyr::select(variant_id, maf) # 86
 FL_PAR_sig_min_af <- FL_PAR_sig_min %>% 
     anti_join(FL_PAR_eqtl_multigene, by = c("variant_id","maf")) %>%
-    dplyr::select(variant_id, maf) # 103
+    dplyr::select(variant_id, maf) # 87
 ```
 
-
+## MAFs
 ```{r}
 # autosomes
-FL_eqtl_sig_random <- read.csv(paste0(data, "FL_eqtl_sig_random.csv"))
-FL_eqtl_sig_min <- read.csv(paste0(data, "FL_eqtl_sig_min.csv"))
+FL_eqtl_sig <- read.csv(paste0(data, "FL_eqtl_sig_Nov.csv"))
+FL_eqtl_sig <- FL_eqtl_sig %>% group_by(phenotype_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count <= 10) # 8090
+set.seed(123)
+FL_eqtl_sig_random <- FL_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  slice_sample(n = 1)  # 2677
+set.seed(13)
+FL_eqtl_sig_min <- FL_eqtl_sig %>%
+  group_by(phenotype_id) %>% 
+  filter(pval_nominal == min(pval_nominal)) %>% 
+  slice_sample(n = 1) # 2677
+
+# FL_eqtl_sig_random <- read.csv(paste0(data, "FL_eqtl_sig_random.csv"))
+# FL_eqtl_sig_min <- read.csv(paste0(data, "FL_eqtl_sig_min.csv"))
 FL_eqtl_multigene <- read.csv(paste0(data, "FL_eqtl_multigene.csv"))
+
 FL_eqtl_sig_random_af <- FL_eqtl_sig_random %>% 
     anti_join(FL_eqtl_multigene, by = c("variant_id","maf")) %>%
-    dplyr::select(variant_id, maf) # 3265
+    dplyr::select(variant_id, maf) # 2542
 FL_eqtl_sig_min_af <- FL_eqtl_sig_min %>% 
     anti_join(FL_eqtl_multigene, by = c("variant_id","maf")) %>%
-    dplyr::select(variant_id, maf) # 3234
+    dplyr::select(variant_id, maf) # 2529
 
 median(FL_eqtl_sig_min_af$maf)
 median(FL_PAR_sig_min_af$maf)
@@ -120,38 +141,36 @@ median(FL_eqtl_sig_random_af$maf)
 median(FL_PAR_sig_random_af$maf)
 median(FL_X_sig_random_af$maf)
 ```
-
-[1] 0.1048387
-[1] 0.111111
-[1] 0.09677419
-[1] 0.09836066
+[1] 0.09701493
 [1] 0.109375
-[1] 0.09027778
-
+[1] 0.0873016
+[1] 0.09375
+[1] 0.1069263
+[1] 0.08333333
 
 ```{r}
 wilcox.test(FL_eqtl_sig_min_af$maf, FL_PAR_sig_min_af$maf)
 wilcox.test(FL_eqtl_sig_min_af$maf, FL_X_sig_min_af$maf)
 wilcox.test(FL_PAR_sig_min_af$maf, FL_X_sig_min_af$maf)
 ```
-Wilcoxon rank sum test with continuity correction
+	Wilcoxon rank sum test with continuity correction
 
 data:  FL_eqtl_sig_min_af$maf and FL_PAR_sig_min_af$maf
-W = 155288, p-value = 0.242
+W = 99731, p-value = 0.1378
 alternative hypothesis: true location shift is not equal to 0
 
 
 	Wilcoxon rank sum test with continuity correction
 
 data:  FL_eqtl_sig_min_af$maf and FL_X_sig_min_af$maf
-W = 2018591, p-value = 0.008343
+W = 1100346, p-value = 0.003601
 alternative hypothesis: true location shift is not equal to 0
 
 
 	Wilcoxon rank sum test with continuity correction
 
 data:  FL_PAR_sig_min_af$maf and FL_X_sig_min_af$maf
-W = 68177, p-value = 0.05204
+W = 40856, p-value = 0.01933
 alternative hypothesis: true location shift is not equal to 0
 
 
@@ -160,82 +179,101 @@ wilcox.test(FL_eqtl_sig_random_af$maf, FL_PAR_sig_random_af$maf)
 wilcox.test(FL_eqtl_sig_random_af$maf, FL_X_sig_random_af$maf)
 wilcox.test(FL_PAR_sig_random_af$maf, FL_X_sig_random_af$maf)
 ```
-
-	Wilcoxon rank sum test with continuity correction
+Wilcoxon rank sum test with continuity correction
 
 data:  FL_eqtl_sig_random_af$maf and FL_PAR_sig_random_af$maf
-W = 157698, p-value = 0.2822
+W = 102102, p-value = 0.2979
 alternative hypothesis: true location shift is not equal to 0
 
 
 	Wilcoxon rank sum test with continuity correction
 
 data:  FL_eqtl_sig_random_af$maf and FL_X_sig_random_af$maf
-W = 2067780, p-value = 0.001579
+W = 1107988, p-value = 0.003908
 alternative hypothesis: true location shift is not equal to 0
 
 
 	Wilcoxon rank sum test with continuity correction
 
 data:  FL_PAR_sig_random_af$maf and FL_X_sig_random_af$maf
-W = 68824, p-value = 0.04274
+W = 39480, p-value = 0.05877
 alternative hypothesis: true location shift is not equal to 0
 
-# plots
+# MAF plots
+```{r}
+get_hist_prop <- function(data, binwidth = 0.01) {
+  p <- ggplot(data, aes(x = maf)) + geom_histogram(binwidth = binwidth)
+  p_data <- ggplot_build(p)$data[[1]]
+  p_data$y_prop <- p_data$y / sum(p_data$y)
+  return(p_data)}
+```
 
 ## min
 ```{r}
 # A
-p<-ggplot(FL_eqtl_sig_min_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
-p_data <- ggplot_build(p)$data[[1]]
-p_data$y_prop <- p_data$y/sum(p_data$y) # 0.128
+p_data <- get_hist_prop(FL_eqtl_sig_min_af) 
 p1 <- ggplot(p_data, aes(x=x, y=y_prop)) +
-  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("a")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.185) + expand_limits(x=0.5) + geom_vline(xintercept=0.1048387, color = "red",linetype="dashed")
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("a")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.21) + expand_limits(x=0.5) + geom_vline(xintercept=0.09701493, color = "red",linetype="dashed")
 
 # PAR
-p<-ggplot(FL_PAR_sig_min_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
-p_data <- ggplot_build(p)$data[[1]]
-p_data$y_prop <- p_data$y/sum(p_data$y) # 0.184
+p_data <- get_hist_prop(FL_PAR_sig_min_af) 
 p2 <- ggplot(p_data, aes(x=x, y=y_prop)) +
-  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("b")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.185) + expand_limits(x=0.5) + geom_vline(xintercept=0.111111, color = "red",linetype="dashed")
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("b")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.21) + expand_limits(x=0.5) + geom_vline(xintercept=0.109375, color = "red",linetype="dashed")
 
 # X
-p<-ggplot(FL_X_sig_min_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
-p_data <- ggplot_build(p)$data[[1]]
-p_data$y_prop <- p_data$y/sum(p_data$y) # 0.144
+p_data <- get_hist_prop(FL_X_sig_min_af)
 p3 <- ggplot(p_data, aes(x=x, y=y_prop)) +
-  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("c")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.185) + expand_limits(x=0.5) + geom_vline(xintercept=0.09677419, color = "red",linetype="dashed")
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("c")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.21) + expand_limits(x=0.5) + geom_vline(xintercept=0.0873016, color = "red",linetype="dashed")
 
-p1 + p2 + p3
+#p1 + p2 + p3
 ```
 
 ## random
 ```{r}
 # A
-p<-ggplot(FL_eqtl_sig_random_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
-p_data <- ggplot_build(p)$data[[1]]
-p_data$y_prop <- p_data$y/sum(p_data$y) # 0.146
+p_data <- get_hist_prop(FL_eqtl_sig_random_af)
 p4 <- ggplot(p_data, aes(x=x, y=y_prop)) +
-  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("d")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.214) + expand_limits(x=0.5) + geom_vline(xintercept=0.09836066, color = "red",linetype="dashed")
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("d")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.225) + expand_limits(x=0.5) + geom_vline(xintercept=0.09375, color = "red",linetype="dashed")
 
 # PAR
-p<-ggplot(FL_PAR_sig_random_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
-p_data <- ggplot_build(p)$data[[1]]
-p_data$y_prop <- p_data$y/sum(p_data$y) # 0.213
+p_data <- get_hist_prop(FL_PAR_sig_random_af) 
 p5 <- ggplot(p_data, aes(x=x, y=y_prop)) +
-  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("e")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.214) + expand_limits(x=0.5) + geom_vline(xintercept=0.109375, color = "red",linetype="dashed")
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("e")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.225) + expand_limits(x=0.5) + geom_vline(xintercept=0.1069263, color = "red",linetype="dashed")
 
 # X
-p<-ggplot(FL_X_sig_random_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
-p_data <- ggplot_build(p)$data[[1]]
-p_data$y_prop <- p_data$y/sum(p_data$y) # 0.147
+p_data <- get_hist_prop(FL_X_sig_random_af)
 p6 <- ggplot(p_data, aes(x=x, y=y_prop)) +
-  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("f")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.214) + expand_limits(x=0.5) + geom_vline(xintercept=0.09027778, color = "red",linetype="dashed")
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("f")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.225) + expand_limits(x=0.5) + geom_vline(xintercept=0.08333333, color = "red",linetype="dashed")
 
-p4 + p5 + p6
+#p4 + p5 + p6
 ```
+
 ```{r}
 p1 + p2 + p3 + p4 + p5 + p6 + plot_layout(nrow = 2)
 ggsave(paste0(data, "MAF_PAR_X.pdf"))
+```
+
+
+# compare PAR and X in one plot, similar to the null model plot
+```{r}
+get_hist_prop2 <- function(data, binwidth = 0.05, boundary = 0.05, x_limits = c(0.05, 0.5)) {p <- ggplot(data, aes(x = maf)) + geom_histogram(binwidth = binwidth, boundary = boundary) + scale_x_continuous(limits = x_limits)
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y / sum(p_data$y)
+p_data <- p_data %>% dplyr::select(x, xmin, xmax, y, y_prop)
+return(p_data)}
+
+p_data1 <- get_hist_prop2(FL_eqtl_sig_random_af)
+p_data2 <- get_hist_prop2(FL_PAR_sig_random_af)
+p_data3 <- get_hist_prop2(FL_X_sig_random_af)
+p_data1 <- p_data1 %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
+p_data2 <- p_data2 %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
+p_data3 <- p_data3 %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
+
+ggplot(p_data1, aes(x_axis, y_prop)) + 
+    geom_point(fill = NA, colour = "black", alpha = 0.9)+
+    geom_point(data = p_data2, color = "pink", fill=NA, alpha = 0.6)+
+    geom_point(data = p_data3, color = "lightblue", fill=NA, alpha = 0.6)+
+    theme_classic()+ labs(x="MAF", y="Proportion", title = "b")+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),text = element_text(size = 10))
 ```
 

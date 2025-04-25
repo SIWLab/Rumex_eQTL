@@ -200,6 +200,13 @@ colnames(normalized_counts_fln_PAR)[1] <- "#chr"
 colnames(normalized_counts_fln_auto)[1] <- "#chr"
 
 write.table(normalized_counts_fln, file = paste0(data,"normalized_counts_fln_X_PAR.bed"), row.names = FALSE, quote = F, sep = "\t")
+normalized_counts_fln <- read.table(paste0(data,"normalized_counts_fln_X_PAR.bed"), header = T, check.names = F)
+normalized_counts_fln$chr <- factor(normalized_counts_fln$chr)
+# keep it consistent with genotype files
+# save the step that changes later in bash
+levels(normalized_counts_fln$chr) <- c("1", "2", "3", "4", "6", "5")
+write.table(normalized_counts_fln, file = paste0(data,"normalized_counts_fln_X_PAR.bed"), row.names = FALSE, quote = F, sep = "\t")
+
 write.table(normalized_counts_fln_X, file = paste0(data,"normalized_counts_fln_X.bed"), row.names = FALSE, quote = F, sep = "\t")
 write.table(normalized_counts_fln_PAR, file = paste0(data,"normalized_counts_fln_PAR.bed"), row.names = FALSE, quote = F, sep = "\t")
 write.table(normalized_counts_fln_auto, file = paste0(data,"normalized_counts_fln_auto.bed"), row.names = FALSE, quote = F, sep = "\t")

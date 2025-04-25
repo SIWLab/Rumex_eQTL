@@ -31,12 +31,13 @@ rm -rf fake
 rm -rf cnt
 
 ########################### FL ##########################
-# FL autosomes
+# FL autosomes + PAR + X
 cd /ohta2/meng.yuan/rumex/eqtl/tensorqtl/FL
 mkdir cnt
 mkdir fake
-ln -s ../normalized_counts_fln_auto.bed ./
 ln -s ../FL.cis_qtl.txt ./
+ln -s ../FL_PAR.cis_qtl.txt ./
+ln -s ../FL_X.cis_qtl.txt ./
 
 vi fl_permute.sh
 vi pheno_permute_fl.R
@@ -52,9 +53,3 @@ cat ./cnt/FL_*_random.cnt > FL_fake_cnt.txt
 # rm intermediate files
 rm -rf fake
 rm -rf cnt
-
-####################### FL X & PAR #######################
-# one permutation as well
-
-
-

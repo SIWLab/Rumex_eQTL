@@ -70,14 +70,40 @@ p_data2 <- get_hist_prop2(tissue_n2_random)
 p_data1 <- p_data1 %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
 p_data2 <- p_data2 %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
 
-ggplot(p_data1, aes(x_axis, y_prop)) + 
-    geom_point(fill = "red", colour = "red", alpha = 1)+
+write.table(p_data1, file = paste0(data, "tissue_n1_random_real.txt"), row.names = FALSE, quote = FALSE, sep = "\t", col.names = T) 
+write.table(p_data2, file = paste0(data, "tissue_n2_random_real.txt"), row.names = FALSE, quote = FALSE, sep = "\t", col.names = T) 
+p_data1 <- read.table(paste0(data, "tissue_n1_random_real.txt"), header = T)
+p_data2 <- read.table(paste0(data, "tissue_n2_random_real.txt"), header = T)
+
+n1_null <- read.table(paste0(data, "tissue_n1_fake.txt"), header = F)
+colnames(n1_null) <- c("x", "xmin","xmax","y", "y_prop")
+n1_null <- n1_null %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
+
+n2_null <- read.table(paste0(data, "tissue_n2_fake.txt"), header = F)
+colnames(n2_null) <- c("x", "xmin","xmax","y", "y_prop")
+n2_null <- n2_null %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
+ 
+ 
+ggplot(n1_null, aes(x_axis, y_prop)) + 
+    geom_point(fill = NA, colour = "lightgrey", alpha = 1)+
+    geom_point(data = n2_null, color = "pink", fill=NA, alpha = 0.9)+ 
+    geom_point(data = p_data1, color = "red", fill="red", alpha = 0.9)+ 
     geom_point(data = p_data2, color = "black", fill="black", alpha = 0.9)+ 
     theme_classic()+ labs(x="MAF", y="Proportion", title = "b")+
     theme(axis.text.x = element_text(angle = 45, hjust = 1),text = element_text(size = 10))
-ggsave(paste0(data, "tissue_n1_n2_smallbin.pdf"))
+#ggsave(paste0(data, "tissue_n1_n2_smallbin.pdf"))
 ```
+## check the number of fake eqtls
+```{r}
+cnt <- read.table(paste0(data, "tissue_n1_n2_random.cnt"))
+summary(cnt$V2)
+summary(cnt$V4)
 
+```
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  1.000   1.000   1.000   1.634   2.000   9.000 
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  1.000   1.000   1.000   1.288   1.000   4.000 
 
 ```{r}
 median(tissue_n1_random$maf)

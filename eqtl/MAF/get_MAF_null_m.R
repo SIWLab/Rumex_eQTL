@@ -9,7 +9,7 @@ get_hist_prop <- function(data, binwidth = 0.05, boundary = 0.05, x_limits = c(0
 p <- ggplot(data, aes(x = maf)) + geom_histogram(binwidth = binwidth, boundary = boundary) + scale_x_continuous(limits = x_limits)
 p_data <- ggplot_build(p)$data[[1]]
 p_data$y_prop <- p_data$y / sum(p_data$y)
-p_data <- p_data %>% dplyr::select(x, xmin, xmax, y, y_prop)
+p_data <- p_data %>% select(x, xmin, xmax, y, y_prop)
 return(p_data)}
 
 ##################################### get eqtls in ML ###################################
@@ -37,13 +37,13 @@ ML_eqtl_multigene <- ML_eqtl_sig %>% group_by(variant_id) %>% filter(n()>1) %>% 
 # select a random eqtl per gene
 set.seed(1 + i) 
 ML_eqtl_sig <- ML_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
+ML_eqtl_sig$maf <- round(ML_eqtl_sig$maf, digits = 3)
 ML_eqtl_sig_random <- ML_eqtl_sig %>% group_by(phenotype_id) %>% slice_sample(n = 1) 
 
 # remove eqtls affecting multiple genes 
 ML_eqtl_sig_random <- ML_eqtl_sig_random %>% anti_join(ML_eqtl_multigene, by = c("variant_id")) %>% select(variant_id, maf)
 
 # get MAF
-ML_eqtl_sig_random$maf <- round(ML_eqtl_sig_random$maf, digits = 3)
 cnt3 <- nrow(ML_eqtl_sig_random)
 p_data <- get_hist_prop(ML_eqtl_sig_random)
 write.table(p_data, file = paste0("ML_", i, "_eqtl_random_fake.txt"), row.names = FALSE, quote = FALSE, sep = "\t", col.names = F) 
@@ -77,13 +77,13 @@ MP_eqtl_multigene <- MP_eqtl_sig %>% group_by(variant_id) %>% filter(n()>1) %>% 
 # select a random eqtl per gene
 set.seed(1 + i) 
 MP_eqtl_sig <- MP_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
+MP_eqtl_sig$maf <- round(MP_eqtl_sig$maf, digits = 3)
 MP_eqtl_sig_random <- MP_eqtl_sig %>% group_by(phenotype_id) %>% slice_sample(n = 1) 
 
 # remove eqtls affecting multiple genes 
 MP_eqtl_sig_random <- MP_eqtl_sig_random %>% anti_join(MP_eqtl_multigene, by = c("variant_id")) %>% select(variant_id, maf)
 
 # get MAF
-MP_eqtl_sig_random$maf <- round(MP_eqtl_sig_random$maf, digits = 3)
 cnt3 <- nrow(MP_eqtl_sig_random)
 p_data <- get_hist_prop(MP_eqtl_sig_random)
 write.table(p_data, file = paste0("MP_", i, "_eqtl_random_fake.txt"), row.names = FALSE, quote = FALSE, sep = "\t", col.names = F) 
@@ -108,7 +108,7 @@ tissue_n2_random <- tissue_n2 %>% group_by(phenotype_id) %>% slice_sample(n = 1)
 set.seed(1 + i)  
 tissue_n1_random <- tissue_n1 %>% group_by(phenotype_id) %>% slice_sample(n = 1) 
 
-# plots
+# get MAF
 p_data <- get_hist_prop(tissue_n1_random)
 write.table(p_data, file = paste0("tissue_n1_", i, "_fake.txt"), row.names = FALSE, quote = FALSE, sep = "\t", col.names = F) 
 p_data <- get_hist_prop(tissue_n2_random)

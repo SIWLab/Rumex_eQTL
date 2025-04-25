@@ -9,11 +9,6 @@ library(dplyr)
 library(ggplot2)
 library(patchwork)
 data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
-get_hist_prop <- function(data) {
-  p <- ggplot(data, aes(x = maf)) + geom_histogram(binwidth = 0.01,stat="count")
-  p_data <- ggplot_build(p)$data[[1]]
-  p_data$y_prop <- p_data$y / sum(p_data$y)
-  return(p_data)}
 ```
 
 
@@ -104,6 +99,14 @@ alternative hypothesis: true location shift is not equal to 0
 
 
 ## plots
+```{r}
+get_hist_prop <- function(data, binwidth = 0.01) {
+  p <- ggplot(data, aes(x = maf)) + geom_histogram(binwidth = binwidth)
+  p_data <- ggplot_build(p)$data[[1]]
+  p_data$y_prop <- p_data$y / sum(p_data$y)
+  return(p_data)}
+```
+
 ```{r}
 p<-ggplot(ML_eqtl_sig_min_af, aes(x=maf)) + geom_histogram(binwidth=0.01) 
 p_data <- ggplot_build(p)$data[[1]]

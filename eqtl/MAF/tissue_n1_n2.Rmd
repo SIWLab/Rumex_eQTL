@@ -55,8 +55,7 @@ ggsave(paste0(data,"MAF_n1_n2.pdf"))
 
 
 ```{r}
-get_hist_prop <- function(data, binwidth = 0.05, boundary = 0.05, x_limits = c(0.05, 0.5)) {
-p <- ggplot(data, aes(x = maf)) + geom_histogram(binwidth = binwidth, boundary = boundary) + scale_x_continuous(limits = x_limits)
+get_hist_prop2 <- function(data, binwidth = 0.05, boundary = 0.05, x_limits = c(0.05, 0.5)) {p <- ggplot(data, aes(x = maf)) + geom_histogram(binwidth = binwidth, boundary = boundary) + scale_x_continuous(limits = x_limits)
 p_data <- ggplot_build(p)$data[[1]]
 p_data$y_prop <- p_data$y / sum(p_data$y)
 p_data <- p_data %>% dplyr::select(x, xmin, xmax, y, y_prop)
@@ -65,17 +64,18 @@ return(p_data)}
 tissue_n1_random$maf <- round(tissue_n1_random$maf, digits = 3)
 tissue_n2_random$maf <- round(tissue_n2_random$maf, digits = 3)
 
-p_data1 <- get_hist_prop(tissue_n1_random)
-p_data2 <- get_hist_prop(tissue_n2_random)
+p_data1 <- get_hist_prop2(tissue_n1_random)
+p_data2 <- get_hist_prop2(tissue_n2_random)
 
 p_data1 <- p_data1 %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
 p_data2 <- p_data2 %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
 
-p2 <- ggplot(p_data1, aes(x_axis, y_prop)) + 
+ggplot(p_data1, aes(x_axis, y_prop)) + 
     geom_point(fill = "red", colour = "red", alpha = 1)+
     geom_point(data = p_data2, color = "black", fill="black", alpha = 0.9)+ 
     theme_classic()+ labs(x="MAF", y="Proportion", title = "b")+
     theme(axis.text.x = element_text(angle = 45, hjust = 1),text = element_text(size = 10))
+ggsave(paste0(data, "tissue_n1_n2_smallbin.pdf"))
 ```
 
 

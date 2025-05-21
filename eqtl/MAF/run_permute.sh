@@ -47,6 +47,12 @@ vi get_MAF_null_fl.R
 sh fl_permute.sh 1000
 
 # merge results from all permutations
+cat ./fake/FL_PAR_*_eqtl_random_fake.txt > FL_PAR_MAF_null.txt
+cat ./cnt/FL_PAR_*_random.cnt > FL_PAR_fake_cnt.txt
+
+cat ./fake/FL_X_*_eqtl_random_fake.txt > FL_X_MAF_null.txt
+cat ./cnt/FL_X_*_random.cnt > FL_X_fake_cnt.txt
+
 cat ./fake/FL_*_eqtl_random_fake.txt > FL_MAF_null.txt
 cat ./cnt/FL_*_random.cnt > FL_fake_cnt.txt
 

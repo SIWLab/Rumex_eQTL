@@ -106,6 +106,9 @@ FL_PAR_sig_random_af <- FL_PAR_sig_random %>%
 FL_PAR_sig_min_af <- FL_PAR_sig_min %>% 
     anti_join(FL_PAR_eqtl_multigene, by = c("variant_id","maf")) %>%
     dplyr::select(variant_id, maf) # 87
+
+write.csv(FL_PAR_sig_random_af, file = paste0(data, "FL_PAR_sig_random_af.csv"), row.names = F, quote = F)
+write.csv(FL_X_sig_random_af, file = paste0(data, "FL_X_sig_random_af.csv"), row.names = F, quote = F)
 ```
 
 ## MAFs
@@ -262,18 +265,51 @@ p_data$y_prop <- p_data$y / sum(p_data$y)
 p_data <- p_data %>% dplyr::select(x, xmin, xmax, y, y_prop)
 return(p_data)}
 
-p_data1 <- get_hist_prop2(FL_eqtl_sig_random_af)
+# A
+p_data1  <- read.table(paste0(data, "FL_eqtl_random_real.txt"), header = T)
+p_data1  <- p_data1 %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
+
+FL_PAR_sig_random_af$maf <- round(FL_PAR_sig_random_af$maf, digits = 3)
+FL_X_sig_random_af$maf <- round(FL_X_sig_random_af$maf, digits = 3)
+
 p_data2 <- get_hist_prop2(FL_PAR_sig_random_af)
 p_data3 <- get_hist_prop2(FL_X_sig_random_af)
-p_data1 <- p_data1 %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
 p_data2 <- p_data2 %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
 p_data3 <- p_data3 %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
 
 ggplot(p_data1, aes(x_axis, y_prop)) + 
     geom_point(fill = NA, colour = "black", alpha = 0.9)+
-    geom_point(data = p_data2, color = "pink", fill=NA, alpha = 0.6)+
-    geom_point(data = p_data3, color = "lightblue", fill=NA, alpha = 0.6)+
+    geom_point(data = p_data2, color = "red", fill=NA, alpha = 0.6)+
+    geom_point(data = p_data3, color = "blue", fill=NA, alpha = 0.6)+
     theme_classic()+ labs(x="MAF", y="Proportion", title = "b")+
     theme(axis.text.x = element_text(angle = 45, hjust = 1),text = element_text(size = 10))
+```
+
+```{r}
+# A
+maf_null1 <- read.table(paste0(data, "FL_MAF_null.txt"), header = F)
+colnames(maf_null1) <- c("x", "xmin","xmax","y", "y_prop")
+maf_null1 <- maf_null1 %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
+
+# PAR
+maf_null2 <- read.table(paste0(data, "FL_PAR_MAF_null.txt"), header = F)
+colnames(maf_null2) <- c("x", "xmin","xmax","y", "y_prop")
+maf_null2 <- maf_null2 %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
+
+# X
+maf_null3 <- read.table(paste0(data, "FL_X_MAF_null.txt"), header = F)
+colnames(maf_null3) <- c("x", "xmin","xmax","y", "y_prop")
+maf_null3 <- maf_null3 %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
+
+
+ggplot(maf_null1, aes(x_axis, y_prop)) + 
+    geom_point(fill = NA, colour = "lightgrey", alpha = 0.9)+
+    geom_point(data = maf_null3, color = "lightblue", fill=NA, alpha = 0.6)+
+    geom_point(data = p_data1, colour = "black", alpha = 0.9)+
+    geom_point(data = p_data2, color = "red", fill=NA, alpha = 0.6)+
+    geom_point(data = p_data3, color = "blue", fill=NA, alpha = 0.6)+
+    theme_classic()+ labs(x="MAF", y="Proportion", title = "b")+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),text = element_text(size = 10))
+ggsave(paste0(data,"FL_A_X_MAF_nul.pdf"))
 ```
 

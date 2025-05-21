@@ -119,11 +119,11 @@ write.table(p_data, file = paste0(data, "FL_eqtl_random_real.txt"), row.names = 
 ```{r}
 cnt <- read.table(paste0(data, "FL_fake_cnt.txt"))
 summary(cnt$V1)
-213/34238
+569/34238
 summary(cnt$V2)
-183/8090
+450/8090
 summary(cnt$V3)
-116/2542
+268/2542
 ```
 
 
@@ -196,5 +196,8 @@ p3 <- ggplot(maf_null, aes(x_axis, y_prop)) +
 p1 + p2 + p3
 ```
 ```{r}
-p1 + p1 + p3
+p1 + p2 + p3
+ggsave(paste0(data,"MAF_null_May6.pdf"),width = 7.29,
+  height = 3.5,
+  units = c("in"))
 ```

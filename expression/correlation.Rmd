@@ -1,0 +1,140 @@
+---
+title: "phenotype correlation on autosomes"
+author: "Meng"
+date: "2025-05-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
+```
+
+## between sex
+```{r}
+normalized_counts_ln <- read.table("/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/normalized_counts_ln_auto.bed", header = T, check.names = F) # 14992
+col <- as.data.frame(colnames(normalized_counts_ln))
+male <- normalized_counts_ln[,c(5:73)]
+female <- normalized_counts_ln[,c(74:147)]
+
+male <- male[, order(names(male))]
+female <- female[, order(names(female))]
+
+write.table(colnames(male), file=paste0(data, "m.txt"), quote = F, row.names = F)
+write.table(colnames(female), file=paste0(data, "f.txt"), quote = F, row.names = F)
+# keep the same inds
+# remove from male: "14eM", "37fM", "40bM", "45dM", "67fM"
+# remove from female: "24aF", "27cF", "35bF", "53cF", "5dF", "64aF", "72dF", "73dF", "7cF", "8aF"
+cols_to_remove <- c("14eM", "37fM", "40bM", "45dM", "67fM")
+male <- male %>% dplyr::select(-all_of(cols_to_remove)) # 64 pairs
+
+cols_to_remove <- c("24aF", "27cF", "35bF", "53cF", "5dF", "64aF", "72dF", "73dF", "7cF", "8aF")
+female <- female %>% dplyr::select(-all_of(cols_to_remove)) # 64 pairs
+
+row.names(male) <- normalized_counts_ln[,4]
+row.names(female) <- normalized_counts_ln[,4]
+
+cor(as.numeric(male[3, ]), as.numeric(female[3, ]), method = "spearman")
+
+sex_r <- sapply(1:nrow(male), function(i) cor(as.numeric(male[i, ]), as.numeric(female[i, ]), method = "spearman"))
+names(sex_r) <- rownames(male)
+
+sex_r_df <- data.frame(
+  phenotype_id = rownames(male),
+  spearman_r = sex_r
+)
+
+# label wether the gene is an egene in either ML or FL
+egene_ml <- read.table(paste0(data, "ML_egene_eqtl.txt"))
+egene_fl <- read.table(paste0(data, "FL_egene_eqtl.txt"))
+colnames(egene_ml) <- "phenotype_id"
+colnames(egene_fl) <- "phenotype_id"
+
+sex_r_df$Category <- ifelse(
+  sex_r_df$phenotype_id %in% egene_ml$phenotype_id | sex_r_df$phenotype_id %in% egene_fl$phenotype_id,
+  "eGene",
+  "Not eGene")
+table(sex_r_df$Category)
+sex_r_df$Category <- factor(sex_r_df$Category)
+levels(sex_r_df$Category)
+sex_r_df$Category <- factor(sex_r_df$Category, levels = c("Not eGene", "eGene"))
+```
+eGene Not eGene 
+     4493     10499
+
+### plot the distribution of r
+```{r}
+p1 <- ggplot(sex_r_df, aes(x = spearman_r, colour = Category)) + geom_histogram(binwidth = 0.05, position = "identity", alpha = 0.5, fill = NA) + theme_classic() + labs(title = "a", x = "Spearman's r", y = "Count") + xlim(-1, 1) + ylim(0,1550) + scale_color_brewer(palette="Dark2")
+p1
+```
+
+
+save output
+```{r}
+write.table(sex_r_df, file=paste0(data, "sex_r_df.txt"), quote = F, row.names = F)
+```
+
+
+
+## between leaf/pollen
+has to be normalized together
+```{r}
+normalized_counts_pln <- read.table("/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/normalized_counts_pln.bed", header = T, check.names = F)
+
+# keep only autosome
+normalized_counts_pln <- normalized_counts_pln %>% filter(chrom != "PAR" & chrom != "X" & chrom != "Y") # 16411
+
+pollen <- normalized_counts_pln %>% select(ends_with("MP"))
+leaf <- normalized_counts_pln %>% select(ends_with("ML"))
+colnames(pollen)
+colnames(leaf)
+
+row.names(pollen) <- normalized_counts_pln[,4]
+row.names(leaf) <- normalized_counts_pln[,4]
+
+
+cor(as.numeric(pollen[3, ]), as.numeric(leaf[3, ]), method = "spearman")
+
+pl_r <- sapply(1:nrow(pollen), function(i) cor(as.numeric(pollen[i, ]), as.numeric(leaf[i, ]), method = "spearman"))
+names(pl_r) <- rownames(pollen)
+
+pl_r_df <- data.frame(
+  phenotype_id = rownames(pollen),
+  spearman_r = pl_r)
+
+# label wether the gene is an egene in either ML or FL
+egene_mp <- read.table(paste0(data, "MP_egene_eqtl.txt"))
+colnames(egene_mp) <- "phenotype_id"
+
+pl_r_df$Category <- ifelse(
+  pl_r_df$phenotype_id %in% egene_ml$phenotype_id | pl_r_df$phenotype_id %in% egene_mp$phenotype_id,
+  "eGene",
+  "Not eGene")
+table(pl_r_df$Category)
+pl_r_df$Category <- factor(pl_r_df$Category)
+levels(pl_r_df$Category)
+pl_r_df$Category <- factor(pl_r_df$Category, levels = c("Not eGene", "eGene"))
+```
+eGene Not eGene 
+     3469     12942
+
+### plot the distribution of r
+```{r}
+p2 <- ggplot(pl_r_df, aes(x = spearman_r, colour = Category)) + geom_histogram(binwidth = 0.05, position = "identity", alpha = 0.5, fill=NA) + theme_classic() + labs(title = "b", x = "Spearman's r", y = "Count") + xlim(-1, 1) + ylim(0,1550) + scale_color_brewer(palette="Dark2")
+p2
+```
+
+
+plot together
+```{r}
+p1 + p2 + plot_layout(guides = 'collect')
+ggsave(paste0(data, "phenotype_correlation.pdf"), height = 3.6, width = 7.5, units = "in")
+```
+
+save output
+```{r}
+write.table(pl_r_df, file=paste0(data, "pl_r_df.txt"), quote = F, row.names = F)
+```
+

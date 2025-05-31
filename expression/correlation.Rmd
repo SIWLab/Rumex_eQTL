@@ -43,7 +43,7 @@ names(sex_r) <- rownames(male)
 
 sex_r_df <- data.frame(
   phenotype_id = rownames(male),
-  spearman_r = sex_r
+  pearson_r = sex_r
 )
 
 # label wether the gene is an egene in either ML or FL
@@ -66,14 +66,15 @@ eGene Not eGene
 
 ### plot the distribution of r
 ```{r}
-p1 <- ggplot(sex_r_df, aes(x = spearman_r, colour = Category)) + geom_histogram(binwidth = 0.05, position = "identity", alpha = 0.5, fill = NA) + theme_classic() + labs(title = "a", x = "Pearson's r", y = "Count") + xlim(-1, 1) + ylim(0,1550) + scale_color_brewer(palette="Dark2")
+p1 <- ggplot(sex_r_df, aes(x = pearson_r, colour = Category)) + geom_histogram(binwidth = 0.05, position = "identity", alpha = 0.5, fill = NA) + theme_classic() + labs(title = "a", x = "Pearson's r", y = "Count") + xlim(-1, 1) + ylim(0,1550) + scale_color_brewer(palette="Dark2")
 p1
 ```
 
 
 save output
 ```{r}
-write.table(sex_r_df, file=paste0(data, "sex_r_df.txt"), quote = F, row.names = F)
+write.csv(sex_r_df, file=paste0(data, "sex_r_df.csv"), quote = F, row.names = F)
+sex_r_df <- read.csv(paste0(data, "sex_r_df.csv"))
 ```
 
 
@@ -102,7 +103,7 @@ names(pl_r) <- rownames(pollen)
 
 pl_r_df <- data.frame(
   phenotype_id = rownames(pollen),
-  spearman_r = pl_r)
+  pearson_r = pl_r)
 
 # label wether the gene is an egene in either ML or FL
 egene_mp <- read.table(paste0(data, "MP_egene_eqtl.txt"))
@@ -122,7 +123,7 @@ eGene Not eGene
 
 ### plot the distribution of r
 ```{r}
-p2 <- ggplot(pl_r_df, aes(x = spearman_r, colour = Category)) + geom_histogram(binwidth = 0.05, position = "identity", alpha = 0.5, fill=NA) + theme_classic() + labs(title = "b", x = "Pearson's r", y = "Count") + xlim(-1, 1) + ylim(0,1550) + scale_color_brewer(palette="Dark2")
+p2 <- ggplot(pl_r_df, aes(x = pearson_r, colour = Category)) + geom_histogram(binwidth = 0.05, position = "identity", alpha = 0.5, fill=NA) + theme_classic() + labs(title = "b", x = "Pearson's r", y = "Count") + xlim(-1, 1) + ylim(0,1550) + scale_color_brewer(palette="Dark2")
 p2
 ```
 
@@ -135,7 +136,8 @@ ggsave(paste0(data, "phenotype_correlation_pearson.pdf"), height = 3.6, width = 
 
 save output
 ```{r}
-write.table(pl_r_df, file=paste0(data, "pl_r_df.txt"), quote = F, row.names = F)
+write.csv(pl_r_df, file=paste0(data, "pl_r_df.csv"), quote = F, row.names = F)
+pl_r_df <- read.csv(paste0(data, "pl_r_df.csv"))
 ```
 
 
@@ -146,10 +148,23 @@ egene_pl <- pl_r_df %>% filter(Category == "eGene")
 egene_sex$Category <- "Sex"
 egene_pl$Category <- "Life-stage"
 egene_r <- rbind(egene_sex, egene_pl)
+egene_r$Category <- as.factor(egene_r$Category)
+levels(egene_r$Category)
+table(egene_r$Category)
+egene_median <- egene_r %>% group_by(Category) %>% summarise(median = median(pearson_r))
+wilcox.test(data = egene_r, pearson_r ~ Category)
 ```
+Life-stage        Sex 
+      3469       4493 
+
+Wilcoxon rank sum test with continuity correction
+
+data:  pearson_r by Category
+W = 4380880, p-value < 2.2e-16
+alternative hypothesis: true location shift is not equal to 0
 
 ```{r}
-p3 <- ggplot(egene_r, aes(x = spearman_r, colour = Category)) + geom_histogram(binwidth = 0.05, position = "identity", alpha = 0.5, fill=NA) + theme_classic() + labs(title = "b", x = "Pearson's r", y = "Count") + xlim(-1, 1) + scale_color_brewer(palette="Dark2")
+p3 <- ggplot(egene_r, aes(x = pearson_r, fill = Category, colour = Category)) + geom_histogram(binwidth = 0.05, position = "identity", alpha = 0.1) + theme_classic() + labs(title = "b", x = expression("Pearson's " * italic(r)), y = "Count") + xlim(-1, 1) + scale_fill_brewer(palette="Dark2") + scale_color_brewer(palette="Dark2") + geom_vline(data=egene_median, aes(xintercept=median, color=Category), linetype="dashed")
 p3
 ```
 
@@ -159,15 +174,24 @@ sex <- sex_r_df
 sex$Category <- "Sex"
 pl$Category <- "Life-stage"
 all_r <- rbind(sex, pl)
+all_r$Category <- as.factor(all_r$Category)
+levels(all_r$Category)
+all_median <- all_r %>% group_by(Category) %>% summarise(median = median(pearson_r))
+wilcox.test(data = all_r, pearson_r ~ Category)
 ```
+Wilcoxon rank sum test with continuity correction
+
+data:  pearson_r by Category
+W = 61665951, p-value < 2.2e-16
+alternative hypothesis: true location shift is not equal to 0
 
 ```{r}
-p4 <- ggplot(all_r, aes(x = spearman_r, colour = Category)) + geom_histogram(binwidth = 0.05, position = "identity", alpha = 0.5, fill=NA) + theme_classic() + labs(title = "a", x = "Pearson's r", y = "Count") + xlim(-1, 1) + scale_color_brewer(palette="Dark2")
+p4 <- ggplot(all_r, aes(x = pearson_r, fill = Category, colour = Category)) + geom_histogram(binwidth = 0.05, position = "identity", alpha = 0.1) + theme_classic() + labs(title = "a", x = expression("Pearson's " * italic(r)), y = "Count") + xlim(-1, 1) + scale_fill_brewer(palette="Dark2") + scale_color_brewer(palette="Dark2")+ geom_vline(data=egene_median, aes(xintercept=median, color=Category), linetype="dashed")
 p4
 ```
 
 ```{r}
 p4 + p3 + plot_layout(guides = 'collect')
-ggsave(paste0(data, "phenotype_correlation_pearson_2.pdf"), height = 3.6, width = 7.5, units = "in")
+ggsave(paste0(data, "Fig2.pdf"), height = 3.4, width = 7.5, units = "in")
 ```
 

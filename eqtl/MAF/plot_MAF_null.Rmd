@@ -90,10 +90,12 @@ colnames(maf_null) <- c("x", "xmin","xmax","y", "y_prop")
 maf_null <- maf_null %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
 
 p1 <- ggplot(maf_null, aes(x_axis, y_prop)) + 
-    geom_point(fill = NA, colour = "lightgrey", alpha = 1)+
-    geom_point(data = maf_real, color = "black", fill="black", alpha = 0.9)+ 
+    geom_point(fill = NA, colour = "darkgrey", alpha = 0.2)+
+    geom_point(data = maf_real, color = "black", fill="black")+ 
     theme_classic()+ labs(x="MAF", y="Proportion", title = "a")+
-    theme(axis.text.x = element_text(angle = 45, hjust = 1),text = element_text(size = 10))
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),text = element_text(size = 10))+
+    ylim(0, 0.9)
+p1
 ```
 
 # FL
@@ -137,10 +139,12 @@ colnames(maf_null) <- c("x", "xmin","xmax","y", "y_prop")
 maf_null <- maf_null %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
 
 p2 <- ggplot(maf_null, aes(x_axis, y_prop)) + 
-    geom_point(fill = NA, colour = "lightgrey", alpha = 1)+
-    geom_point(data = maf_real, color = "black", fill="black", alpha = 0.9)+ 
+    geom_point(fill = NA, colour = "darkgrey", alpha = 0.2)+
+    geom_point(data = maf_real, color = "black", fill="black")+ 
     theme_classic()+ labs(x="MAF", y="Proportion", title = "b")+
-    theme(axis.text.x = element_text(angle = 45, hjust = 1),text = element_text(size = 10))
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),text = element_text(size = 10))+
+    ylim(0, 0.9)
+p2
 ```
 
 
@@ -185,19 +189,16 @@ colnames(maf_null) <- c("x", "xmin","xmax","y", "y_prop")
 maf_null <- maf_null %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
 
 p3 <- ggplot(maf_null, aes(x_axis, y_prop)) + 
-    geom_point(fill = NA, colour = "lightgrey", alpha = 1)+
-    geom_point(data = maf_real, color = "black", fill="black", alpha = 0.9)+ 
+    geom_point(fill = NA, colour = "darkgrey", alpha = 0.2)+
+    geom_point(data = maf_real, color = "black", fill="black")+ 
     theme_classic()+ labs(x="MAF", y="Proportion", title = "c")+
-    theme(axis.text.x = element_text(angle = 45, hjust = 1),text = element_text(size = 10))
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),text = element_text(size = 10))+
+    ylim(0, 0.9)
+p3
 ```
 
 # plot together
 ```{r}
 p1 + p2 + p3
-```
-```{r}
-p1 + p2 + p3
-ggsave(paste0(data,"MAF_null_May6.pdf"),width = 7.29,
-  height = 3.5,
-  units = c("in"))
+ggsave(paste0(data,"MAF_null_Jun1.pdf"),width = 7.7, height = 3.2, units = c("in"))
 ```

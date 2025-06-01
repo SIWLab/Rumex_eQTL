@@ -35,7 +35,6 @@ cnt2 <- nrow(ML_eqtl_sig)
 ML_eqtl_multigene <- ML_eqtl_sig %>% group_by(variant_id) %>% filter(n()>1) %>% select(variant_id) %>% distinct()
 
 # select a random eqtl per gene
-set.seed(1 + i) 
 ML_eqtl_sig <- ML_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
 ML_eqtl_sig$maf <- round(ML_eqtl_sig$maf, digits = 3)
 ML_eqtl_sig_random <- ML_eqtl_sig %>% group_by(phenotype_id) %>% slice_sample(n = 1) 
@@ -75,7 +74,6 @@ cnt2 <- nrow(MP_eqtl_sig)
 MP_eqtl_multigene <- MP_eqtl_sig %>% group_by(variant_id) %>% filter(n()>1) %>% select(variant_id) %>% distinct()
 
 # select a random eqtl per gene
-set.seed(1 + i) 
 MP_eqtl_sig <- MP_eqtl_sig %>% mutate(maf = ifelse(af <= 0.5, af, 1 - af))
 MP_eqtl_sig$maf <- round(MP_eqtl_sig$maf, digits = 3)
 MP_eqtl_sig_random <- MP_eqtl_sig %>% group_by(phenotype_id) %>% slice_sample(n = 1) 
@@ -102,10 +100,8 @@ tissue_n1 <- bind_rows(anti_join(ML_eqtl_sig, MP_eqtl_sig, by = c("phenotype_id"
 # remove eqtls affecting multiple genes 
 tissue_n2 <- tissue_n2 %>% anti_join(ML_eqtl_multigene, by = c("variant_id")) %>% anti_join(MP_eqtl_multigene, by = c("variant_id"))
 tissue_n1 <- tissue_n1 %>% anti_join(ML_eqtl_multigene, by = c("variant_id")) %>% anti_join(MP_eqtl_multigene, by = c("variant_id"))
-
-set.seed(1 + i)  
-tissue_n2_random <- tissue_n2 %>% group_by(phenotype_id) %>% slice_sample(n = 1) 
-set.seed(1 + i)  
+ 
+tissue_n2_random <- tissue_n2 %>% group_by(phenotype_id) %>% slice_sample(n = 1)  
 tissue_n1_random <- tissue_n1 %>% group_by(phenotype_id) %>% slice_sample(n = 1) 
 
 # get MAF

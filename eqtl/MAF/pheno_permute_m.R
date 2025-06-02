@@ -19,7 +19,7 @@ colnames(cnt1)[1] <- "#chr"
 write.table(cnt1, paste0("normalized_counts_mln_auto_", i, ".bed"), sep = "\t", row.names = FALSE, quote = FALSE)
 
 # MP
-colnames(cnt2) <- col_names
+colnames(cnt2) <- col_names_shuffled
 cnt2 <- cnt2[, c(1:4, 4 + order(names(cnt2)[5:ncol(cnt2)]))]
 colnames(cnt2)[1] <- "#chr"
 write.table(cnt2, paste0("normalized_counts_mpn_auto_", i, ".bed"), sep = "\t", row.names = FALSE, quote = FALSE)

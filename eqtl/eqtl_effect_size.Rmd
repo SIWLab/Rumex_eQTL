@@ -62,10 +62,6 @@ colnames(ml_fl)[5] <- "female"
 write.csv(ml_fl, file = paste0(data, "ml_fl_effectsize.csv"), row.names = F, quote = F)
 table(ml_fl$category)
 
-ml_fl$category <- factor(ml_fl$category)
-levels(ml_fl$category) <- c("top in both", "top in FL, sig in ML", "top in FL, not sig in ML", "top in ML, sig in FL", "top in ML, not sig in FL")
-
-
 p1 <- ggplot(ml_fl, aes(x = male, y = female, color = category)) + 
     geom_point(data = ml_fl[ml_fl$category != "both", ], size=0.8, alpha = 0.8) +
     geom_point(data = ml_fl[ml_fl$category == "both", ], size=0.8, alpha = 0.8) +
@@ -73,7 +69,9 @@ p1 <- ggplot(ml_fl, aes(x = male, y = female, color = category)) +
     theme(text = element_text(size = 11)) + 
     scale_colour_manual(values = c("black","#B200ED", "#CBC3E3", "#FF6E00", "#FFDBBB")) + 
     geom_vline(xintercept=0, color = "black",linetype="dashed") + 
-    geom_hline(yintercept=0, color = "black",linetype="dashed")
+    geom_hline(yintercept=0, color = "black",linetype="dashed") + 
+    xlim(-2.3,2.3) + ylim(-2.3,2.3)
+p1
 ```
 
 both  female female2    male   male2 
@@ -128,7 +126,9 @@ p2 <- ggplot(ml_mp, aes(x = leaf, y = pollen, color = category)) +
     theme(text = element_text(size = 11)) + 
     scale_colour_manual(values = c("black","#FF2400", "#FFCCCB", "#0077ec", "#ADD8E6")) + 
     geom_vline(xintercept=0, color = "black",linetype="dashed") + 
-    geom_hline(yintercept=0, color = "black",linetype="dashed")
+    geom_hline(yintercept=0, color = "black",linetype="dashed") + 
+    xlim(-2.3,2.3) + ylim(-2.3,2.3)
+p2
 ```
  both    leaf   leaf2  pollen pollen2 
     102      88    1736      94    1057
@@ -136,6 +136,7 @@ p2 <- ggplot(ml_mp, aes(x = leaf, y = pollen, color = category)) +
 ## plots
 ```{r}
 p1 + p2
+ggsave(paste0(data, "Fig3_Jun3.pdf"), height = 3.4, width = 8.3, units = "in")
 ```
 
 
@@ -200,7 +201,9 @@ write.csv(dis_pl, file = paste0(data, "dis_pl.csv"), row.names = F, quote = F)
 write.csv(dis_pl1, file = paste0(data, "dis_pl1.csv"), row.names = F, quote = F)
 write.csv(dis_pl2, file = paste0(data, "dis_pl2.csv"), row.names = F, quote = F)
 
-# manually check annotation for the 9 etqls
+# manually check annotation for the 9 eqtls
+dis_pl_top <- dis_pl %>% filter(category == "both")
+write.csv(dis_pl_top, file = paste0(data, "dis_pl_top.csv"), row.names = F, quote = F)
 ```
 both    leaf   leaf2  pollen pollen2 
       9       5     575       5     380 

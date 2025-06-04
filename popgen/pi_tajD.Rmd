@@ -10,6 +10,7 @@ library(ggplot2)
 library(dplyr)
 library(patchwork)
 library(car)
+library(stringr)
 data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/popgen/"
 data2 <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
 ```
@@ -17,31 +18,23 @@ data2 <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manu
 
 # pi and tajD data
 ```{r}
-# pi <- read.table(paste0(data,"syn_pi.txt"), header = T) # 119485
-# pi <- pi %>% filter(no_sites >= 50) # 20621
 pi <- read.table(paste0(data,"syn.genewise_pi.txt"), header = T) # 27520
+pi <- pi[complete.cases(pi),] # 26690
 pi <- pi %>% filter(no_sites >= 50) # 22093
 
-# tajd <- read.table(paste0(data,"syn.Tajima.D"), header = T) # 119392
-# tajd <- tajd %>% filter(N_SNPS >= 10) # 3327, 11739
-tajd <- read.csv(paste0(data,"syn.genewise_tajd.csv")) # 27519
-tajd <- tajd[complete.cases(tajd),] # 7139
-tajd <- tajd %>% filter(sites >= 20) # 7103
+tajd <- read.table(paste0(data,"syn.genewise_tajima_d.txt"), header = T) # 27520
+tajd <- tajd[complete.cases(tajd),] # 23313
+tajd <- tajd %>% filter(no_sites >= 50) # 20621
 
-colnames(tajd)[1] <- "chrom"
 colnames(pi)[2:4] <- c("chrom", "start", "end")
+colnames(tajd)[2:4] <- c("chrom", "start", "end")
 tajd$chrom <- as.character(tajd$chrom)
 pi$chrom <- as.character(pi$chrom)
-
-quantile(pi$avg_pi, 0.95) # 0.005616218
-pi_top <- pi %>% filter(avg_pi > 0.005616218)
-quantile(tajd$TajD_pop, 0.95) # -0.8739 
-tajd_top <- tajd %>% filter(TajD_pop > -0.8739)
 ```
 
 ```{r}
 p1 <- ggplot(pi, aes(x = start, y = avg_pi)) + geom_point(alpha = 0.3) + facet_grid(. ~ chrom, scales = "free_x", switch = "x", space = "free_x") + theme_classic()
-p2 <- ggplot(tajd, aes(x = start, y = TajD_pop)) + geom_point(alpha = 0.3) + facet_grid(. ~ chrom, scales = "free_x", switch = "x", space = "free_x") + theme_classic()
+p2 <- ggplot(tajd, aes(x = start, y = tajima_d)) + geom_point(alpha = 0.3) + facet_grid(. ~ chrom, scales = "free_x", switch = "x", space = "free_x") + theme_classic()
 
 p1 / p2
 ggsave(paste0(data,"pi_tajD.pdf"))
@@ -119,67 +112,47 @@ Df  Sum Sq   Mean Sq F value Pr(>F)
 Category       2 0.00001 6.535e-06   0.493  0.611
 Residuals   2954 0.03914 1.325e-05
 
-Tukey multiple comparisons of means
-    95% family-wise confidence level
-
-Fit: aov(formula = avg_pi ~ Category, data = pi_all)
-
-$Category
-                                      diff           lwr          upr     p adj
-Pollen-specific-Leaf-specific 0.0001121679 -0.0002382306 0.0004625664 0.7332663
-Shared-Leaf-specific          0.0001767601 -0.0003355676 0.0006890877 0.6974597
-Shared-Pollen-specific        0.0000645922 -0.0004836216 0.0006128060 0.9587966
 
 ```{r}
 l_specific_tajd <- l_specific %>% inner_join(gff, by = "gene") %>% 
-    inner_join(tajd, by = c("chrom", "start", "end")) # 648
+    inner_join(tajd, by = c("chrom", "start", "end")) # 1697
 p_specific_tajd <- p_specific %>% inner_join(gff, by = "gene") %>% 
-    inner_join(tajd, by = c("chrom", "start", "end")) # 337
+    inner_join(tajd, by = c("chrom", "start", "end")) # 898
 pl_shared_tajd <- pl_shared %>% inner_join(gff, by = "gene") %>% 
-    inner_join(tajd, by = c("chrom", "start", "end")) # 117
+    inner_join(tajd, by = c("chrom", "start", "end")) # 325
 
 l_specific_tajd$Category <- "Leaf-specific"
 p_specific_tajd$Category <- "Pollen-specific"
 pl_shared_tajd$Category <- "Shared"
 
 tajd_all <- rbind(l_specific_tajd, p_specific_tajd, pl_shared_tajd)
-leveneTest(data = tajd_all, TajD_pop ~ Category) # p = 0.3629
+leveneTest(data = tajd_all, tajima_d ~ Category) # p = 0.1651
 
 group_by(tajd_all, Category) %>%
   summarise(
     count = n(),
-    mean = mean(TajD_pop, na.rm = TRUE),
-    sd = sd(TajD_pop, na.rm = TRUE)
+    mean = mean(tajima_d, na.rm = TRUE),
+    sd = sd(tajima_d, na.rm = TRUE)
   )
 
-aov <- aov(TajD_pop ~ Category, data = tajd_all)
-summary(aov) # p = 0.728
+aov <- aov(tajima_d ~ Category, data = tajd_all)
+summary(aov) # p = 0.157
 TukeyHSD(aov)
 ```
   
 Category count mean sd
-Leaf-specific	648	-1.185021	0.3195210	
-Pollen-specific	337	-1.174075	0.3036394	
-Shared	117	-1.200361	0.3582510	
+Leaf-specific	1697	-0.9125938	0.2232674	
+Pollen-specific	898	-0.9157521	0.2076022	
+Shared	325	-0.8888459	0.2585612		
 
 Df Sum Sq Mean Sq F value Pr(>F)
-Category       2   0.06 0.03233   0.317  0.728
-Residuals   1099 111.92 0.10184 
+Category       2   0.18 0.09204   1.853  0.157
+Residuals   2917 144.86 0.04966 
 
- Tukey multiple comparisons of means
-    95% family-wise confidence level
-
-Fit: aov(formula = TajD_pop ~ Category, data = tajd_all)
-
-$Category
-                                     diff         lwr        upr     p adj
-Pollen-specific-Leaf-specific  0.01094622 -0.03935331 0.06124576 0.8661353
-Shared-Leaf-specific          -0.01533939 -0.09057069 0.05989192 0.8814656
-Shared-Pollen-specific        -0.02628561 -0.10665087 0.05407965 0.7229894
 
 ```{r}
 p1 <- ggplot(pi_all, aes(x = Category, y = avg_pi)) + geom_boxplot()
-p2 <- ggplot(tajd_all, aes(x = Category, y = TajD_pop)) + geom_boxplot()
+p2 <- ggplot(tajd_all, aes(x = Category, y = tajima_d)) + geom_boxplot()
 p1+p2
 ggsave(paste0(data,"lifestage_pi_tajd.pdf"), width = 7, height = 3, units = "in")
 ```
@@ -211,39 +184,28 @@ group_by(sex_pi, Category) %>%
   )
 
 leveneTest(data = sex_pi, avg_pi ~ Category) # p = 3.938e-06
-aov <- aov(avg_pi ~ Category, data = sex_pi)
-summary(aov) # p = 0.000144
-TukeyHSD(aov)
+# use non parametric test
+kruskal.test(avg_pi ~ Category, data = sex_pi) # p-value = 0.5383
+pairwise.wilcox.test(sex_pi$avg_pi, sex_pi$Category, p.adjust.method = "BH")
 ```
 Category count mean sd 
 Female-specific	1856	0.001883272	0.002549293	
 Male-specific	950	0.001994788	0.002613055	
 Shared	1101	0.002339245	0.003520300
 
-Df  Sum Sq   Mean Sq F value   Pr(>F)    
-Category       2 0.00015 7.306e-05   8.867 0.000144 ***
-Residuals   3904 0.03217 8.240e-06                     
----
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+Kruskal-Wallis rank sum test
 
-  Tukey multiple comparisons of means
-    95% family-wise confidence level
+data:  avg_pi by Category
+Kruskal-Wallis chi-squared = 1.2385, df = 2, p-value = 0.5383
 
-Fit: aov(formula = avg_pi ~ Category, data = sex_pi)
-
-$Category
-                                      diff           lwr          upr     p adj
-Male-specific-Female-specific 0.0001115159 -1.569641e-04 0.0003799958 0.5934704
-Shared-Female-specific        0.0004559726  1.999597e-04 0.0007119855 0.0000899
-Shared-Male-specific          0.0003444567  4.643621e-05 0.0006424773 0.0185388
 
 ```{r}
 f_specific_tajd <- f_specific %>% inner_join(gff, by = "gene") %>% 
-    inner_join(tajd, by = c("chrom", "start", "end")) # 681
+    inner_join(tajd, by = c("chrom", "start", "end")) # 1833
 m_specific_tajd <- m_specific %>% inner_join(gff, by = "gene") %>% 
-    inner_join(tajd, by = c("chrom", "start", "end")) # 358
+    inner_join(tajd, by = c("chrom", "start", "end")) # 938
 sex_shared_tajd <- sex_shared %>% inner_join(gff, by = "gene") %>% 
-    inner_join(tajd, by = c("chrom", "start", "end")) # 407
+    inner_join(tajd, by = c("chrom", "start", "end")) # 1084
 
 m_specific_tajd$Category <- "Male-specific"
 f_specific_tajd$Category <- "Female-specific"
@@ -253,41 +215,41 @@ sex_tajd <- rbind(m_specific_tajd, f_specific_tajd, sex_shared_tajd)
 group_by(sex_tajd, Category) %>%
   summarise(
     count = n(),
-    mean = mean(TajD_pop, na.rm = TRUE),
-    sd = sd(TajD_pop, na.rm = TRUE)
+    mean = mean(tajima_d, na.rm = TRUE),
+    sd = sd(tajima_d, na.rm = TRUE)
   )
 
-leveneTest(data = sex_tajd, TajD_pop ~ Category) # p = 0.7606
-aov <- aov(TajD_pop ~ Category, data = sex_tajd)
-summary(aov) # p = 0.779
-TukeyHSD(aov)
+leveneTest(data = sex_tajd, tajima_d ~ Category) # p = 0.0004625
+# use non parametric test
+kruskal.test(tajima_d ~ Category, data = sex_tajd) # p-value = 4.523e-05
+pairwise.wilcox.test(sex_tajd$tajima_d, sex_tajd$Category, p.adjust.method = "BH")
 ```
 
 Category count mean sd 
-Female-specific	681	-1.175353	0.3222666	
-Male-specific	358	-1.186529	0.3217574	
-Shared	407	-1.188105	0.3292248	
+Female-specific	1833	-0.9341454	0.1970029	
+Male-specific	938	-0.9288674	0.2009582	
+Shared	1084	-0.8913921	0.2502280	
 
-Df Sum Sq Mean Sq F value Pr(>F)
-Category       2   0.05 0.02624    0.25  0.779
-Residuals   1443 151.59 0.10505
+Kruskal-Wallis rank sum test
 
-Tukey multiple comparisons of means
-    95% family-wise confidence level
+data:  tajima_d by Category
+Kruskal-Wallis chi-squared = 20.008, df = 2, p-value = 4.523e-05
 
-Fit: aov(formula = TajD_pop ~ Category, data = sex_tajd)
+Pairwise comparisons using Wilcoxon rank sum test with continuity correction 
 
-$Category
-                                      diff         lwr        upr     p adj
-Male-specific-Female-specific -0.011175761 -0.06081696 0.03846544 0.8575270
-Shared-Female-specific        -0.012751904 -0.06039426 0.03489045 0.8047726
-Shared-Male-specific          -0.001576143 -0.05667487 0.05352258 0.9975199
+data:  sex_tajd\$tajima_d and sex_tajd$Category 
+
+Female-specific Male-specific
+Male-specific 0.85486         -            
+Shared        0.00011         0.00033      
+
+P value adjustment method: BH 
 
 
 box plot of pi and tajD for 3 categories
 ```{r}
 p1 <- ggplot(sex_pi, aes(x = Category, y = avg_pi)) + geom_boxplot()
-p2 <- ggplot(sex_tajd, aes(x = Category, y = TajD_pop)) + geom_boxplot()
+p2 <- ggplot(sex_tajd, aes(x = Category, y = tajima_d)) + geom_boxplot()
 p1 + p2
 ggsave(paste0(data,"sex_pi_tajd.pdf"), width = 7, height = 3, units = "in")
 ```
@@ -305,12 +267,12 @@ pl_not <- anti_join(egene_all, pl_egene, by = "gene") # 2063
 pl_egene_pi <- pl_egene %>% inner_join(gff, by = "gene") %>% 
     inner_join(pi, by = c("chrom", "start", "end")) # 1306
 pl_egene_tajd <- pl_egene %>% inner_join(gff, by = "gene") %>% 
-    inner_join(tajd, by = c("chrom", "start", "end")) # 485
+    inner_join(tajd, by = c("chrom", "start", "end")) # 1286
 
 pl_not_pi <- pl_not %>% inner_join(gff, by = "gene") %>% 
     inner_join(pi, by = c("chrom", "start", "end")) # 1870
 pl_not_tajd <- pl_not %>% inner_join(gff, by = "gene") %>% 
-    inner_join(tajd, by = c("chrom", "start", "end")) # 694
+    inner_join(tajd, by = c("chrom", "start", "end")) # 1847
 
 pl_egene_pi$Category <- "DE"
 pl_not_pi$Category <- "noDE"
@@ -323,12 +285,12 @@ pl_tajd <- rbind(pl_egene_tajd, pl_not_tajd)
 group_by(pl_tajd, Category) %>%
   summarise(
     count = n(),
-    mean = mean(TajD_pop, na.rm = TRUE),
-    sd = sd(TajD_pop, na.rm = TRUE)
+    mean = mean(tajima_d, na.rm = TRUE),
+    sd = sd(tajima_d, na.rm = TRUE)
   )
 
-leveneTest(data = pl_tajd, TajD_pop ~ Category) # p = 0.5094
-t.test(TajD_pop ~ Category, data = pl_tajd, var.equal = T)
+leveneTest(data = pl_tajd, tajima_d ~ Category) # p = 0.1584
+t.test(tajima_d ~ Category, data = pl_tajd, var.equal = T) # p = 0.0005815
 
 group_by(pl_pi, Category) %>%
   summarise(
@@ -338,25 +300,27 @@ group_by(pl_pi, Category) %>%
   )
 
 leveneTest(data = pl_pi, avg_pi ~ Category) # p = 4.687e-06 ***
-t.test(avg_pi ~ Category, data = pl_pi, var.equal = F)
+t.test(avg_pi ~ Category, data = pl_pi, var.equal = F) # p = 0.0001305
 
 ```
 tajd
-DE	485	-1.175649	0.3153314	
-noDE	694	-1.186834	0.3202336
+Category count mean sd 
+DE	1286	-0.8961768	0.2323016	
+noDE	1847	-0.9235857	0.2095142
 
 Two Sample t-test
 
-data:  TajD_pop by Category
-t = 0.59387, df = 1177, p-value = 0.5527
+data:  tajima_d by Category
+t = 3.4436, df = 3131, p-value = 0.0005815
 alternative hypothesis: true difference in means between group DE and group noDE is not equal to 0
 95 percent confidence interval:
- -0.02576699  0.04813703
+ 0.01180292 0.04301483
 sample estimates:
   mean in group DE mean in group noDE 
-         -1.175649          -1.186834
+        -0.8961768         -0.9235857 
          
 pi 
+Category count mean sd 
 DE	1306	0.002499847	0.004570933	
 noDE	1870	0.001961369	0.002642290	
 

@@ -62,35 +62,10 @@ sed -i 's/A4/4/g' ${file}
 # gene by gene stats
 vcf=/ohta2/meng.yuan/rumex/eqtl/pixy/eqtl_mpileup_auto.syn.L.vcf.gz
 bed=merged_TX_noMatPARlarge_txanno_gene.bed
-pixy --stats pi \
+pixy --stats pi tajima_d \
 --vcf ${vcf} \
 --populations pop.txt \
---n_cores 25 \
+--n_cores 6 \
 --bed_file ${bed} \
---output_prefix syn.genewise
-
-
-# tajD use vcftools
-# vcf=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_auto.allsites.L.vcf.gz
-# vcftools --gzvcf ${vcf} --TajimaD 10000 --out allSites
-
-vcf=/ohta2/meng.yuan/rumex/eqtl/pixy/eqtl_mpileup_auto.syn.L.vcf.gz
-vcftools --gzvcf ${vcf} --TajimaD 10000 --out syn
-
-
-# gene by gene stats
-cd /ohta2/meng.yuan/rumex/eqtl/pixy
-vcf=/ohta2/meng.yuan/rumex/eqtl/pixy/eqtl_mpileup_auto.syn.L.vcf.gz
-bed=merged_TX_noMatPARlarge_txanno_gene.bed
-python3 /ohta1/meng.yuan/apps/genomics_general/VCF_processing/parseVCFs.py \
--i ${vcf} --ploidyMismatchToMissing --threads 30 | \
-bgzip > eqtl_mpileup_auto.syn.L.geno.gz
-
-
-python3 /ohta1/meng.yuan/apps/genomics_general/popgenWindows.py \
---windType predefined --windCoords ${bed} -g eqtl_mpileup_auto.syn.L.geno.gz \
--o syn.genewise_tajd.csv.gz -f phased -T 30 -p pop \
---popsFile pop.txt --analysis popFreq --writeFailedWindows
-
-
-
+--output_prefix syn.genewise \
+--output_folder syn_genewise

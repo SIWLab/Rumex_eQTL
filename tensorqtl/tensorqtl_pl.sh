@@ -1,6 +1,6 @@
 # flip the alt allele as the nminor allele
 VCF=/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_auto.SNP.ML.filt2.vcf.gz
-/ohta2/meng.yuan/rumex/eqtl/VCF/eqtl_mpileup_auto.SNP.MP.filt.vcf.gz
+
 plink --vcf $VCF --double-id --allow-extra-chr  \
 --set-missing-var-ids @:# \
 --maf 0.05 --geno 0.2 \

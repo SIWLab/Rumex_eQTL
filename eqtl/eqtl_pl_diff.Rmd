@@ -14,9 +14,32 @@ library(qvalue)
 data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/eqtl/"
 ```
 
+## get eQTL from ML MP for comparison
+replace ML with ML_flipped
 ```{r}
-ML_eqtl_sig <-read.csv(paste0(data, "ML_eqtl_sig_Nov.csv"))
-MP_eqtl_sig <-read.csv(paste0(data, "MP_eqtl_sig_Nov.csv"))
+ML_flipped <- read.table(paste0(data, "ML_flipped.cis_qtl.txt"), header = T) # 14777
+MP_flipped <- read.table(paste0(data, "MP_flipped.cis_qtl.txt"), header = T) # 13785
+ML_flipped_egene <- ML_flipped %>% filter(qval < 0.1) # 2427
+MP_flipped_egene <- MP_flipped %>% filter(qval < 0.1) # 1480
+
+ML_flipped_A1 <- read_parquet(paste0(data,"ML_flipped.cis_qtl_pairs.1.parquet"))
+ML_flipped_A2 <- read_parquet(paste0(data,"ML_flipped.cis_qtl_pairs.2.parquet"))
+ML_flipped_A3 <- read_parquet(paste0(data,"ML_flipped.cis_qtl_pairs.3.parquet"))
+ML_flipped_A4 <- read_parquet(paste0(data,"ML_flipped.cis_qtl_pairs.4.parquet"))
+ML_flipped_eqtl <- rbind(ML_flipped_A1, ML_flipped_A2, ML_flipped_A3, ML_flipped_A4) # 1272993
+sum(ML_flipped$num_var) # 1272993
+
+MP_flipped_A1 <- read_parquet(paste0(data,"MP_flipped.cis_qtl_pairs.1.parquet"))
+MP_flipped_A2 <- read_parquet(paste0(data,"MP_flipped.cis_qtl_pairs.2.parquet"))
+MP_flipped_A3 <- read_parquet(paste0(data,"MP_flipped.cis_qtl_pairs.3.parquet"))
+MP_flipped_A4 <- read_parquet(paste0(data,"MP_flipped.cis_qtl_pairs.4.parquet"))
+MP_flipped_eqtl <- rbind(MP_flipped_A1, MP_flipped_A2, MP_flipped_A3, MP_flipped_A4) # 1182102
+sum(MP_flipped$num_var) # 1182102
+
+ML_flipped_eqtl_full <- inner_join(ML_flipped_eqtl, ML_flipped_egene[,c(1,16:19)], by = "phenotype_id") # 262510
+ML_eqtl_sig <- ML_flipped_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold) # 16617
+MP_flipped_eqtl_full <- inner_join(MP_flipped_eqtl, MP_flipped_egene[,c(1,16:19)], by = "phenotype_id") # 160522
+MP_eqtl_sig <- MP_flipped_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold) # 9463
 ```
 
 
@@ -33,7 +56,7 @@ hist(qval_pl)
 
 ## extract eQenes and eQTLs
 ```{r}
-pl_egene <- pl %>% filter(qval < 0.1) # 2031, 1566
+pl_egene <- pl %>% filter(qval < 0.1) # 1566
 
 pl_A1 <- read_parquet(paste0(data,"pl_abs.cis_qtl_pairs.1.parquet"))
 pl_A2 <- read_parquet(paste0(data,"pl_abs.cis_qtl_pairs.2.parquet"))
@@ -48,8 +71,8 @@ ggplot(pl_eqtl, aes(x=pval_nominal)) + geom_histogram(color="black", fill="white
 ```
 
 ```{r}
-pl_eqtl_full <- inner_join(pl_eqtl, pl_egene[,c(1,16:19)], by = "phenotype_id") # 223329, 173054, 176402
-pl_eqtl_sig <- pl_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold) # 12978, 9754, 9873
+pl_eqtl_full <- inner_join(pl_eqtl, pl_egene[,c(1,16:19)], by = "phenotype_id") # 176402
+pl_eqtl_sig <- pl_eqtl_full %>% filter(pval_nominal < pval_nominal_threshold) # 9873
 
 length(unique(pl_eqtl_sig$variant_id)) # 9639
 length(unique(pl_eqtl_sig$phenotype_id)) # 1564
@@ -102,8 +125,8 @@ p1 + p2
 ## distribution of effect size
 
 ```{r}
-nrow(pl_eqtl_sig[pl_eqtl_sig$slope > 0,]) # 5481, 6087, 6173
-nrow(pl_eqtl_sig[pl_eqtl_sig$slope < 0,]) # 7497, 3667, 3700
+nrow(pl_eqtl_sig[pl_eqtl_sig$slope > 0,]) # 6173
+nrow(pl_eqtl_sig[pl_eqtl_sig$slope < 0,]) # 3700
 
 nrow(pl_eqtl_sig_min[pl_eqtl_sig_min$slope > 0,]) # 921
 nrow(pl_eqtl_sig_min[pl_eqtl_sig_min$slope < 0,]) # 643
@@ -113,16 +136,12 @@ nrow(pl_eqtl_sig_random[pl_eqtl_sig_random$slope < 0,]) # 633
 ```
 
 ```{r}
-ggplot(p_data, aes(x=x, y=y_prop)) +
-  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("b")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.13)
-
 p3 <- ggplot(pl_eqtl_sig, aes(x=slope)) + geom_histogram(color="black", fill="white",binwidth = 0.01) + theme_classic()+ xlab("effect size")+ggtitle("")
 
 p4 <- ggplot(pl_eqtl_sig_min, aes(x=slope)) + geom_histogram(color="black", fill="white",binwidth = 0.01) + theme_classic()+ xlab("effect size")+ggtitle("")
 p3+p4
 ggsave(paste0(data,"pl_eqtl_beta.pdf"), width = 7, height = 3, units = "in")
 ```
-
 
 
 
@@ -175,25 +194,16 @@ length(unique(pl_eqtl_multigene$phenotype_id)) # 101
 # check overlap with results from separate models
 ## overlap with eQTLs in ML, MP
 ```{r}
-ml_overlap <- inner_join(pl_eqtl_sig, ML_eqtl_sig, by = c("phenotype_id", "variant_id")) # 4535
-mp_overlap <- inner_join(pl_eqtl_sig, MP_eqtl_sig, by = c("phenotype_id", "variant_id")) # 4964
+ml_overlap <- inner_join(pl_eqtl_sig, ML_eqtl_sig, by = c("phenotype_id", "variant_id")) # 4538
+mp_overlap <- inner_join(pl_eqtl_sig, MP_eqtl_sig, by = c("phenotype_id", "variant_id")) # 4977
 
-no_overlap <- pl_eqtl_sig %>% anti_join(ML_eqtl_sig, by = c("phenotype_id", "variant_id")) %>% anti_join(MP_eqtl_sig, by = c("phenotype_id", "variant_id")) # 1142
-# TX_paternal_00028051 3:98850390
-
-# for Venn diagram
-write.table(pl_eqtl_sig[,c(1:2)], file = paste0(data, "pl_eqtl.txt"), row.names = F, quote = F, col.names = F)
+no_overlap <- pl_eqtl_sig %>% anti_join(ML_eqtl_sig, by = c("phenotype_id", "variant_id")) %>% anti_join(MP_eqtl_sig, by = c("phenotype_id", "variant_id")) # 1125
 ```
 
 ```{r}
-data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/"
-normalized_counts_mln <- read.table(paste0(data,"normalized_counts_mln.bed"), header = T, check.names = F)
-normalized_counts_mpn <- read.table(paste0(data,"normalized_counts_mpn.bed"), header = T, check.names = F)
-
-# for Venn diagram
-write.table(normalized_counts_mln[,4], file = paste0(data, "ml_gene.txt"), row.names = F, quote = F, col.names = F)
-write.table(normalized_counts_mpn[,4], file = paste0(data, "mp_gene.txt"), row.names = F, quote = F, col.names = F)
-write.table(pl_eqtl_sig[,1], file = paste0(data, "pl_gene.txt"), row.names = F, quote = F, col.names = F)
+data1 <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manuscripts/rumex_eqtl/"
+normalized_counts_mln <- read.table(paste0(data1,"normalized_counts_mln.bed"), header = T, check.names = F)
+normalized_counts_mpn <- read.table(paste0(data1,"normalized_counts_mpn.bed"), header = T, check.names = F)
 
 # genes tested in all MP, ML and pl_diff 1051
 ml_gene <- as.data.frame(normalized_counts_mln[,4])
@@ -217,27 +227,27 @@ colnames(pl)[3] <- "pl"
 colnames(ml)[3] <- "ml"
 colnames(mp)[3] <- "mp"
 
-overlap_eqtl <- pl %>% inner_join(ml, by = c("phenotype_id", "variant_id")) %>% inner_join(mp, by = c("phenotype_id", "variant_id")) # 768
+overlap_eqtl <- pl %>% inner_join(ml, by = c("phenotype_id", "variant_id")) %>% inner_join(mp, by = c("phenotype_id", "variant_id")) # 767
 
 # different degree
-sum(overlap_eqtl$pl > 0 & overlap_eqtl$ml > 0 & overlap_eqtl$mp > 0) # 422
-sum(overlap_eqtl$pl > 0 & overlap_eqtl$ml < 0 & overlap_eqtl$mp < 0) # 109
-sum(overlap_eqtl$pl > 0 & overlap_eqtl$ml > 0 & overlap_eqtl$mp < 0) # 0
-sum(overlap_eqtl$pl > 0 & overlap_eqtl$ml < 0 & overlap_eqtl$mp > 0) # 22
+sum(overlap_eqtl$pl > 0 & overlap_eqtl$ml > 0 & overlap_eqtl$mp > 0) # 6
+sum(overlap_eqtl$pl > 0 & overlap_eqtl$ml < 0 & overlap_eqtl$mp < 0) # 522
+sum(overlap_eqtl$pl > 0 & overlap_eqtl$ml > 0 & overlap_eqtl$mp < 0) # 22
+sum(overlap_eqtl$pl > 0 & overlap_eqtl$ml < 0 & overlap_eqtl$mp > 0) # 0
 
-sum(overlap_eqtl$pl < 0 & overlap_eqtl$ml > 0 & overlap_eqtl$mp > 0) # 1
-sum(overlap_eqtl$pl < 0 & overlap_eqtl$ml < 0 & overlap_eqtl$mp < 0) # 204
-sum(overlap_eqtl$pl < 0 & overlap_eqtl$ml > 0 & overlap_eqtl$mp < 0) # 10
-sum(overlap_eqtl$pl < 0 & overlap_eqtl$ml < 0 & overlap_eqtl$mp > 0) # 0
+sum(overlap_eqtl$pl < 0 & overlap_eqtl$ml > 0 & overlap_eqtl$mp > 0) # 109
+sum(overlap_eqtl$pl < 0 & overlap_eqtl$ml < 0 & overlap_eqtl$mp < 0) # 98
+sum(overlap_eqtl$pl < 0 & overlap_eqtl$ml > 0 & overlap_eqtl$mp < 0) # 1
+sum(overlap_eqtl$pl < 0 & overlap_eqtl$ml < 0 & overlap_eqtl$mp > 0) # 9
 
 # pl and leaf same sign
-422+204+0+0
+6+98+22+9
 
 # pl and pollen same sign
-422+204+22+10
+6+98+0+1
 
 # leaf and pollen same sign
-422+109+1+204 # 736s
+6+522+109+98 # 735s
 ```
 
 

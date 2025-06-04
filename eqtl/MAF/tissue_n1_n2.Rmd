@@ -17,6 +17,8 @@ data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manus
 ```{r}
 ML_eqtl_sig <-read.csv(paste0(data, "ML_eqtl_sig_Nov.csv"))
 MP_eqtl_sig <-read.csv(paste0(data, "MP_eqtl_sig_Nov.csv"))
+ML_eqtl_multigene <- read.csv(paste0(data, "ML_eqtl_multigene.csv"))
+MP_eqtl_multigene <- read.csv(paste0(data, "MP_eqtl_multigene.csv"))
 ML_eqtl_sig <- ML_eqtl_sig %>% group_by(phenotype_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count <= 10) 
 MP_eqtl_sig <- MP_eqtl_sig %>% group_by(phenotype_id) %>% mutate(count = n()) %>% ungroup() %>% filter(count <= 10) 
 
@@ -26,14 +28,18 @@ MP_eqtl_sig <- MP_eqtl_sig %>% dplyr::select(phenotype_id, variant_id, maf)
 tissue_n2 <- inner_join(ML_eqtl_sig, MP_eqtl_sig, by = c("phenotype_id", "variant_id", "maf"))
 tissue_n1 <- bind_rows(anti_join(ML_eqtl_sig, MP_eqtl_sig, by = c("phenotype_id", "variant_id", "maf")), anti_join(MP_eqtl_sig, ML_eqtl_sig, by = c("phenotype_id", "variant_id", "maf")))
 
-# remove eqtls affecting multiple genes 
-tissue_n2 <- tissue_n2 %>% anti_join(ML_eqtl_multigene, by = c("variant_id")) %>% anti_join(MP_eqtl_multigene, by = c("variant_id")) # 530
-tissue_n1 <- tissue_n1 %>% anti_join(ML_eqtl_multigene, by = c("variant_id")) %>% anti_join(MP_eqtl_multigene, by = c("variant_id"))# 7917
+set.seed(13) 
+tissue_n2_random <- tissue_n2 %>% group_by(phenotype_id) %>% slice_sample(n = 1) # 157
+set.seed(13) 
+tissue_n1_random <- tissue_n1 %>% group_by(phenotype_id) %>% slice_sample(n = 1) # 2970
 
-set.seed(13) 
-tissue_n2_random <- tissue_n2 %>% group_by(phenotype_id) %>% slice_sample(n = 1) # 242, 182
-set.seed(13) 
-tissue_n1_random <- tissue_n1 %>% group_by(phenotype_id) %>% slice_sample(n = 1) # 3429, 2806
+# remove eqtls affecting multiple genes 
+tissue_n1_random <- tissue_n1_random %>% anti_join(ML_eqtl_multigene, by = c("variant_id")) %>% anti_join(MP_eqtl_multigene, by = c("variant_id")) %>% select(variant_id, maf) # 2838
+tissue_n2_random <- tissue_n2_random %>% anti_join(ML_eqtl_multigene, by = c("variant_id")) %>% anti_join(MP_eqtl_multigene, by = c("variant_id")) %>% select(variant_id, maf) # 132
+
+median(tissue_n1_random$maf)
+median(tissue_n2_random$maf)
+
 
 # plots
 p<-ggplot(tissue_n1_random, aes(x=maf)) + geom_histogram(binwidth=0.01) 
@@ -46,10 +52,10 @@ p<-ggplot(tissue_n2_random, aes(x=maf)) + geom_histogram(binwidth=0.01)
 p_data <- ggplot_build(p)$data[[1]]
 p_data$y_prop <- p_data$y/sum(p_data$y) 
 p2 <- ggplot(p_data, aes(x=x, y=y_prop)) +
-  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("b")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.15) + expand_limits(x=0.5) + geom_vline(xintercept=0.1478373, color = "red",linetype="dashed")
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("b")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10)) + ylim(0, 0.15) + expand_limits(x=0.5) + geom_vline(xintercept=0.1428571, color = "red",linetype="dashed")
 
 p1 + p2
-ggsave(paste0(data,"MAF_n1_n2.pdf"))
+ggsave(paste0(data,"MAF_n1_n2_jun.pdf"))
 ```
 
 
@@ -85,37 +91,30 @@ n2_null <- n2_null %>% mutate(x_axis = paste(xmin, xmax, sep = "-"))
  
  
 ggplot(n1_null, aes(x_axis, y_prop)) + 
-    geom_point(fill = NA, colour = "lightgrey", alpha = 1)+
-    geom_point(data = n2_null, color = "pink", fill=NA, alpha = 0.9)+ 
+    geom_point(fill = NA, colour = "lightgrey", alpha = 1)+ 
     geom_point(data = p_data1, color = "red", fill="red", alpha = 0.9)+ 
-    geom_point(data = p_data2, color = "black", fill="black", alpha = 0.9)+ 
     theme_classic()+ labs(x="MAF", y="Proportion", title = "b")+
     theme(axis.text.x = element_text(angle = 45, hjust = 1),text = element_text(size = 10))
-#ggsave(paste0(data, "tissue_n1_n2_smallbin.pdf"))
+ggsave(paste0(data, "tissue_n1_smallbin.pdf"))
 ```
 ## check the number of fake eqtls
 ```{r}
 cnt <- read.table(paste0(data, "tissue_n1_n2_random.cnt"))
 summary(cnt$V2)
 summary(cnt$V4)
-
 ```
-   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-  1.000   1.000   1.000   1.634   2.000   9.000 
-   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-  1.000   1.000   1.000   1.288   1.000   4.000 
-
+ 
 ```{r}
 median(tissue_n1_random$maf)
 median(tissue_n2_random$maf)
 
 wilcox.test(tissue_n1_random$maf, tissue_n2_random$maf)
 ```
-[1] 0.09322034
-[1] 0.1478373
+[1] 0.093
+[1] 0.143
 
 	Wilcoxon rank sum test with continuity correction
 
 data:  tissue_n1_random$maf and tissue_n2_random$maf
-W = 187916, p-value = 2.249e-09
+W = 136144, p-value = 1.078e-07
 alternative hypothesis: true location shift is not equal to 0

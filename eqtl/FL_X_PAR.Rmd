@@ -311,5 +311,29 @@ ggplot(maf_null1, aes(x_axis, y_prop)) +
     theme_classic()+ labs(x="MAF", y="Proportion", title = "b")+
     theme(axis.text.x = element_text(angle = 45, hjust = 1),text = element_text(size = 10))
 ggsave(paste0(data,"FL_A_X_MAF_nul.pdf"))
+
+ggplot(maf_null1, aes(x_axis, y_prop)) + 
+    geom_point(fill = NA, colour = "grey", alpha = 0.9)+
+    geom_point(data = maf_null3, color = "lightblue", fill=NA, alpha = 0.6)+
+    geom_point(data = p_data1, colour = "black", alpha = 0.9)+
+    geom_point(data = p_data3, color = "blue", fill=NA, alpha = 0.6)+
+    theme_classic()+ labs(x="MAF", y="Proportion", title = "b")+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),text = element_text(size = 10))
+ggsave(paste0(data,"FL_A_X_MAF_nul_clean.pdf"))
+
+p1 <- ggplot(maf_null1, aes(x_axis, y_prop)) + 
+    geom_point(fill = NA, colour = "darkgrey", alpha = 0.2)+
+    geom_point(data = p_data1, color = "black", fill="black")+ 
+    theme_classic()+ labs(x="MAF", y="Proportion", title = "a")+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),text = element_text(size = 10))+
+    ylim(0, 0.75)
+p2 <- ggplot(maf_null3, aes(x_axis, y_prop)) + 
+    geom_point(fill = NA, colour = "darkgrey", alpha = 0.2)+
+    geom_point(data = p_data3, color = "black", fill="black")+ 
+    theme_classic()+ labs(x="MAF", y="Proportion", title = "b")+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),text = element_text(size = 10))+
+    ylim(0, 0.75)
+p1 + p2
+ggsave(paste0(data,"FigS9.pdf"), height = 3.4, width = 7, units = "in")
 ```
 

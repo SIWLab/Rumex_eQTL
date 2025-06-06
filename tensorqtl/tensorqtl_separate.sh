@@ -111,22 +111,7 @@ python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
 #     * writing output
 #     Mapping chromosome 4
 #     processing phenotype 14777/14777
-
-# Y
-plink_prefix_path=/ohta2/meng.yuan/rumex/eqtl/plink/Y
-expression_bed=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/normalized_counts_mln_Y.bed.gz
-prefix=Y
-covariates_file=/ohta2/meng.yuan/rumex/eqtl/tensorqtl/covariate_ML.txt
-
-# cis-QTL mapping: permutations
-python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
-    --covariates ${covariates_file} \
-    --mode cis --window 20000 --fdr 0.1
-
-# cis-QTL mapping: summary statistics for all variant-phenotype pairs
-python3 -m tensorqtl ${plink_prefix_path} ${expression_bed} ${prefix} \
-    --covariates ${covariates_file} \
-    --mode cis_nominal --window 20000    
+   
 
 # pollen (MP)
 # genotype files are the same for male leaf and pollen

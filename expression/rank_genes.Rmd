@@ -14,54 +14,60 @@ data <- "/Users/yuanmeng/Library/CloudStorage/OneDrive-UniversityofToronto/Manus
 ```
 
 ## prep gene windows
+5kb before TSS for each gene (check overlap in windows later)
+```{r}
+gff_full <- read.table(paste0(data, "merged_TX_noMatPARlarge_txanno_gene_full.bed"))
+colnames(gff_full) <- c("chrom", "start", "end", "strand")
+gff_full <- inner_join(gff_full, gff, by = c("chrom", "start", "end"))
+
+bed_5kb_upstream <- gff_full %>%
+  mutate(
+    tss = ifelse(strand == "+", start, end),
+    start_5kb = ifelse(strand == "+", pmax(tss - 5000, 0), tss),
+    end_5kb = ifelse(strand == "+", tss, tss + 5000)
+  ) %>%
+  select(chrom, start_5kb, end_5kb, gene)
+
+bed_5kb_upstream <- bed_5kb_upstream %>% filter(chrom != "X" & chrom != "Y")
+bed_5kb_upstream$chrom <- factor(bed_5kb_upstream$chrom)
+levels(bed_5kb_upstream$chrom) <- c("1", "2", "3", "4")
+```
+
+
 ```{r}
 ml_expr <- read.table(paste0(data,"normalized_counts_ml_sept.txt"), header = T, check.names = F)
 ml <- ml_expr %>% select(gene)
-
-gff <- read.table(paste0(data,"merged_TX_noMatPARlarge_txanno_genes.gtf"))
-gff <- gff[,c(13, 1,4,5)]
-colnames(gff) <- c("gene","chrom", "start", "end")
-
-gff <- inner_join(ml, gff, by = "gene")
-gff <- gff %>% filter(chrom != "X" & chrom != "Y")
-gff$chrom <- factor(gff$chrom)
-levels(gff$chrom) <- c("1", "2", "3", "4")
-
-# come back later
-# gff <- gff %>% mutate(new_start = start - 500) %>% mutate(new_end = end + 500)
-write.table(gff[,2:4], file = paste0(data,"ML_genes.bed"), sep = "\t", quote = F, row.names = F, col.names = F)
-write.table(gff, file = paste0(data,"ML_genes.gff"), sep = "\t", quote = F, row.names = F)
+gff <- inner_join(ml, bed_5kb_upstream, by = "gene")
+write.table(gff[,2:4], file = paste0(data,"ML_genes_5k.bed"), sep = "\t", quote = F, row.names = F, col.names = F)
+write.table(gff, file = paste0(data,"ML_genes_5k.gff"), sep = "\t", quote = F, row.names = F)
 
 
 fl_expr <- read.table(paste0(data,"normalized_counts_fl_sept.txt"), header = T, check.names = F)
 fl <- fl_expr %>% select(gene)
-gff <- inner_join(fl, gff, by = "gene")
-gff <- gff %>% filter(chrom != "X" & chrom != "Y")
-gff$chrom <- factor(gff$chrom)
-levels(gff$chrom) <- c("1", "2", "3", "4")
-write.table(gff[,2:4], file = paste0(data,"FL_genes.bed"), sep = "\t", quote = F, row.names = F, col.names = F)
-write.table(gff, file = paste0(data,"FL_genes.gff"), sep = "\t", quote = F, row.names = F)
+gff <- inner_join(fl, bed_5kb_upstream, by = "gene")
+write.table(gff[,2:4], file = paste0(data,"FL_genes_5k.bed"), sep = "\t", quote = F, row.names = F, col.names = F)
+write.table(gff, file = paste0(data,"FL_genes_5k.gff"), sep = "\t", quote = F, row.names = F)
+
 
 mp_expr <- read.table(paste0(data,"normalized_counts_p_sept.txt"), header = T, check.names = F)
 mp <- mp_expr %>% select(gene)
-gff <- inner_join(mp, gff, by = "gene")
-gff <- gff %>% filter(chrom != "X" & chrom != "Y")
-gff$chrom <- factor(gff$chrom)
-levels(gff$chrom) <- c("1", "2", "3", "4")
-write.table(gff[,2:4], file = paste0(data,"MP_genes.bed"), sep = "\t", quote = F, row.names = F, col.names = F)
-write.table(gff, file = paste0(data,"MP_genes.gff"), sep = "\t", quote = F, row.names = F)
+gff <- inner_join(mp, bed_5kb_upstream, by = "gene")
+write.table(gff[,2:4], file = paste0(data,"MP_genes_5k.bed"), sep = "\t", quote = F, row.names = F, col.names = F)
+write.table(gff, file = paste0(data,"MP_genes_5k.gff"), sep = "\t", quote = F, row.names = F)
 ```
 
 
-## count number of 
+## count number of alleles
+### ML
 ```{r}
 ml_names <- read.table("ML.txt")
-ml_geno <- read.table("ML_rare_local_genotypes3.tsv")
-gff <- read.table("ML_genes.gff", header = T)
+ml_geno <- read.table("ML_singleton_5k.tsv")
+gff <- read.table("ML_genes_5k.gff", header = T)
 colnames(ml_geno)[1:2] <- c("chrom", "pos")
 colnames(ml_geno)[3:71] <- as.vector(ml_names[[1]])
 ml_geno$chrom <- as.character(ml_geno$chrom)
 gff$chrom <- as.character(gff$chrom)
+colnames(gff)[3:4] <- c("start", "end")
 # add gene info to genotype file
 
 setDT(ml_geno)
@@ -71,35 +77,32 @@ setkey(gff, chrom, start, end)
 setkey(ml_geno, chrom, start, end)
 result <- foverlaps(ml_geno, gff, nomatch = 0L)
 
-# ml_geno1 <- ml_geno %>% filter(chrom == "1")
-# result1 <- ml_geno1 %>%
-#   inner_join(gff, by = "chrom") %>%
-#   filter(pos >= start & pos <= end)
 result <- result[,c(1:74)]
-#result <- result[,c(1:2,72:74,3:71)]
 write.table(result, file = "ML_result_new.txt", sep = "\t", quote = F, row.names = F)
+
 # count genotypes
 result <- as.data.table(result)
 ind_cols <- 6:ncol(result)
 
-result[, (ind_cols) := lapply(.SD, function(x) as.integer(x %in% c("0/1", "1/1"))), .SDcols = ind_cols]
+result[, (ind_cols) := lapply(.SD, function(x) as.integer(x == "0/1")), .SDcols = ind_cols]
+
 write.table(result, file = "ML_result_new2.txt", sep = "\t", quote = F, row.names = F)
 
 result <- result[, lapply(.SD, sum), by = gene, .SDcols = ind_cols]
-write.table(result, file = "ML_geno_counts_new.txt", sep = "\t", quote = F, row.names = F)
+write.table(result, file = "ML_geno_counts_5k.txt", sep = "\t", quote = F, row.names = F)
 
 ```
 
-
+### FL
 ```{r}
 fl_names <- read.table("FL.txt")
-fl_geno <- read.table("FL_rare_local_genotypes3.tsv")
-gff <- read.table("FL_genes.gff", header = T)
+fl_geno <- read.table("FL_singleton_5k.tsv")
+gff <- read.table("FL_genes_5k.gff", header = T)
 colnames(fl_geno)[1:2] <- c("chrom", "pos")
-
 colnames(fl_geno)[3:76] <- as.vector(fl_names[[1]])
 fl_geno$chrom <- as.character(fl_geno$chrom)
 gff$chrom <- as.character(gff$chrom)
+colnames(gff)[3:4] <- c("start", "end")
 
 setDT(fl_geno)
 setDT(gff)
@@ -113,22 +116,22 @@ write.table(result, file = "FL_result_new.txt", sep = "\t", quote = F, row.names
 result <- as.data.table(result)
 ind_cols <- 6:ncol(result)
 
-result[, (ind_cols) := lapply(.SD, function(x) as.integer(x %in% c("0/1", "1/1"))), .SDcols = ind_cols]
+result[, (ind_cols) := lapply(.SD, function(x) as.integer(x == "0/1")), .SDcols = ind_cols]
 write.table(result, file = "FL_result_new2.txt", sep = "\t", quote = F, row.names = F)
 result <- result[, lapply(.SD, sum), by = gene, .SDcols = ind_cols]
-write.table(result, file = "FL_geno_counts_new.txt", sep = "\t", quote = F, row.names = F)
+write.table(result, file = "FL_geno_counts_5k.txt", sep = "\t", quote = F, row.names = F)
 ```
 
-
+### MP
 ```{r}
 mp_names <- read.table("ML.txt")
-mp_geno <- read.table("MP_rare_local_genotypes3.tsv")
-gff <- read.table("MP_genes.gff", header = T)
+mp_geno <- read.table("MP_singleton_5k.tsv")
+gff <- read.table("MP_genes_5k.gff", header = T)
 colnames(mp_geno)[1:2] <- c("chrom", "pos")
-
 colnames(mp_geno)[3:71] <- as.vector(mp_names[[1]])
 mp_geno$chrom <- as.character(mp_geno$chrom)
 gff$chrom <- as.character(gff$chrom)
+colnames(gff)[3:4] <- c("start", "end")
 
 setDT(mp_geno)
 setDT(gff)
@@ -138,14 +141,14 @@ setkey(mp_geno, chrom, start, end)
 result <- foverlaps(mp_geno, gff, nomatch = 0L)
 
 result <- result[,c(1:74)]
-write.table(result, file = "MP_result_new.txt", sep = "\t", quote = F, row.names = F)
+#write.table(result, file = "MP_result_new.txt", sep = "\t", quote = F, row.names = F)
 result <- as.data.table(result)
 ind_cols <- 6:ncol(result)
 
-result[, (ind_cols) := lapply(.SD, function(x) as.integer(x %in% c("0/1", "1/1"))), .SDcols = ind_cols]
-write.table(result, file = "MP_result_new2.txt", sep = "\t", quote = F, row.names = F)
+result[, (ind_cols) := lapply(.SD, function(x) as.integer(x == "0/1")), .SDcols = ind_cols]
+#write.table(result, file = "MP_result_new2.txt", sep = "\t", quote = F, row.names = F)
 result <- result[, lapply(.SD, sum), by = gene, .SDcols = ind_cols]
-write.table(result, file = "MP_geno_counts_new.txt", sep = "\t", quote = F, row.names = F)
+write.table(result, file = "MP_geno_counts_5k.txt", sep = "\t", quote = F, row.names = F)
 ```
 
 
@@ -167,7 +170,7 @@ rank_variants_by_expression <- function(expr_row, var_row) {
   return(ranked_vars)
 }
 
-ML_geno <- read.table(paste0(data, "ML_geno_counts_new.txt"), header = T, check.names = F)
+ML_geno <- read.table(paste0(data, "ML_geno_counts_5k.txt"), header = T, check.names = F)
 ML_geno_gene <- ML_geno %>% select(gene)
 ml_expr <- inner_join(ML_geno_gene, ml_expr, by = "gene")
 common_inds <- intersect(colnames(ml_expr)[-1], colnames(ML_geno)[-1])
@@ -188,12 +191,35 @@ ml_table_sum <- colSums(ml_table[,-1])
 ml_table_sum <- data.frame(ml_table_sum)
 ml_table_sum$rank <- seq(1,69)
 colnames(ml_table_sum)[1] <- "count"
+write.table(ml_table_sum, file = paste0(data, "ml_table_sum_5k.txt"), quote = F, row.names = F)
+model <- lm(count ~ rank + I(rank^2), data = ml_table_sum)
+summary(model)
 
-p1 <- ggplot(ml_table_sum, aes(x = rank, y = count)) + geom_point() + theme_classic() + geom_smooth() + ggtitle("ML") + ylim(86000, 101900)
+p1 <- ggplot(ml_table_sum, aes(x = rank, y = count)) + geom_point() + theme_classic() + stat_smooth(method = "lm", formula = y ~ x + I(x^2), se = FALSE) + labs(x = "Expression Rank Bin", y = "Rare Allele Count", title = "a") 
+p1 <- ggplot(ml_table_sum, aes(x = rank, y = count)) + geom_point() + theme_classic() + stat_smooth(method = "lm", formula = y ~ x + I(x^2), se = FALSE) + labs(x = "Expression Rank Bin", y = "Rare Allele Count", title = "a") + ylim(27200,32350)
+p1
 ```
+Call:
+lm(formula = count ~ rank + I(rank^2), data = ml_table_sum)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-2294.9  -805.3   128.0   634.1  3333.8 
+
+Coefficients:
+              Estimate Std. Error t value Pr(>|t|)    
+(Intercept) 96080.7921   378.2056 254.044  < 2e-16 ***
+rank         -133.5406    24.9332  -5.356 1.16e-06 ***
+I(rank^2)       2.3912     0.3452   6.927 2.18e-09 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 1017 on 66 degrees of freedom
+Multiple R-squared:  0.5426,	Adjusted R-squared:  0.5288 
+F-statistic: 39.15 on 2 and 66 DF,  p-value: 6.149e-12
 
 ```{r}
-FL_geno <- read.table(paste0(data, "FL_geno_counts_new.txt"), header = T, check.names = F)
+FL_geno <- read.table(paste0(data, "FL_geno_counts_5k.txt"), header = T, check.names = F)
 FL_geno_gene <- FL_geno %>% select(gene)
 fl_expr <- inner_join(FL_geno_gene, fl_expr, by = "gene")
 common_inds <- intersect(colnames(fl_expr)[-1], colnames(FL_geno)[-1])
@@ -214,12 +240,36 @@ fl_table_sum <- colSums(fl_table[,-1])
 fl_table_sum <- data.frame(fl_table_sum)
 fl_table_sum$rank <- seq(1,74)
 colnames(fl_table_sum)[1] <- "count"
+write.table(fl_table_sum, file = paste0(data, "fl_table_sum_5k.txt"), quote = F, row.names = F)
+model <- lm(count ~ rank + I(rank^2), data = fl_table_sum)
+summary(model)
 
-p2 <- ggplot(fl_table_sum, aes(x = rank, y = count)) + geom_point() + theme_classic() + geom_smooth()+ ggtitle("FL")+ ylim(86000, 101900)
+p2 <- ggplot(fl_table_sum, aes(x = rank, y = count)) + geom_point() + theme_classic() + stat_smooth(method = "lm", formula = y ~ x + I(x^2), se = FALSE) + labs(x = "Expression Rank Bin", y = "Rare Allele Count", title = "b") 
+p2 <- ggplot(fl_table_sum, aes(x = rank, y = count)) + geom_point() + theme_classic() + stat_smooth(method = "lm", formula = y ~ x + I(x^2), se = FALSE) + labs(x = "Expression Rank Bin", y = "Rare Allele Count", title = "b") + ylim(27200,32350)
+p2
 ```
+Call:
+lm(formula = count ~ rank + I(rank^2), data = fl_table_sum)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-2190.13  -729.71    17.19   814.04  2778.03 
+
+Coefficients:
+             Estimate Std. Error t value Pr(>|t|)    
+(Intercept) 94873.711    406.202 233.563  < 2e-16 ***
+rank         -165.567     24.995  -6.624 5.70e-09 ***
+I(rank^2)       2.618      0.323   8.107 1.06e-11 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 1133 on 71 degrees of freedom
+Multiple R-squared:  0.5608,	Adjusted R-squared:  0.5484 
+F-statistic: 45.32 on 2 and 71 DF,  p-value: 2.067e-13
+
 
 ```{r}
-MP_geno <- read.table(paste0(data, "MP_geno_counts_new.txt"), header = T, check.names = F)
+MP_geno <- read.table(paste0(data, "MP_geno_counts_5k.txt"), header = T, check.names = F)
 MP_geno_gene <- MP_geno %>% select(gene)
 mp_expr <- inner_join(MP_geno_gene, mp_expr, by = "gene")
 common_inds <- intersect(colnames(mp_expr)[-1], colnames(MP_geno)[-1])
@@ -240,12 +290,34 @@ mp_table_sum <- colSums(mp_table[,-1])
 mp_table_sum <- data.frame(mp_table_sum)
 mp_table_sum$rank <- seq(1,69)
 colnames(mp_table_sum)[1] <- "count"
+write.table(mp_table_sum, file = paste0(data, "mp_table_sum_5k.txt"), quote = F, row.names = F)
+model <- lm(count ~ rank, data = mp_table_sum)
+summary(model)
 
-p3 <- ggplot(mp_table_sum, aes(x = rank, y = count)) + geom_point() + theme_classic() + geom_smooth()+ ggtitle("MP")+ ylim(86000, 101900)
+p3 <- ggplot(mp_table_sum, aes(x = rank, y = count)) + geom_point() + theme_classic() + geom_smooth(method = "lm", se = FALSE)+ labs(x = "Expression Rank Bin", y = "Rare Allele Count", title = "c") + ylim(27200,32350)
+p3 <- ggplot(mp_table_sum, aes(x = rank, y = count)) + geom_point() + theme_classic() + geom_smooth( se = FALSE)+ labs(x = "Expression Rank Bin", y = "Rare Allele Count", title = "c") + ylim(27200,32350)
+p3
 ```
+Call:
+lm(formula = count ~ rank, data = mp_table_sum)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-2320.0  -618.6  -229.2   504.9  2288.4 
+
+Coefficients:
+             Estimate Std. Error t value Pr(>|t|)    
+(Intercept) 87664.713    253.418 345.929  < 2e-16 ***
+rank           38.436      6.293   6.108 5.76e-08 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 1041 on 67 degrees of freedom
+Multiple R-squared:  0.3577,	Adjusted R-squared:  0.3481 
+F-statistic: 37.31 on 1 and 67 DF,  p-value: 5.756e-08
 
 ```{r}
 p1 + p2 + p3
-ggsave(filename = paste0(data,"rare_allele2.pdf"), height = 3.5, width = 8, units = "in")
+ggsave(filename = paste0(data,"rare_allele_5k_samescale.pdf"), height = 3.2, width = 8.3, units = "in")
 ```
 

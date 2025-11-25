@@ -74,6 +74,7 @@ p2
 ## DE genes
 ```{r}
 DE_sex <- read.table(paste0(data,"DE_sex_full.txt"), header = T)
+table(DE_sex$chrom_new)
 head(DE_sex) 
 DE_sex <- DE_sex %>% filter(padj<0.05) # 5636
 
@@ -231,6 +232,32 @@ odds ratio
 # fisher.test(table_data)
 ```
 
+ X     A
+Female-bias
+Sex-bias
+
+
+Location Female Biased, all genes tested for DE
+X              a  378             b 1970
+Autosome       c   10            d 14992
+
+Location Male Biased, all genes tested for DE
+Y              a  1026             b 1454
+Autosome       c   50            d 14992
+```{r}
+data <- matrix(c(370, 10, 1970, 14992), nrow = 2,
+            dimnames = list(Location = c("X", "Autosome"),
+            Status = c("FemaleBiased", "All")))
+
+chisq.test(data)$p.value # 0
+
+data <- matrix(c(1026, 50, 1454, 14992), nrow = 2,
+            dimnames = list(Location = c("Y", "Autosome"),
+            Status = c("MaleBiased", "All")))
+
+chisq.test(data)$p.value # 0
+
+```
 
 ```{r}
 mosaicplot(table_data)

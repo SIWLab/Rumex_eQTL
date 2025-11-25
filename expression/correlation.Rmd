@@ -195,3 +195,73 @@ p4 + p3 + plot_layout(guides = 'collect')
 ggsave(paste0(data, "Fig2.pdf"), height = 3.4, width = 7.5, units = "in")
 ```
 
+extrat top sex correlated eGenes
+```{r}
+test <- egene_sex %>% filter(pearson_r > 0.8)
+
+top100 <- egene_sex[order(egene_sex$pearson_r, decreasing = TRUE), ][1:100, ]
+
+top05 <-  egene_sex %>% filter(pearson_r > 0.5) # 462
+
+close0 <-  egene_sex %>% filter(pearson_r > -0.1 & pearson_r < 0.1) # 348
+
+
+
+write.csv(ML_eqtl_sig_min, file = paste0(data, "ML_eqtl_sig_min.csv"), row.names = F, quote = F)
+write.csv(FL_eqtl_sig_min, file = paste0(data, "FL_eqtl_sig_min.csv"), row.names = F, quote = F)
+ML_eqtl_sig_min <- read.csv(paste0(data, "ML_eqtl_sig_min.csv"))
+FL_eqtl_sig_min <- read.csv(paste0(data, "FL_eqtl_sig_min.csv"))
+
+ml <- inner_join(top100, ML_eqtl_sig_min, by = "phenotype_id")
+fl <- inner_join(top100, FL_eqtl_sig_min, by = "phenotype_id")
+
+ml_high <- inner_join(top05, ML_eqtl_sig_min, by = "phenotype_id") # 289
+ml_low <- inner_join(close0, ML_eqtl_sig_min, by = "phenotype_id") # 135
+
+fl_high <- inner_join(top05, FL_eqtl_sig_min, by = "phenotype_id") # 388
+fl_low <- inner_join(close0, FL_eqtl_sig_min, by = "phenotype_id") # 248
+
+
+median(ml_high$maf)
+median(ml_low$maf)
+median(fl_high$maf)
+median(fl_low$maf)
+
+median(ml$maf)
+median(fl$maf)
+
+p<-ggplot(fl_high, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y) # 0.117
+
+p1 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("a")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10))  + expand_limits(x=0.5) + geom_vline(xintercept=0.1016949, color = "red",linetype="dashed")
+
+
+p<-ggplot(fl_low, aes(x=maf)) + geom_histogram(binwidth=0.01) 
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y/sum(p_data$y) # 0.117
+
+p2 <- ggplot(p_data, aes(x=x, y=y_prop)) +
+  geom_bar(stat="identity", width = 0.01, color="white")  + theme_classic() + ggtitle("a")+ labs(x="MAF", y="Proportion")+ theme(text = element_text(size = 10))  + expand_limits(x=0.5) + geom_vline(xintercept=0.1016949, color = "red",linetype="dashed")
+p1 + p2
+```
+
+```{r}
+get_hist_prop2 <- function(data, binwidth = 0.05, boundary = 0.05, x_limits = c(0.05, 0.5)) {p <- ggplot(data, aes(x = maf)) + geom_histogram(binwidth = binwidth, boundary = boundary) + scale_x_continuous(limits = x_limits)
+p_data <- ggplot_build(p)$data[[1]]
+p_data$y_prop <- p_data$y / sum(p_data$y)
+p_data <- p_data %>% dplyr::select(x, xmin, xmax, y, y_prop)
+return(p_data)}
+
+ml_high$maf <- round(ml_high$maf, digits = 3)
+p_data <- get_hist_prop2(ml_high)
+
+
+```
+
+```{r}
+wilcox.test(ml_high$maf, ml_low$maf)
+wilcox.test(fl_high$maf, fl_low$maf)
+```
+
